@@ -32,7 +32,7 @@ extension WorldBackup {
         ]
         
         // Attach To Container
-        let process = ProcessWrapper(URL(fileURLWithPath: "/bin/sh"), arguments)
+        let process = try ProcessWrapper(URL(fileURLWithPath: "/bin/sh"), arguments)
         process.launch()
         
         // Start Save Hold

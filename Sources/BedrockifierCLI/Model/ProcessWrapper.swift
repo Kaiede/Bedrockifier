@@ -7,6 +7,8 @@
 
 import Foundation
 
+import PtyKit
+
 class ProcessWrapper {
     let process: Process
     let hostHandle: FileHandle
@@ -17,7 +19,7 @@ class ProcessWrapper {
     let bufferSemaphore: DispatchSemaphore
     var linesBuffer: [String]
     
-    init(_ launchExecutable: URL, _ arguments: [String]) {
+    init(_ launchExecutable: URL, _ arguments: [String]) throws {
         readSemaphore = DispatchSemaphore(value: 0)
         bufferSemaphore = DispatchSemaphore(value: 1)
         linesBuffer = []
@@ -29,14 +31,8 @@ class ProcessWrapper {
         // Setup the pipe
         outPipe = Pipe()
         
-        // Setup a TTY
-        let hostDesc = posix_openpt(O_RDWR)
-        grantpt(hostDesc)
-        unlockpt(hostDesc)
-        let targetDesc = String(cString: ptsname(hostDesc))
-
-        hostHandle = FileHandle(fileDescriptor: hostDesc)
-        targetHandle = FileHandle(forUpdatingAtPath: targetDesc)!
+        hostHandle = try FileHandle.openPty()
+        targetHandle = try hostHandle.getChildPty()
     }
     
     func launch() {
