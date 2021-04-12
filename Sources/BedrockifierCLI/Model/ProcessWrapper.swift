@@ -9,6 +9,10 @@ import Foundation
 
 import PtyKit
 
+enum ProcessError: Error {
+    case NotRunning
+}
+
 class ProcessWrapper {
     let process: Process
     let hostHandle: FileHandle
@@ -56,7 +60,7 @@ class ProcessWrapper {
     func send(_ content: String) throws {
         guard process.isRunning else {
             print("Process is not Running")
-            return
+            throw ProcessError.NotRunning
         }
         
         guard let data = content.data(using: .utf8) else {
@@ -67,14 +71,14 @@ class ProcessWrapper {
         hostHandle.write(data)
     }
     
-    func expect(_ content: String) throws -> String? {
+    func expect(_ content: String) throws -> String {
         return try expect([content])
     }
     
-    func expect(_ content: [String]) throws -> String? {
+    func expect(_ content: [String]) throws -> String {
         guard process.isRunning else {
             print("Process is not Running")
-            return nil
+            throw ProcessError.NotRunning
         }
         
         print("Expecting: \(content)")
@@ -89,7 +93,7 @@ class ProcessWrapper {
             }
         }
         
-        return nil
+        throw ProcessError.NotRunning
     }
     
     private func findMatches(inputHandle: FileHandle, expressions: [String]) -> String? {

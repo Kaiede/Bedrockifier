@@ -28,7 +28,7 @@ extension WorldBackup {
     static func makeBackup(backupUrl: URL, containerName: String, worldsPath: URL) throws {
         let arguments: [String] = [
             "-c",
-            "/usr/local/bin/docker attach --detach-keys=Q \(containerName)"
+            "/snap/bin/docker attach --detach-keys=Q \(containerName)"
         ]
         
         // Attach To Container
