@@ -11,16 +11,16 @@ struct BackupConfig: Codable {
     struct ServerConfig: Codable {
         var container: String
         var worldsPath: String
-        var backupPath: String
     }
 
     struct TrimConfig: Codable {
-        var backupPath: String
         var trimDays: Int?
         var keepDays: Int?
         var minKeep: Int?
     }
     
+    var dockerPath: String
+    var backupPath: String
     var servers: [ServerConfig]
     var trim: [TrimConfig]
 }

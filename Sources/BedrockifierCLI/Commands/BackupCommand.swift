@@ -10,9 +10,12 @@ import Foundation
 
 final class BackupCommand: Command {
     struct Signature: CommandSignature {
+        @Argument(name: "dockerPath", help: "Path to docker")
+        var dockerPath: String
+        
         @Argument(name: "containerName", help: "Docker Container")
         var containerName: String
-
+        
         @Argument(name: "worldsPath", help: "worlds folder of server")
         var worldsPath: String
         
@@ -41,7 +44,7 @@ final class BackupCommand: Command {
     func run(using context: CommandContext, signature: Signature) throws {
         let backupUrl = URL(fileURLWithPath: signature.outputFolderPath)
         let worldsPath = URL(fileURLWithPath: signature.worldsPath)
-        try WorldBackup.makeBackup(backupUrl: backupUrl, containerName: signature.containerName, worldsPath: worldsPath)
+        try WorldBackup.makeBackup(backupUrl: backupUrl, dockerPath: signature.dockerPath, containerName: signature.containerName, worldsPath: worldsPath)
         
         // Run optional trim
         if signature.trim {

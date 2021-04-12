@@ -26,14 +26,14 @@ final class BackupJobCommand: Command {
         
         print("Performing Backups")
         for server in config.servers {
-            let backupUrl = URL(fileURLWithPath: server.backupPath)
+            let backupUrl = URL(fileURLWithPath: config.backupPath)
             let worldsUrl = URL(fileURLWithPath: server.worldsPath)
-            try WorldBackup.makeBackup(backupUrl: backupUrl, containerName: server.container, worldsPath: worldsUrl)
+            try WorldBackup.makeBackup(backupUrl: backupUrl, dockerPath: config.dockerPath, containerName: server.container, worldsPath: worldsUrl)
         }
         
         print("Performing Trim Jobs")
         for trimJob in config.trim {
-            let trimBackupUrl = URL(fileURLWithPath: trimJob.backupPath)
+            let trimBackupUrl = URL(fileURLWithPath: config.backupPath)
             try WorldBackup.trimBackups(at: trimBackupUrl, dryRun: false, trimDays: trimJob.trimDays, keepDays: trimJob.keepDays, minKeep: trimJob.minKeep)
         }
     }

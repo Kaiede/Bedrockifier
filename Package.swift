@@ -13,7 +13,9 @@ let package = Package(
         // .package(url: /* package url */, from: "1.0.0"),
         .package(url: "https://github.com/vapor/console-kit.git", .upToNextMinor(from: "4.2.5")),
         .package(url: "https://github.com/weichsel/ZIPFoundation.git", .upToNextMajor(from: "0.9.0")),
-        .package(url: "https://github.com/Kaiede/PtyKit.git", .branch("master"))
+        .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
+        .package(url: "https://github.com/Kaiede/PTYKit.git", .branch("master")),
+        //.package(path: "../PTYKit")
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
@@ -23,7 +25,8 @@ let package = Package(
             dependencies: [
                 .product(name: "ConsoleKit", package: "console-kit"),
                 .product(name: "ZIPFoundation", package: "ZIPFoundation"),
-                .product(name: "PtyKit", package: "PtyKit")
+                .product(name: "Logging", package: "swift-log"),
+                .product(name: "PTYKit", package: "PTYKit")
             ]),
         .testTarget(
             name: "BedrockifierCLITests",

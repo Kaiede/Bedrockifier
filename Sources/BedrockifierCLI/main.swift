@@ -7,6 +7,7 @@
 
 import ConsoleKit
 import Foundation
+import Logging
 
 // Configure Console
 let terminal = Terminal()
@@ -20,6 +21,8 @@ commands.use(ScanCommand(), as: "scan")
 commands.use(TrimCommand(), as: "trim")
 commands.use(UnpackCommand(), as: "unpack")
 var allCommands = commands.group(help: "Minecraft Bedrock Backup Trimmer")
+
+LoggingSystem.bootstrap(console: terminal, level: .trace, metadata: .init())
 
 do {
     try terminal.run(allCommands, input: input)

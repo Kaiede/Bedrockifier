@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import PTYKit
 
 class WorldBackup {
     enum Action {
@@ -23,46 +24,67 @@ class WorldBackup {
     }
 }
 
+enum WorldBackupError: Error {
+    case HoldFailed
+    case QueryFailed
+    case ResumeFailed
+}
 
 extension WorldBackup {
-    static func makeBackup(backupUrl: URL, containerName: String, worldsPath: URL) throws {
+    static func makeBackup(backupUrl: URL, dockerPath: String, containerName: String, worldsPath: URL) throws {
         let arguments: [String] = [
             "-c",
-            "/snap/bin/docker attach --detach-keys=Q \(containerName)"
+            "\(dockerPath) attach --detach-keys=Q \(containerName)"
         ]
         
         // Attach To Container
-        let process = try ProcessWrapper(URL(fileURLWithPath: "/bin/sh"), arguments)
-        process.launch()
+        let process = try PTYProcess(URL(fileURLWithPath: "/bin/sh"), arguments: arguments)
+        try process.run()
+        
+        defer {
+            // Detach from Container
+            try? process.send("Q")
+            process.waitUntilExit()
+        }
         
         // Start Save Hold
-        try process.send("save hold\n")
-        let _ = try process.expect(["Saving", "The command is already running"])
+        try process.sendLine("save hold")
+        if process.expect(["Saving", "The command is already running"], timeout: 10.0) == .noMatch {
+            throw WorldBackupError.HoldFailed
+        }
         
         // Wait for files to be ready
-        var waiting = true
-        while waiting {
-            try process.send("save query\n")
-            let result = try process.expect(["Files are now ready to be copied", "A previous save has not been completed"])
-            if result == "Files are now ready to be copied" { waiting = false }
+        var attemptLimit = 3
+        while attemptLimit > 0 {
+            try process.sendLine("save query")
+            if process.expect("Files are now ready to be copied", timeout: 10.0) == .noMatch {
+                attemptLimit -= 1
+            } else {
+                break
+            }
         }
         
-        // TODO: Perform Backup!
-        print("Starting Backup of worlds at: \(worldsPath.path)")
-        for world in try World.getWorlds(at: worldsPath) {
-            print("Backing Up: \(world.name)")
-            let backupWorld = try world.backup(to: backupUrl)
-            print("Backed up as: \(backupWorld.location.lastPathComponent)")
+        if attemptLimit < 0 {
+            throw WorldBackupError.QueryFailed
         }
-        print("Backup Complete...")
+        
+        do {
+            print("Starting Backup of worlds at: \(worldsPath.path)")
+            for world in try World.getWorlds(at: worldsPath) {
+                print("Backing Up: \(world.name)")
+                let backupWorld = try world.backup(to: backupUrl)
+                print("Backed up as: \(backupWorld.location.lastPathComponent)")
+            }
+            print("Backup Complete...")
+        } catch {
+            print("Backup Failed...")
+        }
         
         // Release Save Hold
-        try process.send("save resume\n")
-        let _ = try process.expect("Changes to the level are resumed")
-        
-        // Detach from Container
-        try process.send("Q")
-        process.waitUntilExit()
+        try process.sendLine("save resume")
+        if process.expect(["Changes to the level are resumed", "A previous save has not been completed"], timeout: 60.0) == .noMatch {
+            throw WorldBackupError.ResumeFailed
+        }
     }
     
     static func trimBackups(at folder: URL, dryRun: Bool, trimDays: Int?, keepDays: Int?, minKeep: Int?) throws {
