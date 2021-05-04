@@ -31,11 +31,6 @@ final class UnpackCommand: Command {
                 return
             }
             
-            guard !FileManager.default.fileExists(atPath: signature.outputFolderPath) else {
-                context.console.error("Output directory already exists")
-                return
-            }
-            
             context.console.print("World Name: \(world.name)")
             context.console.print("Unpacking to: \(signature.outputFolderPath)")
             context.console.print()
