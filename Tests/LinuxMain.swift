@@ -1,7 +1,7 @@
 import XCTest
 
-import BedrockifierCLITests
+import BedrockifierTests
 
 var tests = [XCTestCaseEntry]()
-tests += BedrockifierCLITests.allTests()
+tests += BedrockifierTests.allTests()
 XCTMain(tests)
