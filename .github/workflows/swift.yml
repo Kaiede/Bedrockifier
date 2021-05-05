@@ -45,7 +45,5 @@ jobs:
           swift package show-dependencies
       - name: Build
         run: swift build
-      - name: Swiftlint
-        run: |
-          brew install swiftlint
-          swiftlint
+      - name: SwiftLint
+        uses: norio-nomura/action-swiftlint@3.2.1
