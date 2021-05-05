@@ -8,6 +8,14 @@ let package = Package(
     platforms: [
         .macOS(.v10_15)
     ],
+    products: [
+            // The external product of our package is an importable
+            // library that has the same name as the package itself:
+            .executable(
+                name: "BedrockifierCLI",
+                targets: ["BedrockifierCLI"]
+            )
+        ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
@@ -22,6 +30,10 @@ let package = Package(
         // Targets can depend on other targets in this package, and on products in packages this package depends on.
         .target(
             name: "BedrockifierCLI",
+            dependencies: ["Bedrockifier"]
+        ),
+        .target(
+            name: "Bedrockifier",
             dependencies: [
                 .product(name: "ConsoleKit", package: "console-kit"),
                 .product(name: "ZIPFoundation", package: "ZIPFoundation"),
@@ -29,7 +41,7 @@ let package = Package(
                 .product(name: "PTYKit", package: "PTYKit")
             ]),
         .testTarget(
-            name: "BedrockifierCLITests",
-            dependencies: ["BedrockifierCLI"]),
+            name: "BedrockifierTests",
+            dependencies: ["Bedrockifier"]),
     ]
 )

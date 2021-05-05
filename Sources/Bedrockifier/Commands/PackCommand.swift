@@ -8,22 +8,24 @@
 import ConsoleKit
 import Foundation
 
-final class PackCommand: Command {
-    struct Signature: CommandSignature {
+public final class PackCommand: Command {
+    public struct Signature: CommandSignature {
         @Argument(name: "mcworld", help: "Filename to pack into (as .mcworld)")
         var mcworld: String
         
         @Argument(name: "inputFolderPath", help: "Folder to pack")
         var inputFolderPath: String
                 
-        init() {}
+        public init() {}
     }
     
-    var help: String {
+    public init() {}
+    
+    public var help: String {
         "Packs a folder world into an mcworld for you."
     }
     
-    func run(using context: CommandContext, signature: Signature) throws {
+    public func run(using context: CommandContext, signature: Signature) throws {
         do {
             let world = try World(url: URL(fileURLWithPath: signature.inputFolderPath))
             guard world.type == .folder else {

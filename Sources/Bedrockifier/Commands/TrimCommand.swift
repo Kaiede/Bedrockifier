@@ -8,8 +8,8 @@
 import ConsoleKit
 import Foundation
 
-final class TrimCommand: Command {
-    struct Signature: CommandSignature {
+public final class TrimCommand: Command {
+    public struct Signature: CommandSignature {
         @Argument(name: "backupFolderPath", help: "Folder to Trim")
         var backupFolderPath: String
         
@@ -25,14 +25,16 @@ final class TrimCommand: Command {
         @Flag(name: "dryRun", short: "n", help: "Don't delete, only perform a dry run")
         var dryRun: Bool
         
-        init() {}
+        public init() {}
     }
     
-    var help: String {
+    public init() {}
+    
+    public var help: String {
         "Trims backups."
     }
     
-    func run(using context: CommandContext, signature: Signature) throws {
+    public func run(using context: CommandContext, signature: Signature) throws {
         let backupFolderUrl = URL(fileURLWithPath: signature.backupFolderPath, isDirectory: true)
 
         try WorldBackup.trimBackups(at: backupFolderUrl,

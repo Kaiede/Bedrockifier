@@ -8,8 +8,8 @@
 import ConsoleKit
 import Foundation
 
-final class BackupCommand: Command {
-    struct Signature: CommandSignature {
+public final class BackupCommand: Command {
+    public struct Signature: CommandSignature {
         @Argument(name: "dockerPath", help: "Path to docker")
         var dockerPath: String
         
@@ -34,14 +34,16 @@ final class BackupCommand: Command {
         @Option(name: "minKeep", short: "m", help: "Minimum count of backups to keep for a single world (default = 1)")
         var minKeep: Int?
         
-        init() {}
+        public init() {}
     }
     
-    var help: String {
+    public init() {}
+    
+    public var help: String {
         "Creates a backup of a bedrock server hosted in docker."
     }
     
-    func run(using context: CommandContext, signature: Signature) throws {
+    public func run(using context: CommandContext, signature: Signature) throws {
         let backupUrl = URL(fileURLWithPath: signature.outputFolderPath)
         let worldsPath = URL(fileURLWithPath: signature.worldsPath)
         try WorldBackup.makeBackup(backupUrl: backupUrl, dockerPath: signature.dockerPath, containerName: signature.containerName, worldsPath: worldsPath)

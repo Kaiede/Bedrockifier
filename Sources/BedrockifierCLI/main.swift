@@ -9,6 +9,8 @@ import ConsoleKit
 import Foundation
 import Logging
 
+import Bedrockifier
+
 // Configure Console
 let terminal = Terminal()
 var input = CommandInput(arguments: CommandLine.arguments)
@@ -19,7 +21,7 @@ commands.use(BackupJobCommand(), as: "backupjob")
 commands.use(PackCommand(), as: "pack")
 commands.use(TrimCommand(), as: "trim")
 commands.use(UnpackCommand(), as: "unpack")
-var allCommands = commands.group(help: "Minecraft Bedrock Backup Trimmer")
+var allCommands = commands.group(help: "Minecraft Bedrock Backup Tool")
 
 LoggingSystem.bootstrap(console: terminal, level: .trace, metadata: .init())
 

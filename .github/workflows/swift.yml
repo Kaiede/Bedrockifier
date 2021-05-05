@@ -23,7 +23,9 @@ jobs:
         swift --version
         swift package show-dependencies
     - name: Build
-      run: swift build
+      run: swift build --build-tests
+    - name: Test
+      run: swift test
     - name: SwiftLint
       uses: norio-nomura/action-swiftlint@3.2.1
       env:
@@ -45,4 +47,6 @@ jobs:
           swift --version
           swift package show-dependencies
       - name: Build
-        run: swift build
+        run: swift build --build-tests
+      - name: Test
+        run: swift test

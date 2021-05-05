@@ -8,22 +8,24 @@
 import ConsoleKit
 import Foundation
 
-final class UnpackCommand: Command {
-    struct Signature: CommandSignature {
+public final class UnpackCommand: Command {
+    public struct Signature: CommandSignature {
         @Argument(name: "mcworld", help: "World to unpack (as .mcworld)")
         var mcworld: String
         
         @Argument(name: "outputFolderPath", help: "Folder to unpack into")
         var outputFolderPath: String
                 
-        init() {}
+        public init() {}
     }
     
-    var help: String {
+    public init() {}
+    
+    public var help: String {
         "Unpacks an exported world into a given folder. Useful for unpacking a backup into a server's worlds folder."
     }
     
-    func run(using context: CommandContext, signature: Signature) throws {
+    public func run(using context: CommandContext, signature: Signature) throws {
         do {
             let world = try World(url: URL(fileURLWithPath: signature.mcworld))
             guard world.type == .mcworld else {
