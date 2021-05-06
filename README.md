@@ -23,4 +23,4 @@ Currently, this only works for certain docker containers like itzg/minecraft-bed
 
 ### Docker Container
 
-Also available is a containerized version of this tool which is pre-configured to help run backups. 
+Also available is a containerized version of this tool which is pre-configured to help run backups: https://github.com/Kaiede/docker-minecraft-bedrock-backup
