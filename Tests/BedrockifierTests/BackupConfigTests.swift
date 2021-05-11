@@ -7,7 +7,7 @@ final class BackupConfigTests: XCTestCase {
             XCTFail("couldn't get data for test JSON")
             return
         }
-    
+
         do {
             let config = try BackupConfig.getBackupConfig(from: jsonData)
             XCTAssertNil(config.backupPath)
@@ -18,13 +18,13 @@ final class BackupConfigTests: XCTestCase {
             XCTFail("Unable to decode valid JSON: \(error)")
         }
     }
-    
+
     func testDockerConfig() {
         guard let jsonData = dockerConfigString.data(using: .utf8) else {
             XCTFail("couldn't get data for test JSON")
             return
         }
-    
+
         do {
             let config = try BackupConfig.getBackupConfig(from: jsonData)
             XCTAssertNil(config.backupPath)
@@ -35,13 +35,13 @@ final class BackupConfigTests: XCTestCase {
             XCTFail("Unable to decode valid JSON: \(error)")
         }
     }
-    
+
     func testGoodConfig() {
         guard let jsonData = goodConfigString.data(using: .utf8) else {
             XCTFail("couldn't get data for test JSON")
             return
         }
-    
+
         do {
             let config = try BackupConfig.getBackupConfig(from: jsonData)
             XCTAssertNotNil(config.backupPath)
@@ -52,7 +52,6 @@ final class BackupConfigTests: XCTestCase {
             XCTFail("Unable to decode valid JSON: \(error)")
         }
     }
-
 
     static var allTests = [
         ("testMinimalConfig", testMinimalConfig),

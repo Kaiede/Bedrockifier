@@ -10,15 +10,15 @@ import ZIPFoundation
 
 struct World {
     enum WorldError: Error {
-        case InvalidWorldType
-        case InvalidLevelArchive
-        case MissingLevelName
+        case invalidWorldType
+        case invalidLevelArchive
+        case missingLevelName
     }
-    
+
     enum WorldType {
         case folder
         case mcworld
-        
+
         init(url: URL) throws {
             let values = try url.resourceValues(forKeys: [.isDirectoryKey])
 
@@ -27,15 +27,15 @@ struct World {
             } else if url.pathExtension == "mcworld" {
                 self = .mcworld
             } else {
-                throw WorldError.InvalidWorldType
+                throw WorldError.invalidWorldType
             }
         }
     }
-    
+
     let name: String
     let type: WorldType
     let location: URL
-    
+
     init(url: URL) throws {
         self.type = try WorldType(url: url)
         self.location = url
@@ -48,20 +48,20 @@ struct World {
             return try String(contentsOf: location.appendingPathComponent("levelname.txt"))
         case .mcworld:
             guard let archive = Archive(url: location, accessMode: .read) else {
-                throw WorldError.InvalidLevelArchive
+                throw WorldError.invalidLevelArchive
             }
-            
+
             guard let levelnameEntry = archive["levelname.txt"] else {
-                throw WorldError.MissingLevelName
+                throw WorldError.missingLevelName
             }
-                        
-            var result: String? = nil
-            let _ = try archive.extract(levelnameEntry, consumer: { result = String(data: $0, encoding: .utf8) })
-            
+
+            var result: String?
+            _ = try archive.extract(levelnameEntry, consumer: { result = String(data: $0, encoding: .utf8) })
+
             guard let finalResult = result else {
-                throw WorldError.MissingLevelName
+                throw WorldError.missingLevelName
             }
-            
+
             return finalResult
         }
     }
@@ -70,43 +70,51 @@ struct World {
 extension World {
     func pack(to url: URL, progress: Progress? = nil) throws -> World {
         guard self.type == .folder else {
-            throw WorldError.InvalidWorldType
+            throw WorldError.invalidWorldType
         }
-        
+
         let targetFolder = url.deletingLastPathComponent()
-        try FileManager.default.createDirectory(atPath: targetFolder.path, withIntermediateDirectories: true, attributes: nil)
+        try FileManager.default.createDirectory(atPath: targetFolder.path,
+                                                withIntermediateDirectories: true,
+                                                attributes: nil)
         guard let archive = Archive(url: url, accessMode: .create) else {
-            throw WorldError.InvalidLevelArchive
+            throw WorldError.invalidLevelArchive
         }
-        
+
         let dirEnum = FileManager.default.enumerator(atPath: self.location.path)
 
         while let archiveItem = dirEnum?.nextObject() as? String {
             let fullItemUrl = URL(fileURLWithPath: archiveItem, relativeTo: self.location)
             try archive.addEntry(with: archiveItem, fileURL: fullItemUrl)
         }
-        
+
         return try World(url: url)
     }
-    
+
     func unpack(to url: URL, progress: Progress? = nil) throws -> World {
         guard self.type == .mcworld else {
-            throw WorldError.InvalidWorldType
+            throw WorldError.invalidWorldType
         }
-        
+
         let targetFolder = url.appendingPathComponent(self.name)
-        try FileManager.default.createDirectory(atPath: targetFolder.path, withIntermediateDirectories: true, attributes: nil)
-        try FileManager.default.unzipItem(at: self.location, to: targetFolder, skipCRC32: false, progress: progress, preferredEncoding: .utf8)
+        try FileManager.default.createDirectory(atPath: targetFolder.path,
+                                                withIntermediateDirectories: true,
+                                                attributes: nil)
+        try FileManager.default.unzipItem(at: self.location,
+                                          to: targetFolder,
+                                          skipCRC32: false,
+                                          progress: progress,
+                                          preferredEncoding: .utf8)
         return try World(url: targetFolder)
     }
-    
+
     func backup(to folder: URL) throws -> World {
         let timestamp = DateFormatter.backupDateFormatter.string(from: Date())
         let fileName = "\(self.name).\(timestamp).mcworld"
         let targetFile = folder.appendingPathComponent(fileName)
-        
+
         try FileManager.default.createDirectory(atPath: folder.path, withIntermediateDirectories: true, attributes: nil)
-        
+
         switch self.type {
         case .folder:
             return try self.pack(to: targetFile)
@@ -120,7 +128,7 @@ extension World {
 extension World {
     static func getWorlds(at url: URL) throws -> [World] {
         var results: [World] = []
-        
+
         let folders = try FileManager.default.contentsOfDirectory(atPath: url.path)
         for possibleWorld in folders {
             let worldPath = URL(fileURLWithPath: possibleWorld, relativeTo: url)
@@ -128,7 +136,7 @@ extension World {
                 results.append(world)
             }
         }
-            
+
         return results
     }
 }

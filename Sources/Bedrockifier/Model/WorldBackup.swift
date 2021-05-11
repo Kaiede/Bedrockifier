@@ -13,11 +13,11 @@ class WorldBackup {
         case keep
         case trim
     }
-    
+
     var action: Action = .keep
     let modificationDate: Date
     let world: World
-    
+
     init(world: World, date: Date) {
         self.modificationDate = date
         self.world = world
@@ -25,9 +25,9 @@ class WorldBackup {
 }
 
 enum WorldBackupError: Error {
-    case HoldFailed
-    case QueryFailed
-    case ResumeFailed
+    case holdFailed
+    case queryFailed
+    case resumeFailed
 }
 
 extension WorldBackup {
@@ -36,23 +36,23 @@ extension WorldBackup {
             "-c",
             "\(dockerPath) attach --detach-keys=Q \(containerName)"
         ]
-        
+
         // Attach To Container
         let process = try PTYProcess(URL(fileURLWithPath: "/bin/sh"), arguments: arguments)
         try process.run()
-        
+
         defer {
             // Detach from Container
             try? process.send("Q")
             process.waitUntilExit()
         }
-        
+
         // Start Save Hold
         try process.sendLine("save hold")
         if process.expect(["Saving", "The command is already running"], timeout: 10.0) == .noMatch {
-            throw WorldBackupError.HoldFailed
+            throw WorldBackupError.holdFailed
         }
-        
+
         // Wait for files to be ready
         var attemptLimit = 3
         while attemptLimit > 0 {
@@ -63,11 +63,11 @@ extension WorldBackup {
                 break
             }
         }
-        
+
         if attemptLimit < 0 {
-            throw WorldBackupError.QueryFailed
+            throw WorldBackupError.queryFailed
         }
-        
+
         do {
             print("Starting Backup of worlds at: \(worldsPath.path)")
             for world in try World.getWorlds(at: worldsPath) {
@@ -79,21 +79,25 @@ extension WorldBackup {
         } catch {
             print("Backup Failed...")
         }
-        
+
         // Release Save Hold
         try process.sendLine("save resume")
-        if process.expect(["Changes to the level are resumed", "A previous save has not been completed"], timeout: 60.0) == .noMatch {
-            throw WorldBackupError.ResumeFailed
+        let saveResumeStrings = [
+            "Changes to the level are resumed",
+            "A previous save has not been completed"
+        ]
+        if process.expect(saveResumeStrings, timeout: 60.0) == .noMatch {
+            throw WorldBackupError.resumeFailed
         }
     }
-    
+
     static func trimBackups(at folder: URL, dryRun: Bool, trimDays: Int?, keepDays: Int?, minKeep: Int?) throws {
         let trimDays = trimDays ?? 3
         let keepDays = keepDays ?? 14
         let minKeep = minKeep ?? 1
 
         let deletingString = dryRun ? "Would Delete" : "Deleting"
-               
+
         let backups = try WorldBackup.getBackups(at: folder)
         for (worldName, worldBackups) in backups {
             print("Processing: \(worldName)")
@@ -110,13 +114,16 @@ extension WorldBackup {
             }
         }
     }
-    
-    static func getBackups(at folder: URL) throws -> [String:[WorldBackup]] {
-        var results: [String:[WorldBackup]] = [:]
-        
+
+    static func getBackups(at folder: URL) throws -> [String: [WorldBackup]] {
+        var results: [String: [WorldBackup]] = [:]
+
         let keys: [URLResourceKey] = [.contentModificationDateKey]
 
-        let files = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: keys, options: [])
+        let files = try FileManager.default.contentsOfDirectory(at: folder,
+                                                                includingPropertiesForKeys: keys,
+                                                                options: [])
+
         for possibleWorld in files {
             let resourceValues = try possibleWorld.resourceValues(forKeys: Set(keys))
             let modificationDate = resourceValues.contentModificationDate!
@@ -126,7 +133,7 @@ extension WorldBackup {
                 results[world.name] = array
             }
         }
-            
+
         return results
     }
 }
@@ -134,13 +141,13 @@ extension WorldBackup {
 extension Array where Element: WorldBackup {
     func trimBucket(keepLast count: Int = 1) {
         var keep: [Int] = []
-        
+
         for (index, item) in self.enumerated() {
             if keep.count < count {
                 keep.append(index)
                 continue
             }
-                        
+
             for (keepIndex, keepItem) in keep.enumerated() {
                 if self[keepItem].modificationDate < item.modificationDate {
                     keep[keepIndex] = index
@@ -153,19 +160,19 @@ extension Array where Element: WorldBackup {
             }
         }
     }
-    
+
     func process(trimDays: Int, keepDays: Int, minKeep: Int) -> [WorldBackup] {
         let trimDays = DateComponents(day: -(trimDays - 1))
         let keepDays = DateComponents(day: -(keepDays - 1))
         let today = Calendar.current.date(from: Date().toDayComponents())!
         let trimDay = Calendar.current.date(byAdding: trimDays, to: today)!
         let keepDay = Calendar.current.date(byAdding: keepDays, to: today)!
-        
+
         // Sort from oldest to newest first
         let modifiedBackups = self.sorted(by: { $0.modificationDate > $1.modificationDate })
 
         // Mark very old backups, but also bucket for trimming to dailies
-        var buckets: [DateComponents:[WorldBackup]] = [:]
+        var buckets: [DateComponents: [WorldBackup]] = [:]
         for backup in modifiedBackups {
             if backup.modificationDate < keepDay {
                 backup.action = .trim
@@ -176,13 +183,13 @@ extension Array where Element: WorldBackup {
                 buckets[modificationDay] = bucket
             }
         }
-        
+
         // Process Buckets
         for (_, bucket) in buckets {
             print("Trimming a Bucket")
             bucket.trimBucket()
         }
-        
+
         // Go back and force any backups to be retained if required
         let keepCount = modifiedBackups.reduce(0, { $0 + ($1.action == .keep ? 1 : 0)})
         var forceKeepCount = Swift.min(modifiedBackups.count, Swift.max(minKeep - keepCount, 0))
@@ -197,7 +204,7 @@ extension Array where Element: WorldBackup {
                 }
             }
         }
-                
+
         return modifiedBackups
     }
 }
