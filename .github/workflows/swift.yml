@@ -13,7 +13,7 @@ jobs:
     
     steps:
     - name: Install Swift
-      uses: YOCKOW/Action-setup-swift@master
+      uses: YOCKOW/Action-setup-swift@v1
       with:
           swift-version: ${{ matrix.swift-version }}
     - name: Checkout
