@@ -123,6 +123,31 @@ extension World {
             return try World(url: targetFile)
         }
     }
+    
+    func applyOwnership(owner: UInt?, group: UInt?) throws {
+        let path = self.location.path
+        var attributes: [FileAttributeKey: Any] = [:]
+        if let owner = owner {
+            attributes[.ownerAccountID] = NSNumber(value: owner)
+        }
+        if let group = group {
+            attributes[.groupOwnerAccountID] = NSNumber(value: group)
+        }
+        
+        // Apply directly to the core node (folder or mcworld package)
+        var isDirectory: ObjCBool = false
+        if FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) {
+            try FileManager.default.setAttributes(attributes, ofItemAtPath: path)
+        }
+        
+        // For folders, enumerate the children.
+        // This can be expensive, but provided for completeness.
+        if isDirectory.boolValue, let subPaths = FileManager.default.subpaths(atPath: path) {
+            for subPath in subPaths {
+                try FileManager.default.setAttributes(attributes, ofItemAtPath: subPath)
+            }
+        }
+    }
 }
 
 extension World {
