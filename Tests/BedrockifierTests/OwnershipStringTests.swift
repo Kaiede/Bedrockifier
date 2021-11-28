@@ -79,4 +79,12 @@ final class OwnershipStringTests: XCTestCase {
             XCTFail(error.localizedDescription)
         }
     }
+    
+    static var allTests = [
+        ("testInvalidString", testInvalidString),
+        ("testNoOp", testNoOp),
+        ("testUserOnly", testUserOnly),
+        ("testGroupOnly", testGroupOnly),
+        ("testBothUserAndGroup", testBothUserAndGroup),
+    ]
 }
