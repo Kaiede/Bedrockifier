@@ -9,6 +9,7 @@ import Foundation
 
 enum ParseError: Error {
     case invalidSyntax
+    case outOfBounds
 }
 
 func parse(ownership: String) throws -> (UInt?, UInt?) {
@@ -40,4 +41,16 @@ func parse(ownership: String) throws -> (UInt?, UInt?) {
     }
     
     return (finalParts[0], finalParts[1])
+}
+
+func parse(permissions: String) throws -> UInt {
+    guard let permissionValue = UInt(permissions) else {
+        throw ParseError.invalidSyntax
+    }
+    
+    guard permissionValue <= 777 else {
+        throw ParseError.outOfBounds
+    }
+    
+    return permissionValue
 }
