@@ -84,6 +84,7 @@ extension WorldBackup {
         try process.sendLine("save resume")
         let saveResumeStrings = [
             "Changes to the level are resumed",
+            "Changes to the world are resumed",
             "A previous save has not been completed"
         ]
         if process.expect(saveResumeStrings, timeout: 60.0) == .noMatch {
