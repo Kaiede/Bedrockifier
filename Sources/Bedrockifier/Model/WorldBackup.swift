@@ -91,6 +91,15 @@ extension WorldBackup {
         }
     }
 
+    static func fixOwnership(at folder: URL, config: BackupConfig.OwnershipConfig) throws {
+        let (uid, gid) = try config.parseOwnerAndGroup()
+        let (permissions) = try config.parsePosixPermissions()
+        let backups = try getBackups(at: folder)
+        for backup in backups.flatMap({ $1 }) {
+            try backup.world.applyOwnership(owner: uid, group: gid, permissions: permissions)
+        }
+    }
+        
     static func trimBackups(at folder: URL, dryRun: Bool, trimDays: Int?, keepDays: Int?, minKeep: Int?) throws {
         let trimDays = trimDays ?? 3
         let keepDays = keepDays ?? 14

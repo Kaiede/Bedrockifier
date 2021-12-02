@@ -33,7 +33,7 @@ public final class BackupCommand: Command {
 
         @Option(name: "minKeep", short: "m", help: "Minimum count of backups to keep for a single world (default = 1)")
         var minKeep: Int?
-
+        
         public init() {}
     }
 
@@ -50,7 +50,7 @@ public final class BackupCommand: Command {
                                    dockerPath: signature.dockerPath,
                                    containerName: signature.containerName,
                                    worldsPath: worldsPath)
-
+        
         // Run optional trim
         if signature.trim {
             try WorldBackup.trimBackups(at: backupUrl, dryRun: false, trimDays: nil, keepDays: nil, minKeep: nil)

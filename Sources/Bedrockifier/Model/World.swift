@@ -127,7 +127,7 @@ extension World {
         }
     }
     
-    func applyOwnership(owner: UInt?, group: UInt?) throws {
+    func applyOwnership(owner: UInt?, group: UInt?, permissions: UInt?) throws {
         let path = self.location.path
         var attributes: [FileAttributeKey: Any] = [:]
         if let owner = owner {
@@ -136,10 +136,14 @@ extension World {
         if let group = group {
             attributes[.groupOwnerAccountID] = NSNumber(value: group)
         }
+        if let permissions = permissions {
+            attributes[.posixPermissions] = NSNumber(value: permissions)
+        }
         
         let uidString = owner != nil ? owner!.description : "nil"
         let gidString = group != nil ? group!.description : "nil"
-        World.logger.debug("Applying Ownership \(uidString):\(gidString) to \(path)")
+        let permissionsString = permissions != nil ? permissions!.description : "nil"
+        World.logger.debug("Applying Ownership \(uidString):\(gidString) with permissions \(permissionsString) to \(path)")
         
         // Apply directly to the core node (folder or mcworld package)
         var isDirectory: ObjCBool = false
