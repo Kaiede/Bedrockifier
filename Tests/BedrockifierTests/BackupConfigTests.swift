@@ -70,7 +70,7 @@ final class BackupConfigTests: XCTestCase {
             let permissions = try ownershipConfig.parsePosixPermissions()
             XCTAssertEqual(uid, 100)
             XCTAssertEqual(gid, 200)
-            XCTAssertEqual(permissions, 666)
+            XCTAssertEqual(permissions, 0x666)
         } catch(let error) {
             XCTFail("Unable to decode valid JSON: \(error)")
         }
