@@ -15,7 +15,7 @@ struct BackupConfig: Codable {
         var keepDays: Int?
         var minKeep: Int?
     }
-    
+
     struct OwnershipConfig: Codable {
         var chown: String?
         var permissions: String?
@@ -45,7 +45,7 @@ extension BackupConfig.OwnershipConfig {
         guard let chownString = self.chown else { return (nil, nil) }
         return try parse(ownership: chownString)
     }
-    
+
     func parsePosixPermissions() throws -> UInt? {
         guard let permissionsString = self.permissions else { return nil }
         return try parse(permissions: permissionsString)

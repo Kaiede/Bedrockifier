@@ -6,7 +6,11 @@
 //
 
 import Foundation
+import Logging
 import PTYKit
+
+private let usePty = false
+private let logger = Logger(label: "BedrockifierCLI:WorldBackup")
 
 class WorldBackup {
     enum Action {
@@ -31,20 +35,58 @@ enum WorldBackupError: Error {
 }
 
 extension WorldBackup {
+    static func getPtyArguments(dockerPath: String, containerName: String) -> [String] {
+        if usePty {
+            // Use the detach functionality when a tty is configured
+            return [
+                "-c",
+                "\(dockerPath) attach --detach-keys=Q \(containerName)"
+            ]
+        } else {
+            // Without a tty, use a termination signal instead
+            return [
+                "attach",
+                "--sig-proxy=false",
+                containerName
+            ]
+        }
+    }
+
+    static func getPtyProcess(dockerPath: String) -> URL {
+        if usePty {
+            // Use a shell for the tty capability
+            return URL(fileURLWithPath: "/bin/sh")
+        } else {
+            return URL(fileURLWithPath: dockerPath)
+        }
+    }
+
+    static func stopProcess(_ process: PTYProcess) {
+        if usePty {
+            logger.debug("Detaching Docker Process")
+            try? process.send("Q")
+            process.waitUntilExit()
+        } else {
+            logger.debug("Terminating Docker Process")
+            process.terminate()
+            process.waitUntilExit()
+        }
+
+        if process.isRunning {
+            logger.error("Docker Process Still Running")
+        }
+    }
+
     static func makeBackup(backupUrl: URL, dockerPath: String, containerName: String, worldsPath: URL) throws {
-        let arguments: [String] = [
-            "-c",
-            "\(dockerPath) attach --detach-keys=Q \(containerName)"
-        ]
+        let arguments: [String] = getPtyArguments(dockerPath: dockerPath, containerName: containerName)
 
         // Attach To Container
-        let process = try PTYProcess(URL(fileURLWithPath: "/bin/sh"), arguments: arguments)
+        let process = try PTYProcess(getPtyProcess(dockerPath: dockerPath), arguments: arguments)
         try process.run()
 
         defer {
             // Detach from Container
-            try? process.send("Q")
-            process.waitUntilExit()
+            stopProcess(process)
         }
 
         // Start Save Hold
@@ -83,8 +125,8 @@ extension WorldBackup {
         // Release Save Hold
         try process.sendLine("save resume")
         let saveResumeStrings = [
-            "Changes to the level are resumed",
-            "Changes to the world are resumed",
+            "Changes to the level are resumed", // 1.17 and earlier
+            "Changes to the world are resumed", // 1.18 and later
             "A previous save has not been completed"
         ]
         if process.expect(saveResumeStrings, timeout: 60.0) == .noMatch {
