@@ -154,7 +154,11 @@ final class OwnershipStringTests: XCTestCase {
         } catch let error {
             XCTFail(error.localizedDescription)
         }
+    }
 
+    func testOctalFormatting() {
+        let string = String(format: "%o", 0o664)
+        XCTAssertEqual(string, "664")
     }
     
     static var allTests = [
@@ -166,5 +170,6 @@ final class OwnershipStringTests: XCTestCase {
         ("testInvalidPermissions", testInvalidPermissions),
         ("testOutOfBoundsPermissions", testOutOfBoundsPermissions),
         ("testValidPermissions", testValidPermissions),
+        ("testOctalFormatting", testOctalFormatting),
     ]
 }
