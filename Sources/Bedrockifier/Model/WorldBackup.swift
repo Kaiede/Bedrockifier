@@ -77,6 +77,7 @@ extension WorldBackup {
             } else {
                 logger.debug("Terminating Docker Process")
                 process.terminate()
+                process.waitUntilExit()
             }
 
             if process.isRunning {
