@@ -127,7 +127,7 @@ extension World {
         }
     }
 
-    func applyOwnership(owner: UInt32?, group: UInt32?, permissions: Int16?) throws {
+    func applyOwnership(owner: UInt32?, group: UInt32?, permissions: UInt16?) throws {
         let path = self.location.path
         do {
             var attributes: [FileAttributeKey: Any] = [:]
@@ -166,6 +166,16 @@ extension World {
         } catch let error {
             World.logger.error("Unable to set ownership/permissions on \(path)")
             throw error
+        }
+    }
+
+    static func applyOwnership(to path: String, owner: UInt32?, group: UInt32?, permissions: UInt16?) throws {
+        if owner != nil || group != nil {
+            try platformChown(path: path, uid: owner, gid: group)
+        }
+
+        if let permissions = permissions {
+            try platformChmod(path: path, permissions: permissions)
         }
     }
 }

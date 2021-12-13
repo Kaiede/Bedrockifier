@@ -43,8 +43,8 @@ func parse(ownership: String) throws -> (UInt32?, UInt32?) {
     return (finalParts[0], finalParts[1])
 }
 
-func parse(permissions: String) throws -> Int16 {
-    guard let permissionValue = Int16(permissions, radix: 16) else {
+func parse(permissions: String) throws -> UInt16 {
+    guard let permissionValue = UInt16(permissions, radix: 16) else {
         throw ParseError.invalidSyntax
     }
 
