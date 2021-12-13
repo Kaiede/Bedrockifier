@@ -52,9 +52,14 @@ public final class BackupJobCommand: Command {
                                        containerName: serverContainer,
                                        worldsPath: worldsUrl)
         }
+        
+        if let ownershipConfig = config.ownership {
+            print("Performing Ownership Fixup")
+            try WorldBackup.fixOwnership(at: backupUrl, config: ownershipConfig)
+        }
 
-        print("Performing Trim Jobs")
         if let trimJob = config.trim {
+            print("Performing Trim Jobs")
             try WorldBackup.trimBackups(at: backupUrl,
                                         dryRun: false,
                                         trimDays: trimJob.trimDays,

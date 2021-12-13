@@ -7,8 +7,11 @@
 
 import Foundation
 import ZIPFoundation
+import Logging
 
 struct World {
+    static fileprivate let logger = Logger(label: "BedrockifierCLI:World")
+
     enum WorldError: Error {
         case invalidWorldType
         case invalidLevelArchive
@@ -121,6 +124,43 @@ extension World {
         case .mcworld:
             try FileManager.default.copyItem(at: self.location, to: targetFile)
             return try World(url: targetFile)
+        }
+    }
+
+    func applyOwnership(owner: UInt?, group: UInt?, permissions: UInt?) throws {
+        let path = self.location.path
+        var attributes: [FileAttributeKey: Any] = [:]
+        if let owner = owner {
+            attributes[.ownerAccountID] = NSNumber(value: owner)
+        }
+        if let group = group {
+            attributes[.groupOwnerAccountID] = NSNumber(value: group)
+        }
+        if let permissions = permissions {
+            attributes[.posixPermissions] = NSNumber(value: permissions)
+        }
+
+        let uidStr = owner != nil ? owner!.description : "nil"
+        let gidStr = group != nil ? group!.description : "nil"
+        let permsStr = permissions != nil ? permissions!.description : "nil"
+        World.logger.debug("Ownership Change: \(uidStr):\(gidStr) with perms \(permsStr) at \(path)")
+
+        // Apply directly to the core node (folder or mcworld package)
+        var isDirectory: ObjCBool = false
+        if FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) {
+            World.logger.trace("Processing \(path)")
+            try FileManager.default.setAttributes(attributes, ofItemAtPath: path)
+        }
+
+        // For folders, enumerate the children.
+        // This can be expensive, but provided for completeness.
+        if isDirectory.boolValue, let subPaths = FileManager.default.subpaths(atPath: path) {
+            World.logger.trace("Starting Procesing Directory Childen")
+            for subPath in subPaths {
+                World.logger.trace("Processing \(subPath)")
+                try FileManager.default.setAttributes(attributes, ofItemAtPath: subPath)
+            }
+            World.logger.trace("Completed Processing Directory")
         }
     }
 }
