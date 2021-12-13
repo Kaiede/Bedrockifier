@@ -130,17 +130,6 @@ extension World {
     func applyOwnership(owner: UInt32?, group: UInt32?, permissions: UInt16?) throws {
         let path = self.location.path
         do {
-            var attributes: [FileAttributeKey: Any] = [:]
-            if let owner = owner {
-                attributes[.ownerAccountID] = NSNumber(value: owner)
-            }
-            if let group = group {
-                attributes[.groupOwnerAccountID] = NSNumber(value: group)
-            }
-            if let permissions = permissions {
-                attributes[.posixPermissions] = NSNumber(value: permissions)
-            }
-
             let uidStr = owner != nil ? owner!.description : "nil"
             let gidStr = group != nil ? group!.description : "nil"
             let permsStr = permissions != nil ? permissions!.description : "nil"
@@ -150,7 +139,7 @@ extension World {
             var isDirectory: ObjCBool = false
             if FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) {
                 World.logger.trace("Processing \(path)")
-                try FileManager.default.setAttributes(attributes, ofItemAtPath: path)
+                try World.applyOwnership(to: path, owner: owner, group: group, permissions: permissions)
             }
 
             // For folders, enumerate the children.
@@ -159,7 +148,7 @@ extension World {
                 World.logger.trace("Starting Procesing Directory Childen")
                 for subPath in subPaths {
                     World.logger.trace("Processing \(subPath)")
-                    try FileManager.default.setAttributes(attributes, ofItemAtPath: subPath)
+                    try World.applyOwnership(to: subPath, owner: owner, group: group, permissions: permissions)
                 }
                 World.logger.trace("Completed Processing Directory")
             }
