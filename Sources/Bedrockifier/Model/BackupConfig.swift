@@ -46,7 +46,7 @@ extension BackupConfig.OwnershipConfig {
         return try parse(ownership: chownString)
     }
 
-    func parsePosixPermissions() throws -> UInt? {
+    func parsePosixPermissions() throws -> Int16? {
         guard let permissionsString = self.permissions else { return nil }
         return try parse(permissions: permissionsString)
     }

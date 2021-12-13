@@ -127,7 +127,7 @@ extension World {
         }
     }
 
-    func applyOwnership(owner: UInt?, group: UInt?, permissions: UInt?) throws {
+    func applyOwnership(owner: UInt?, group: UInt?, permissions: Int16?) throws {
         let path = self.location.path
         do {
             var attributes: [FileAttributeKey: Any] = [:]
