@@ -60,10 +60,14 @@ extension WorldBackup {
             // Detach from Container
             if usePty {
                 try? process.send("Q")
+                process.waitUntilExit()
             } else {
                 process.terminate()
             }
-            process.waitUntilExit()
+
+            if process.isRunning {
+                print("Docker attach process is still running")
+            }
         }
 
         // Start Save Hold
