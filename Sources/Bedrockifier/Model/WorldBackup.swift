@@ -48,7 +48,7 @@ extension WorldBackup {
             ]
         }
     }
-    
+
     static func makeBackup(backupUrl: URL, dockerPath: String, containerName: String, worldsPath: URL) throws {
         let arguments: [String] = getPtyArguments(dockerPath: dockerPath, containerName: containerName)
 
