@@ -41,7 +41,7 @@ extension BackupConfig {
 }
 
 extension BackupConfig.OwnershipConfig {
-    func parseOwnerAndGroup() throws -> (UInt?, UInt?) {
+    func parseOwnerAndGroup() throws -> (UInt32?, UInt32?) {
         guard let chownString = self.chown else { return (nil, nil) }
         return try parse(ownership: chownString)
     }

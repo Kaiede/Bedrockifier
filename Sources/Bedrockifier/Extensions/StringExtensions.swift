@@ -12,7 +12,7 @@ enum ParseError: Error {
     case outOfBounds
 }
 
-func parse(ownership: String) throws -> (UInt?, UInt?) {
+func parse(ownership: String) throws -> (UInt32?, UInt32?) {
     // Special Case: ":" Only
     if ownership == ":" {
         return (nil, nil)
@@ -23,7 +23,7 @@ func parse(ownership: String) throws -> (UInt?, UInt?) {
         throw ParseError.invalidSyntax
     }
 
-    let intParts = parts.map({ UInt($0) })
+    let intParts = parts.map({ UInt32($0) })
     guard !intParts.contains(nil) else {
         throw ParseError.invalidSyntax
     }
