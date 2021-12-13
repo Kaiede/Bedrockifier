@@ -132,7 +132,7 @@ extension World {
         do {
             let uidStr = owner != nil ? owner!.description : "nil"
             let gidStr = group != nil ? group!.description : "nil"
-            let permsStr = permissions != nil ? permissions!.description : "nil"
+            let permsStr = permissions != nil ? String(format:"%O", permissions!) : "nil"
             World.logger.debug("Ownership Change: \(uidStr):\(gidStr) with perms \(permsStr) at \(path)")
 
             // Apply directly to the core node (folder or mcworld package)
