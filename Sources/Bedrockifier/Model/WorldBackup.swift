@@ -100,7 +100,7 @@ extension WorldBackup {
             try backup.world.applyOwnership(owner: uid, group: gid, permissions: permissions)
         }
     }
-        
+
     static func trimBackups(at folder: URL, dryRun: Bool, trimDays: Int?, keepDays: Int?, minKeep: Int?) throws {
         let trimDays = trimDays ?? 3
         let keepDays = keepDays ?? 14

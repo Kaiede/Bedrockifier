@@ -11,7 +11,7 @@ import Logging
 
 struct World {
     static fileprivate let logger = Logger(label: "BedrockifierCLI:World")
-    
+
     enum WorldError: Error {
         case invalidWorldType
         case invalidLevelArchive
@@ -126,7 +126,7 @@ extension World {
             return try World(url: targetFile)
         }
     }
-    
+
     func applyOwnership(owner: UInt?, group: UInt?, permissions: UInt?) throws {
         let path = self.location.path
         var attributes: [FileAttributeKey: Any] = [:]
@@ -139,19 +139,20 @@ extension World {
         if let permissions = permissions {
             attributes[.posixPermissions] = NSNumber(value: permissions)
         }
-        
+
         let uidString = owner != nil ? owner!.description : "nil"
         let gidString = group != nil ? group!.description : "nil"
         let permissionsString = permissions != nil ? permissions!.description : "nil"
-        World.logger.debug("Applying Ownership \(uidString):\(gidString) with permissions \(permissionsString) to \(path)")
-        
+        let logStr = "Applying Ownership \(uidString):\(gidString) with permissions \(permissionsString) to \(path)"
+        World.logger.debug(logStr)
+
         // Apply directly to the core node (folder or mcworld package)
         var isDirectory: ObjCBool = false
         if FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) {
             World.logger.trace("Processing \(path)")
             try FileManager.default.setAttributes(attributes, ofItemAtPath: path)
         }
-        
+
         // For folders, enumerate the children.
         // This can be expensive, but provided for completeness.
         if isDirectory.boolValue, let subPaths = FileManager.default.subpaths(atPath: path) {
