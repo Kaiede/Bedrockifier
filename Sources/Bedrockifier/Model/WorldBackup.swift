@@ -45,9 +45,19 @@ extension WorldBackup {
         } else {
             // Without a tty, use a termination signal instead
             return [
-                "-c",
-                "\(dockerPath) attach --sig-proxy=false \(containerName)"
+                "attach",
+                "--sig-proxy=false",
+                containerName
             ]
+        }
+    }
+
+    static func getPtyProcess(dockerPath: String) -> URL {
+        if usePty {
+            // Use a shell for the tty capability
+            return URL(fileURLWithPath: "/bin/sh")
+        } else {
+            return URL(fileURLWithPath: dockerPath)
         }
     }
 
@@ -55,7 +65,7 @@ extension WorldBackup {
         let arguments: [String] = getPtyArguments(dockerPath: dockerPath, containerName: containerName)
 
         // Attach To Container
-        let process = try PTYProcess(URL(fileURLWithPath: "/bin/sh"), arguments: arguments)
+        let process = try PTYProcess(getPtyProcess(dockerPath: dockerPath), arguments: arguments)
         try process.run()
 
         defer {
