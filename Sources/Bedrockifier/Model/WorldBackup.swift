@@ -6,9 +6,11 @@
 //
 
 import Foundation
+import Logging
 import PTYKit
 
-let usePty = false
+fileprivate let usePty = false
+fileprivate let logger = Logger(label: "BedrockifierCLI:WorldBackup")
 
 class WorldBackup {
     enum Action {
@@ -59,14 +61,16 @@ extension WorldBackup {
         defer {
             // Detach from Container
             if usePty {
+                logger.debug("Detaching Docker Process")
                 try? process.send("Q")
                 process.waitUntilExit()
             } else {
+                logger.debug("Terminating Docker Process")
                 process.terminate()
             }
 
             if process.isRunning {
-                print("Docker attach process is still running")
+                logger.error("Docker Process Still Running")
             }
         }
 
