@@ -9,8 +9,8 @@ import Foundation
 import Logging
 import PTYKit
 
-fileprivate let usePty = false
-fileprivate let logger = Logger(label: "BedrockifierCLI:WorldBackup")
+private let usePty = false
+private let logger = Logger(label: "BedrockifierCLI:WorldBackup")
 
 class WorldBackup {
     enum Action {
@@ -61,6 +61,22 @@ extension WorldBackup {
         }
     }
 
+    static func stopProcess(_ process: PTYProcess) {
+        if usePty {
+            logger.debug("Detaching Docker Process")
+            try? process.send("Q")
+            process.waitUntilExit()
+        } else {
+            logger.debug("Terminating Docker Process")
+            process.terminate()
+            process.waitUntilExit()
+        }
+
+        if process.isRunning {
+            logger.error("Docker Process Still Running")
+        }
+    }
+
     static func makeBackup(backupUrl: URL, dockerPath: String, containerName: String, worldsPath: URL) throws {
         let arguments: [String] = getPtyArguments(dockerPath: dockerPath, containerName: containerName)
 
@@ -70,19 +86,7 @@ extension WorldBackup {
 
         defer {
             // Detach from Container
-            if usePty {
-                logger.debug("Detaching Docker Process")
-                try? process.send("Q")
-                process.waitUntilExit()
-            } else {
-                logger.debug("Terminating Docker Process")
-                process.terminate()
-                process.waitUntilExit()
-            }
-
-            if process.isRunning {
-                logger.error("Docker Process Still Running")
-            }
+            stopProcess(process)
         }
 
         // Start Save Hold
