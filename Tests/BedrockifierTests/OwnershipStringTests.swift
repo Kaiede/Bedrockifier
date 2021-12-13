@@ -129,28 +129,28 @@ final class OwnershipStringTests: XCTestCase {
     func testValidPermissions() {
         do {
             let result = try parse(permissions: "666")
-            XCTAssertEqual(result, 666)
+            XCTAssertEqual(result, 0x666)
         } catch let error {
             XCTFail(error.localizedDescription)
         }
         
         do {
             let result = try parse(permissions: "644")
-            XCTAssertEqual(result, 644)
+            XCTAssertEqual(result, 0x644)
         } catch let error {
             XCTFail(error.localizedDescription)
         }
 
         do {
             let result = try parse(permissions: "777")
-            XCTAssertEqual(result, 777)
+            XCTAssertEqual(result, 0x777)
         } catch let error {
             XCTFail(error.localizedDescription)
         }
 
         do {
             let result = try parse(permissions: "444")
-            XCTAssertEqual(result, 444)
+            XCTAssertEqual(result, 0x444)
         } catch let error {
             XCTFail(error.localizedDescription)
         }

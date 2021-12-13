@@ -44,11 +44,11 @@ func parse(ownership: String) throws -> (UInt?, UInt?) {
 }
 
 func parse(permissions: String) throws -> Int16 {
-    guard let permissionValue = Int16(permissions) else {
+    guard let permissionValue = Int16(permissions, radix: 16) else {
         throw ParseError.invalidSyntax
     }
 
-    guard permissionValue <= 777 else {
+    guard permissionValue <= 0x777 else {
         throw ParseError.outOfBounds
     }
 
