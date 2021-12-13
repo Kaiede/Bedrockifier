@@ -140,11 +140,10 @@ extension World {
             attributes[.posixPermissions] = NSNumber(value: permissions)
         }
 
-        let uidString = owner != nil ? owner!.description : "nil"
-        let gidString = group != nil ? group!.description : "nil"
-        let permissionsString = permissions != nil ? permissions!.description : "nil"
-        let logStr = "Applying Ownership \(uidString):\(gidString) with permissions \(permissionsString) to \(path)"
-        World.logger.debug(logStr)
+        let uidStr = owner != nil ? owner!.description : "nil"
+        let gidStr = group != nil ? group!.description : "nil"
+        let permsStr = permissions != nil ? permissions!.description : "nil"
+        World.logger.debug("Ownership Change: \(uidStr):\(gidStr) with perms \(permsStr) at \(path)")
 
         // Apply directly to the core node (folder or mcworld package)
         var isDirectory: ObjCBool = false
