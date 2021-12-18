@@ -27,12 +27,12 @@ import Dispatch
 import Foundation
 import Logging
 
-typealias TimerHandler = () -> Void
+public typealias ServiceTimerHandler = () -> Void
 
-class Timer<IDType> {
+public class ServiceTimer<IDType> {
     public private(set) var timerId: IDType
     private var source: DispatchSourceTimer
-    private var handler: TimerHandler?
+    private var handler: ServiceTimerHandler?
     public private(set) var isSuspended: Bool
 
     public init(identifier: IDType, queue: DispatchQueue) {
@@ -48,7 +48,7 @@ class Timer<IDType> {
         self.source.setEventHandler { self.onEvent() }
     }
 
-    public func setHandler(handler: @escaping TimerHandler) {
+    public func setHandler(handler: @escaping ServiceTimerHandler) {
         self.handler = handler
     }
 

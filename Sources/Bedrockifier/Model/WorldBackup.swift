@@ -30,7 +30,7 @@ import PTYKit
 private let usePty = false
 private let logger = Logger(label: "BedrockifierCLI:WorldBackup")
 
-class WorldBackup {
+public class WorldBackup {
     enum Action {
         case keep
         case trim
@@ -46,7 +46,7 @@ class WorldBackup {
     }
 }
 
-enum WorldBackupError: Error {
+public enum WorldBackupError: Error {
     case holdFailed
     case queryFailed
     case resumeFailed
@@ -95,7 +95,7 @@ extension WorldBackup {
         }
     }
 
-    static func makeBackup(backupUrl: URL, dockerPath: String, containerName: String, worldsPath: URL) throws {
+    public static func makeBackup(backupUrl: URL, dockerPath: String, containerName: String, worldsPath: URL) throws {
         let arguments: [String] = getPtyArguments(dockerPath: dockerPath, containerName: containerName)
 
         // Attach To Container
@@ -152,7 +152,7 @@ extension WorldBackup {
         }
     }
 
-    static func fixOwnership(at folder: URL, config: BackupConfig.OwnershipConfig) throws {
+    public static func fixOwnership(at folder: URL, config: BackupConfig.OwnershipConfig) throws {
         let (uid, gid) = try config.parseOwnerAndGroup()
         let (permissions) = try config.parsePosixPermissions()
         let backups = try getBackups(at: folder)
@@ -161,7 +161,7 @@ extension WorldBackup {
         }
     }
 
-    static func trimBackups(at folder: URL, dryRun: Bool, trimDays: Int?, keepDays: Int?, minKeep: Int?) throws {
+    public static func trimBackups(at folder: URL, dryRun: Bool, trimDays: Int?, keepDays: Int?, minKeep: Int?) throws {
         let trimDays = trimDays ?? 3
         let keepDays = keepDays ?? 14
         let minKeep = minKeep ?? 1

@@ -48,6 +48,8 @@ struct Server: ParsableCommand {
     var trace = false
 
     mutating func run() throws {
+        var intervalTimer: ServiceTimer<String>? = nil
+
         // Update Logging Level
         if trace {
             ConsoleLogger.logLevelOverride = .trace
@@ -71,6 +73,7 @@ struct Server: ParsableCommand {
             return
         }
 
+        // TODO: How much of this early checking can be folded into the library?
         guard let backupPath = self.backupPath ?? config.backupPath else {
             Server.logger.error("Backup path needs to be specified on command-line or config file")
             return
@@ -93,10 +96,52 @@ struct Server: ParsableCommand {
 
         Server.logger.info("Configuration Loaded, Entering Event Loop...")
 
-        // TODO: In service mode, we need to load a configuration on how often we want to backup, and create a timer for it
+        if let interval = try config.schedule?.parseInterval() {
+            Server.logger.info("Backup Interval: \(interval) seconds")
+            let timer = Bedrockifier.ServiceTimer(identifier: "interval", queue: DispatchQueue.main)
+            timer.schedule(startingAt: Date(), repeating: .seconds(Int(interval)))
+            timer.setHandler {
+                Server.runBackup(config: config, backupUrl: URL(fileURLWithPath: backupPath), dockerPath: dockerPath)
+            }
+
+
+            intervalTimer = timer
+        }
 
         // Start Event Loop
         dispatchMain()
+    }
+
+    private static func runBackup(config: BackupConfig, backupUrl: URL, dockerPath: String) {
+        Server.logger.info("Starting Backup")
+        do {
+            for (serverContainer, serverWorldsPath) in config.servers {
+                let worldsUrl = URL(fileURLWithPath: serverWorldsPath)
+                try WorldBackup.makeBackup(backupUrl: backupUrl,
+                                           dockerPath: dockerPath,
+                                           containerName: serverContainer,
+                                           worldsPath: worldsUrl)
+            }
+
+            if let ownershipConfig = config.ownership {
+                Server.logger.info("Performing Ownership Fixup")
+                try WorldBackup.fixOwnership(at: backupUrl, config: ownershipConfig)
+            }
+
+            if let trimJob = config.trim {
+                Server.logger.info("Performing Trim Jobs")
+                try WorldBackup.trimBackups(at: backupUrl,
+                                            dryRun: false,
+                                            trimDays: trimJob.trimDays,
+                                            keepDays: trimJob.keepDays,
+                                            minKeep: trimJob.minKeep)
+            }
+
+            Server.logger.info("Backup Completed")
+        } catch let error {
+            Server.logger.error("\(error.localizedDescription)")
+            Server.logger.error("Backup Failed")
+        }
     }
 
     private func readBackupConfig(from uri: URL) -> BackupConfig? {
