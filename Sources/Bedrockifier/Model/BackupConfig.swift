@@ -7,34 +7,34 @@
 
 import Foundation
 
-struct BackupConfig: Codable {
-    typealias ServerConfig = [String: String]
+public struct BackupConfig: Codable {
+    public typealias ServerConfig = [String: String]
 
-    struct TrimConfig: Codable {
+    public struct TrimConfig: Codable {
         var trimDays: Int?
         var keepDays: Int?
         var minKeep: Int?
     }
 
-    struct OwnershipConfig: Codable {
+    public struct OwnershipConfig: Codable {
         var chown: String?
         var permissions: String?
     }
 
-    var dockerPath: String?
-    var backupPath: String?
-    var servers: ServerConfig
-    var trim: TrimConfig?
-    var ownership: OwnershipConfig?
+    public var dockerPath: String?
+    public var backupPath: String?
+    public var servers: ServerConfig
+    public var trim: TrimConfig?
+    public var ownership: OwnershipConfig?
 }
 
 extension BackupConfig {
-    static func getBackupConfig(from url: URL) throws -> BackupConfig {
+    public static func getBackupConfig(from url: URL) throws -> BackupConfig {
         let data = try Data(contentsOf: url)
         return try BackupConfig.getBackupConfig(from: data)
     }
 
-    static func getBackupConfig(from data: Data) throws -> BackupConfig {
+    public static func getBackupConfig(from data: Data) throws -> BackupConfig {
         let decoder = JSONDecoder()
         return try decoder.decode(BackupConfig.self, from: data)
     }

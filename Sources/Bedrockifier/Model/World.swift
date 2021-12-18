@@ -160,11 +160,11 @@ extension World {
 
     static func applyOwnership(to path: String, owner: UInt32?, group: UInt32?, permissions: UInt16?) throws {
         if owner != nil || group != nil {
-            try platformChown(path: path, uid: owner, gid: group)
+            try Platform.changeOwner(path: path, uid: owner, gid: group)
         }
 
         if let permissions = permissions {
-            try platformChmod(path: path, permissions: permissions)
+            try Platform.changePermissions(path: path, permissions: permissions)
         }
     }
 }
