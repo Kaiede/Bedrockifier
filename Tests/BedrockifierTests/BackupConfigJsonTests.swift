@@ -1,9 +1,9 @@
 import XCTest
 @testable import Bedrockifier
 
-final class BackupConfigTests: XCTestCase {
+final class BackupConfigJsonTests: XCTestCase {
     func testMinimalConfig() {
-        guard let jsonData = minimalConfigString.data(using: .utf8) else {
+        guard let jsonData = minimalJsonConfigString.data(using: .utf8) else {
             XCTFail("couldn't get data for test JSON")
             return
         }
@@ -20,7 +20,7 @@ final class BackupConfigTests: XCTestCase {
     }
 
     func testDockerConfig() {
-        guard let jsonData = dockerConfigString.data(using: .utf8) else {
+        guard let jsonData = dockerJsonConfigString.data(using: .utf8) else {
             XCTFail("couldn't get data for test JSON")
             return
         }
@@ -37,7 +37,7 @@ final class BackupConfigTests: XCTestCase {
     }
 
     func testGoodConfig() {
-        guard let jsonData = goodConfigString.data(using: .utf8) else {
+        guard let jsonData = goodJsonConfigString.data(using: .utf8) else {
             XCTFail("couldn't get data for test JSON")
             return
         }
@@ -54,7 +54,7 @@ final class BackupConfigTests: XCTestCase {
     }
     
     func testOwnershipConfig() {
-        guard let jsonData = ownershipConfigString.data(using: .utf8) else {
+        guard let jsonData = ownershipJsonConfigString.data(using: .utf8) else {
             XCTFail("couldn't get data for test JSON")
             return
         }
@@ -86,7 +86,7 @@ final class BackupConfigTests: XCTestCase {
 
 // MARK: Test Data
 
-let minimalConfigString = """
+let minimalJsonConfigString = """
     {
         "servers": {
             "bedrock_private": "/bedrock_private/worlds",
@@ -95,7 +95,7 @@ let minimalConfigString = """
     }
     """
 
-let dockerConfigString = """
+let dockerJsonConfigString = """
     {
         "servers": {
             "bedrock_private": "/bedrock_private/worlds",
@@ -109,7 +109,7 @@ let dockerConfigString = """
     }
     """
 
-let goodConfigString = """
+let goodJsonConfigString = """
     {
         "dockerPath": "/usr/bin/docker",
         "backupPath": "/backups",
@@ -125,7 +125,7 @@ let goodConfigString = """
     }
     """
 
-let ownershipConfigString = """
+let ownershipJsonConfigString = """
     {
         "dockerPath": "/usr/bin/docker",
         "backupPath": "/backups",
