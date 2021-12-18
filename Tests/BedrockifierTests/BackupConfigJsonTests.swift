@@ -76,11 +76,33 @@ final class BackupConfigJsonTests: XCTestCase {
         }
     }
 
+    func testScheduleConfig() {
+        guard let jsonData = scheduleJsonConfigString.data(using: .utf8) else {
+            XCTFail("couldn't get data for test JSON")
+            return
+        }
+
+        do {
+            let config = try BackupConfig.getBackupConfig(from: jsonData)
+            guard let scheduleConfig = config.schedule else {
+                XCTFail("Schedule config missing.")
+                return
+            }
+
+            XCTAssertEqual(scheduleConfig.interval, "3h")
+            XCTAssertEqual(scheduleConfig.onPlayerLogin, true)
+            XCTAssertEqual(scheduleConfig.onPlayerLogout, nil)
+        } catch(let error) {
+            XCTFail("Unable to decode valid JSON: \(error)")
+        }
+    }
+
     static var allTests = [
         ("testMinimalConfig", testMinimalConfig),
         ("testDockerConfig", testDockerConfig),
         ("testGoodConfig", testGoodConfig),
         ("testOwnershipConfig", testOwnershipConfig),
+        ("testScheduleConfig", testScheduleConfig),
     ]
 }
 
@@ -136,6 +158,26 @@ let ownershipJsonConfigString = """
         "ownership": {
             "chown": "100:200",
             "permissions": "666"
+        },
+        "trim": {
+            "trimDays":   2,
+            "keepDays":   14,
+            "minKeep":    2
+        }
+    }
+    """
+
+let scheduleJsonConfigString = """
+    {
+        "dockerPath": "/usr/bin/docker",
+        "backupPath": "/backups",
+        "servers": {
+            "bedrock_private": "/bedrock_private/worlds",
+            "bedrock_public": "/bedrock_public/worlds"
+        },
+        "schedule": {
+            "interval": "3h",
+            "onPlayerLogin": true
         },
         "trim": {
             "trimDays":   2,

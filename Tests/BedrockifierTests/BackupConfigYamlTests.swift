@@ -85,11 +85,33 @@ final class BackupConfigYamlTests: XCTestCase {
         }
     }
 
+    func testScheduleConfig() {
+        guard let yamlData = scheduleYamlConfigString.data(using: .utf8) else {
+            XCTFail("couldn't get data for test YAML")
+            return
+        }
+
+        do {
+            let config = try BackupConfig.getBackupConfig(from: yamlData)
+            guard let scheduleConfig = config.schedule else {
+                XCTFail("Schedule config missing.")
+                return
+            }
+
+            XCTAssertEqual(scheduleConfig.interval, "3h")
+            XCTAssertEqual(scheduleConfig.onPlayerLogin, true)
+            XCTAssertEqual(scheduleConfig.onPlayerLogout, nil)
+        } catch(let error) {
+            XCTFail("Unable to decode valid YAML: \(error)")
+        }
+    }
+
     static var allTests = [
         ("testMinimalConfig", testMinimalConfig),
         ("testDockerConfig", testDockerConfig),
         ("testGoodConfig", testGoodConfig),
         ("testOwnershipConfig", testOwnershipConfig),
+        ("testScheduleConfig", testScheduleConfig),
     ]
 }
 
@@ -132,6 +154,21 @@ let ownershipYamlConfigString = """
     ownership:
         chown: 100:200
         permissions: 666
+    trim:
+        trimDays: 2
+        keepDays: 14
+        minKeep: 2
+    """
+
+let scheduleYamlConfigString = """
+    dockerPath: /usr/bin/docker
+    backupPath: /backups
+    servers:
+        bedrock_private: /bedrock_private/worlds
+        bedrock_public: /bedrock_public/worlds
+    schedule:
+        interval: 3h
+        onPlayerLogin: true
     trim:
         trimDays: 2
         keepDays: 14

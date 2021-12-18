@@ -30,14 +30,20 @@ public struct BackupConfig: Codable {
     public typealias ServerConfig = [String: String]
 
     public struct TrimConfig: Codable {
-        var trimDays: Int?
-        var keepDays: Int?
-        var minKeep: Int?
+        public var trimDays: Int?
+        public var keepDays: Int?
+        public var minKeep: Int?
     }
 
     public struct OwnershipConfig: Codable {
-        var chown: String?
-        var permissions: String?
+        public var chown: String?
+        public var permissions: String?
+    }
+
+    public struct ScheduleConfig: Codable {
+        public var interval: String?
+        public var onPlayerLogin: Bool?
+        public var onPlayerLogout: Bool?
     }
 
     public var dockerPath: String?
@@ -45,6 +51,7 @@ public struct BackupConfig: Codable {
     public var servers: ServerConfig
     public var trim: TrimConfig?
     public var ownership: OwnershipConfig?
+    public var schedule: ScheduleConfig?
 }
 
 extension BackupConfig {
@@ -60,6 +67,20 @@ extension BackupConfig {
         return config
     }
 }
+
+extension BackupConfig {
+    func validate(requireSchedule: Bool) throws {
+        if requireSchedule {
+            guard let schedule = self.schedule else {
+                return // TODO: Throw Missing Schedule
+            }
+
+            if schedule.interval == nil && schedule.onPlayerLogin != true && schedule.onPlayerLogout != true {
+                return // TODO: Throw needs at at least one schedule type
+            }
+
+            // TODO: Validate interval
+        }
     }
 }
 
