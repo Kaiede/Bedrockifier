@@ -24,6 +24,7 @@
  */
 
 import Foundation
+import Yams
 
 public struct BackupConfig: Codable {
     public typealias ServerConfig = [String: String]
@@ -53,8 +54,12 @@ extension BackupConfig {
     }
 
     public static func getBackupConfig(from data: Data) throws -> BackupConfig {
-        let decoder = JSONDecoder()
-        return try decoder.decode(BackupConfig.self, from: data)
+        let decodey = YAMLDecoder()
+        let config = try decodey.decode(BackupConfig.self, from: data)
+        try config.validate(requireSchedule: false)
+        return config
+    }
+}
     }
 }
 
