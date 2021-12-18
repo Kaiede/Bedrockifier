@@ -29,4 +29,14 @@ import Logging
 //
 // Logger Objects
 //
-let Log = Logger(label: "bedrockifier")
+struct Library {
+    static let log = Logger(label: "bedrockifier")
+
+    static let dateFormatter: DateFormatter = {
+        var formatter = DateFormatter()
+        formatter.calendar = Calendar.current
+        formatter.timeZone = TimeZone.current
+        formatter.dateStyle = .medium
+        return formatter
+    }()
+}
