@@ -47,42 +47,51 @@ public final class BackupJobCommand: Command {
     }
 
     public func run(using context: CommandContext, signature: Signature) throws {
-        let configUrl = URL(fileURLWithPath: signature.configPath)
-        let config = try BackupConfig.getBackupConfig(from: configUrl)
+        let group = DispatchGroup()
+        group.enter()
 
-        guard let backupPath = signature.backupPath ?? config.backupPath else {
-            context.console.error("Backup path needs to be specified on command-line or config file")
-            return
-        }
+        Task {
+            let configUrl = URL(fileURLWithPath: signature.configPath)
+            let config = try BackupConfig.getBackupConfig(from: configUrl)
 
-        guard let dockerPath = signature.dockerPath ?? config.dockerPath else {
-            context.console.error("Docker path needs to be specified on command-line or config file")
-            return
-        }
+            guard let backupPath = signature.backupPath ?? config.backupPath else {
+                context.console.error("Backup path needs to be specified on command-line or config file")
+                return
+            }
 
-        let backupUrl = URL(fileURLWithPath: backupPath)
+            guard let dockerPath = signature.dockerPath ?? config.dockerPath else {
+                context.console.error("Docker path needs to be specified on command-line or config file")
+                return
+            }
 
-        Library.log.info("Performing Backups")
-        for (serverContainer, serverWorldsPath) in config.servers {
-            let worldsUrl = URL(fileURLWithPath: serverWorldsPath)
-            try WorldBackup.makeBackup(backupUrl: backupUrl,
-                                       dockerPath: dockerPath,
-                                       containerName: serverContainer,
-                                       worldsPath: worldsUrl)
-        }
+            let backupUrl = URL(fileURLWithPath: backupPath)
+
+            Library.log.info("Performing Backups")
+            for (serverContainer, serverWorldsPath) in config.servers {
+                let worldsUrl = URL(fileURLWithPath: serverWorldsPath)
+                try await WorldBackup.makeBackup(backupUrl: backupUrl,
+                                           dockerPath: dockerPath,
+                                           containerName: serverContainer,
+                                           worldsPath: worldsUrl)
+            }
         
-        if let ownershipConfig = config.ownership {
-            Library.log.info("Performing Ownership Fixup")
-            try WorldBackup.fixOwnership(at: backupUrl, config: ownershipConfig)
+            if let ownershipConfig = config.ownership {
+                Library.log.info("Performing Ownership Fixup")
+                try WorldBackup.fixOwnership(at: backupUrl, config: ownershipConfig)
+            }
+
+            if let trimJob = config.trim {
+                Library.log.info("Performing Trim Jobs")
+                try WorldBackup.trimBackups(at: backupUrl,
+                                            dryRun: false,
+                                            trimDays: trimJob.trimDays,
+                                            keepDays: trimJob.keepDays,
+                                            minKeep: trimJob.minKeep)
+            }
+
+            group.leave()
         }
 
-        if let trimJob = config.trim {
-            Library.log.info("Performing Trim Jobs")
-            try WorldBackup.trimBackups(at: backupUrl,
-                                        dryRun: false,
-                                        trimDays: trimJob.trimDays,
-                                        keepDays: trimJob.keepDays,
-                                        minKeep: trimJob.minKeep)
-        }
+        group.wait()
     }
 }

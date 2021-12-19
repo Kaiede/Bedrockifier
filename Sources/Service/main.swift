@@ -101,8 +101,8 @@ struct Server: ParsableCommand {
             let timer = Bedrockifier.ServiceTimer(identifier: "interval", queue: DispatchQueue.main)
             timer.schedule(startingAt: Date(), repeating: .seconds(Int(interval)))
             timer.setHandler {
-                DispatchQueue.global(qos: .utility).async {
-                    Server.runBackup(config: config, backupUrl: URL(fileURLWithPath: backupPath), dockerPath: dockerPath)
+                Task {
+                    await Server.runBackup(config: config, backupUrl: URL(fileURLWithPath: backupPath), dockerPath: dockerPath)
                 }
             }
 
@@ -114,12 +114,12 @@ struct Server: ParsableCommand {
         dispatchMain()
     }
 
-    private static func runBackup(config: BackupConfig, backupUrl: URL, dockerPath: String) {
+    private static func runBackup(config: BackupConfig, backupUrl: URL, dockerPath: String) async {
         Server.logger.info("Starting Backup")
         do {
             for (serverContainer, serverWorldsPath) in config.servers {
                 let worldsUrl = URL(fileURLWithPath: serverWorldsPath)
-                try WorldBackup.makeBackup(backupUrl: backupUrl,
+                try await WorldBackup.makeBackup(backupUrl: backupUrl,
                                            dockerPath: dockerPath,
                                            containerName: serverContainer,
                                            worldsPath: worldsUrl)

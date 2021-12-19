@@ -108,7 +108,7 @@ extension WorldBackup {
         }
     }
 
-    public static func makeBackup(backupUrl: URL, dockerPath: String, containerName: String, worldsPath: URL) throws {
+    public static func makeBackup(backupUrl: URL, dockerPath: String, containerName: String, worldsPath: URL) async throws {
         let arguments: [String] = getPtyArguments(dockerPath: dockerPath, containerName: containerName)
 
         // Attach To Container
@@ -122,7 +122,7 @@ extension WorldBackup {
 
         // Start Save Hold
         try process.sendLine("save hold")
-        if process.expect(["Saving", "The command is already running"], timeout: 10.0) == .noMatch {
+        if await process.expect(["Saving", "The command is already running"], timeout: 10.0) == .noMatch {
             throw WorldBackupError.holdFailed
         }
 
@@ -130,7 +130,7 @@ extension WorldBackup {
         var attemptLimit = 3
         while attemptLimit > 0 {
             try process.sendLine("save query")
-            if process.expect("Files are now ready to be copied", timeout: 10.0) == .noMatch {
+            if await process.expect("Files are now ready to be copied", timeout: 10.0) == .noMatch {
                 attemptLimit -= 1
             } else {
                 break
@@ -160,7 +160,7 @@ extension WorldBackup {
             "Changes to the world are resumed", // 1.18 and later
             "A previous save has not been completed"
         ]
-        if process.expect(saveResumeStrings, timeout: 60.0) == .noMatch {
+        if await process.expect(saveResumeStrings, timeout: 60.0) == .noMatch {
             throw WorldBackupError.resumeFailed
         }
     }

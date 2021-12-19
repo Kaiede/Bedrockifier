@@ -62,16 +62,24 @@ public final class BackupCommand: Command {
     }
 
     public func run(using context: CommandContext, signature: Signature) throws {
-        let backupUrl = URL(fileURLWithPath: signature.outputFolderPath)
-        let worldsPath = URL(fileURLWithPath: signature.worldsPath)
-        try WorldBackup.makeBackup(backupUrl: backupUrl,
-                                   dockerPath: signature.dockerPath,
-                                   containerName: signature.containerName,
-                                   worldsPath: worldsPath)
-        
-        // Run optional trim
-        if signature.trim {
-            try WorldBackup.trimBackups(at: backupUrl, dryRun: false, trimDays: nil, keepDays: nil, minKeep: nil)
+        let group = DispatchGroup()
+        group.enter()
+
+        Task {
+            let backupUrl = URL(fileURLWithPath: signature.outputFolderPath)
+            let worldsPath = URL(fileURLWithPath: signature.worldsPath)
+            try await WorldBackup.makeBackup(backupUrl: backupUrl,
+                                       dockerPath: signature.dockerPath,
+                                       containerName: signature.containerName,
+                                       worldsPath: worldsPath)
+
+            // Run optional trim
+            if signature.trim {
+                try WorldBackup.trimBackups(at: backupUrl, dryRun: false, trimDays: nil, keepDays: nil, minKeep: nil)
+            }
+            group.leave()
         }
+
+        group.wait()
     }
 }
