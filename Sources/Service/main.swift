@@ -94,6 +94,12 @@ struct Server: ParsableCommand {
             return
         }
 
+        let backupUrl = URL(fileURLWithPath: backupPath)
+        if !Server.markHealthy(backupUrl: backupUrl) {
+            Server.logger.error("Unable to write to backup folder, check that permissions are configured properly")
+            return
+        }
+
         Server.logger.info("Configuration Loaded, Entering Event Loop...")
 
         if let interval = try config.schedule?.parseInterval() {
@@ -105,7 +111,6 @@ struct Server: ParsableCommand {
                     await Server.runBackup(config: config, backupUrl: URL(fileURLWithPath: backupPath), dockerPath: dockerPath)
                 }
             }
-
 
             intervalTimer = timer
         }
@@ -140,10 +145,46 @@ struct Server: ParsableCommand {
             }
 
             Server.logger.info("Backup Completed")
+            let _ = Server.markHealthy(backupUrl: backupUrl)
         } catch let error {
             Server.logger.error("\(error.localizedDescription)")
             Server.logger.error("Backup Failed")
+            let _ = Server.markUnhealthy(backupUrl: backupUrl)
         }
+    }
+
+    static private func markHealthy(backupUrl: URL) -> Bool {
+        do {
+            let healthFile = healthyFilePath(backupUrl: backupUrl)
+            if !FileManager.default.fileExists(atPath: healthFile.path) {
+                try Data().write(to: healthFile)
+            }
+            return true
+        } catch let error {
+            Server.logger.error("\(error.localizedDescription)")
+            Server.logger.error("Unable to mark service as healthy.")
+        }
+
+        return false
+    }
+
+    static private func markUnhealthy(backupUrl: URL) -> Bool {
+        do {
+            let healthFile = healthyFilePath(backupUrl: backupUrl)
+            if FileManager.default.fileExists(atPath: healthFile.path) {
+                try FileManager.default.removeItem(at: healthFile)
+            }
+            return true
+        } catch let error {
+            Server.logger.error("\(error.localizedDescription)")
+            Server.logger.error("Unable to mark service as unhealthy.")
+        }
+
+        return false
+    }
+
+    static private func healthyFilePath(backupUrl: URL) -> URL {
+        return backupUrl.appendingPathComponent(".service_is_healthy")
     }
 
     private func readBackupConfig(from uri: URL) -> BackupConfig? {
