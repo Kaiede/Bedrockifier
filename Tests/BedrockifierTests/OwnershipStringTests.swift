@@ -4,28 +4,28 @@ import XCTest
 final class OwnershipStringTests: XCTestCase {
     func testInvalidString() {
         do {
-            let _ = try parse(ownership: "helloworld")
+            _ = try parse(ownership: "helloworld")
             XCTFail("Expected string to throw")
         } catch {
             // Expected
         }
         
         do {
-            let _ = try parse(ownership: "hello:world")
+            _ = try parse(ownership: "hello:world")
             XCTFail("Expected string to throw")
         } catch {
             // Expected
         }
         
         do {
-            let _ = try parse(ownership: "123:world")
+            _ = try parse(ownership: "123:world")
             XCTFail("Expected string to throw")
         } catch {
             // Expected
         }
         
         do {
-            let _ = try parse(ownership: "hello:456")
+            _ = try parse(ownership: "hello:456")
             XCTFail("Expected string to throw")
         } catch {
             // Expected
@@ -82,21 +82,21 @@ final class OwnershipStringTests: XCTestCase {
     
     func testInvalidPermissions() {
         do {
-            let _ = try parse(permissions: "hello")
+            _ = try parse(permissions: "hello")
             XCTFail("Expected string to throw")
         } catch {
             // Expected
         }
         
         do {
-            let _ = try parse(permissions: "world")
+            _ = try parse(permissions: "world")
             XCTFail("Expected string to throw")
         } catch {
             // Expected
         }
         
         do {
-            let _ = try parse(permissions: "123:456")
+            _ = try parse(permissions: "123:456")
             XCTFail("Expected string to throw")
         } catch {
             // Expected
@@ -105,21 +105,21 @@ final class OwnershipStringTests: XCTestCase {
     
     func testOutOfBoundsPermissions() {
         do {
-            let _ = try parse(permissions: "778")
+            _ = try parse(permissions: "778")
             XCTFail("Expected string to throw")
         } catch {
             // Expected
         }
         
         do {
-            let _ = try parse(permissions: "888")
+            _ = try parse(permissions: "888")
             XCTFail("Expected string to throw")
         } catch {
             // Expected
         }
         
         do {
-            let _ = try parse(permissions: "1000")
+            _ = try parse(permissions: "1000")
             XCTFail("Expected string to throw")
         } catch {
             // Expected

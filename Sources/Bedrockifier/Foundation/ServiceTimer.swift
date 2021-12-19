@@ -101,15 +101,3 @@ public class ServiceTimer<IDType> {
         self.handler?()
     }
 }
-
-
-/*
-
- public func schedulePrecise(forDate date: Date) {
-     self.schedule(wallDeadline: DispatchWallTime(date: date), leeway: .milliseconds(1))
- }
-
- public func schedulePrecise(forDate date: Date, repeating interval: DispatchTimeInterval) {
-     self.schedule(wallDeadline: DispatchWallTime(date: date), repeating: interval, leeway: .milliseconds(1))
- }
- */

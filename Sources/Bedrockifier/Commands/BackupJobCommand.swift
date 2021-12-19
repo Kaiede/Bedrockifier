@@ -74,7 +74,7 @@ public final class BackupJobCommand: Command {
                                            containerName: serverContainer,
                                            worldsPath: worldsUrl)
             }
-        
+
             if let ownershipConfig = config.ownership {
                 Library.log.info("Performing Ownership Fixup")
                 try WorldBackup.fixOwnership(at: backupUrl, config: ownershipConfig)

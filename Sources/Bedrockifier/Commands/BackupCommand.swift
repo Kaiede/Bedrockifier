@@ -51,7 +51,7 @@ public final class BackupCommand: Command {
 
         @Option(name: "minKeep", short: "m", help: "Minimum count of backups to keep for a single world (default = 1)")
         var minKeep: Int?
-        
+
         public init() {}
     }
 

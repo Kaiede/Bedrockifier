@@ -107,7 +107,10 @@ extension WorldBackup {
         }
     }
 
-    public static func makeBackup(backupUrl: URL, dockerPath: String, containerName: String, worldsPath: URL) async throws {
+    public static func makeBackup(backupUrl: URL,
+                                  dockerPath: String,
+                                  containerName: String,
+                                  worldsPath: URL) async throws {
         let arguments: [String] = getPtyArguments(dockerPath: dockerPath, containerName: containerName)
 
         // Attach To Container
