@@ -92,15 +92,14 @@ extension WorldBackup {
         }
     }
 
-    static func stopProcess(_ process: PTYProcess) {
+    static func stopProcess(_ process: PTYProcess) async {
         if usePty {
             logger.debug("Detaching Docker Process")
             try? process.send("Q")
             process.waitUntilExit()
         } else {
             logger.debug("Terminating Docker Process")
-            process.terminate()
-            process.waitUntilExit()
+            await process.terminate()
         }
 
         if process.isRunning {
@@ -115,53 +114,55 @@ extension WorldBackup {
         let process = try PTYProcess(getPtyProcess(dockerPath: dockerPath), arguments: arguments)
         try process.run()
 
-        defer {
-            // Detach from Container
-            stopProcess(process)
-        }
-
-        // Start Save Hold
-        try process.sendLine("save hold")
-        if await process.expect(["Saving", "The command is already running"], timeout: 10.0) == .noMatch {
-            throw WorldBackupError.holdFailed
-        }
-
-        // Wait for files to be ready
-        var attemptLimit = 3
-        while attemptLimit > 0 {
-            try process.sendLine("save query")
-            if await process.expect("Files are now ready to be copied", timeout: 10.0) == .noMatch {
-                attemptLimit -= 1
-            } else {
-                break
-            }
-        }
-
-        if attemptLimit < 0 {
-            throw WorldBackupError.queryFailed
-        }
-
         do {
-            Library.log.info("Starting Backup of worlds at: \(worldsPath.path)")
-            for world in try World.getWorlds(at: worldsPath) {
-                Library.log.info("Backing Up: \(world.name)")
-                let backupWorld = try world.backup(to: backupUrl)
-                Library.log.info("Backed up as: \(backupWorld.location.lastPathComponent)")
+            // Start Save Hold
+            try process.sendLine("save hold")
+            if await process.expect(["Saving", "The command is already running"], timeout: 10.0) == .noMatch {
+                throw WorldBackupError.holdFailed
             }
-            Library.log.info("Backup Complete...")
-        } catch {
-            Library.log.error("Backup Failed...")
-        }
 
-        // Release Save Hold
-        try process.sendLine("save resume")
-        let saveResumeStrings = [
-            "Changes to the level are resumed", // 1.17 and earlier
-            "Changes to the world are resumed", // 1.18 and later
-            "A previous save has not been completed"
-        ]
-        if await process.expect(saveResumeStrings, timeout: 60.0) == .noMatch {
-            throw WorldBackupError.resumeFailed
+            // Wait for files to be ready
+            var attemptLimit = 3
+            while attemptLimit > 0 {
+                try process.sendLine("save query")
+                if await process.expect("Files are now ready to be copied", timeout: 10.0) == .noMatch {
+                    attemptLimit -= 1
+                } else {
+                    break
+                }
+            }
+
+            if attemptLimit < 0 {
+                throw WorldBackupError.queryFailed
+            }
+
+            do {
+                Library.log.info("Starting Backup of worlds at: \(worldsPath.path)")
+                for world in try World.getWorlds(at: worldsPath) {
+                    Library.log.info("Backing Up: \(world.name)")
+                    let backupWorld = try world.backup(to: backupUrl)
+                    Library.log.info("Backed up as: \(backupWorld.location.lastPathComponent)")
+                }
+                Library.log.info("Backup Complete...")
+            } catch {
+                Library.log.error("Backup Failed...")
+            }
+
+            // Release Save Hold
+            try process.sendLine("save resume")
+            let saveResumeStrings = [
+                "Changes to the level are resumed", // 1.17 and earlier
+                "Changes to the world are resumed", // 1.18 and later
+                "A previous save has not been completed"
+            ]
+            if await process.expect(saveResumeStrings, timeout: 60.0) == .noMatch {
+                throw WorldBackupError.resumeFailed
+            }
+
+            await stopProcess(process)
+        } catch let error {
+            await stopProcess(process)
+            throw error
         }
     }
 
