@@ -46,12 +46,18 @@ public struct BackupConfig: Codable {
         public var onPlayerLogout: Bool?
     }
 
+    public enum LoggingConfig: String, Codable {
+        case debug
+        case trace
+    }
+
     public var dockerPath: String?
     public var backupPath: String?
     public var servers: ServerConfig
     public var trim: TrimConfig?
     public var ownership: OwnershipConfig?
     public var schedule: ScheduleConfig?
+    public var loggingLevel: LoggingConfig?
 }
 
 extension BackupConfig {

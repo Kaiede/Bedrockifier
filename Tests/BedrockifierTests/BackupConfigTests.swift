@@ -17,7 +17,6 @@ final class BackupConfigTests: XCTestCase {
         XCTAssertEqual(try schedule.parseInterval(), 150.0)
     }
 
-
     static var allTests = [
         ("testScheduleInterval", testScheduleInterval),
     ]

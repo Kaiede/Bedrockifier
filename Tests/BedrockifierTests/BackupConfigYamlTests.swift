@@ -16,6 +16,7 @@ final class BackupConfigYamlTests: XCTestCase {
             XCTAssertNil(config.dockerPath)
             XCTAssertEqual(config.servers.count, 2)
             XCTAssertNil(config.trim)
+            XCTAssertNil(config.loggingLevel)
         } catch(let error) {
             XCTFail("Unable to decode valid YAML: \(error)")
         }
@@ -50,6 +51,7 @@ final class BackupConfigYamlTests: XCTestCase {
             XCTAssertNotNil(config.dockerPath)
             XCTAssertEqual(config.servers.count, 2)
             XCTAssertNotNil(config.trim)
+            XCTAssertEqual(config.loggingLevel, .trace)
         } catch(let error) {
             XCTFail("Unable to decode valid YAML: \(error)")
         }
@@ -129,6 +131,7 @@ let dockerYamlConfigString = """
 let goodYamlConfigString = """
     dockerPath: /usr/bin/docker
     backupPath: /backups
+    loggingLevel: trace
     servers:
         bedrock_private: /bedrock_private/worlds
         bedrock_public: /bedrock_public/worlds

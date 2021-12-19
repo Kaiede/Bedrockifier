@@ -14,6 +14,7 @@ final class BackupConfigJsonTests: XCTestCase {
             XCTAssertNil(config.dockerPath)
             XCTAssertEqual(config.servers.count, 2)
             XCTAssertNil(config.trim)
+            XCTAssertNil(config.loggingLevel)
         } catch(let error) {
             XCTFail("Unable to decode valid JSON: \(error)")
         }
@@ -48,6 +49,7 @@ final class BackupConfigJsonTests: XCTestCase {
             XCTAssertNotNil(config.dockerPath)
             XCTAssertEqual(config.servers.count, 2)
             XCTAssertNotNil(config.trim)
+            XCTAssertEqual(config.loggingLevel, .debug)
         } catch(let error) {
             XCTFail("Unable to decode valid JSON: \(error)")
         }
@@ -135,6 +137,7 @@ let goodJsonConfigString = """
     {
         "dockerPath": "/usr/bin/docker",
         "backupPath": "/backups",
+        "loggingLevel": "debug",
         "servers": {
             "bedrock_private": "/bedrock_private/worlds",
             "bedrock_public": "/bedrock_public/worlds"
