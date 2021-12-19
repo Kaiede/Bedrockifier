@@ -52,6 +52,19 @@ public enum WorldBackupError: Error {
     case resumeFailed
 }
 
+extension WorldBackupError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .holdFailed:
+            return "Failed to pause auto-save on the server"
+        case .queryFailed:
+            return "Failed to confirm data is ready for backup"
+        case .resumeFailed:
+            return "Failed to resume auto-save on the server"
+        }
+    }
+}
+
 extension WorldBackup {
     static func getPtyArguments(dockerPath: String, containerName: String) -> [String] {
         if usePty {
