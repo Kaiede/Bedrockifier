@@ -101,7 +101,9 @@ struct Server: ParsableCommand {
             let timer = Bedrockifier.ServiceTimer(identifier: "interval", queue: DispatchQueue.main)
             timer.schedule(startingAt: Date(), repeating: .seconds(Int(interval)))
             timer.setHandler {
-                Server.runBackup(config: config, backupUrl: URL(fileURLWithPath: backupPath), dockerPath: dockerPath)
+                DispatchQueue.global(qos: .utility).async {
+                    Server.runBackup(config: config, backupUrl: URL(fileURLWithPath: backupPath), dockerPath: dockerPath)
+                }
             }
 
 
