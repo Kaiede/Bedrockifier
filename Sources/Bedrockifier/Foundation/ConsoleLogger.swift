@@ -39,7 +39,7 @@ public final class ConsoleLogger: LogHandler {
         let formatter = DateFormatter()
         formatter.timeZone = TimeZone.current
         formatter.calendar = Calendar.current
-        formatter.dateFormat = "HH:mm:ss.SSS";
+        formatter.dateFormat = "HH:mm:ss.SSS"
         return formatter
     }()
 
@@ -80,14 +80,14 @@ public final class ConsoleLogger: LogHandler {
     private func formatMessage(_ message: Logger.Message, level: Logger.Level, file: String, line: UInt) -> String {
         var components: [String] = []
 
-        if (ConsoleLogger.showDetails) {
+        if ConsoleLogger.showDetails {
             let nowString = ConsoleLogger.timeFormatter.string(from: Date())
             components.append("[\(nowString)][\(level.rawValue.padding(toLength: 8, withPad: " ", startingAt: 0))]")
         }
 
         components.append("\(message)")
 
-        if (ConsoleLogger.showFilePosition) {
+        if ConsoleLogger.showFilePosition {
             let shortFileName = URL(fileURLWithPath: file).lastPathComponent
             components.append("(\(shortFileName):\(line))")
         }

@@ -39,7 +39,7 @@ struct Platform {
     #endif
 
     enum PlatformError: Error {
-        case Errno(error: Int32)
+        case errno(error: Int32)
     }
 
     static func changeOwner(path: String, uid: UInt32?, gid: UInt32?) throws {
@@ -49,7 +49,7 @@ struct Platform {
         try path.withCString({ cchars in
             let result = chown(cchars, realUid, realGid)
             guard result == 0 else {
-                throw PlatformError.Errno(error: errno)
+                throw PlatformError.errno(error: errno)
             }
         })
     }
@@ -58,10 +58,8 @@ struct Platform {
         try path.withCString({ cchars in
             let result = chmod(cchars, Mode(permissions))
             guard result == 0 else {
-                throw PlatformError.Errno(error: errno)
+                throw PlatformError.errno(error: errno)
             }
         })
     }
 }
-
-

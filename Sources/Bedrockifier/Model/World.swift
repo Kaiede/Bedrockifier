@@ -148,7 +148,7 @@ extension World {
         do {
             let uidStr = owner != nil ? owner!.description : "nil"
             let gidStr = group != nil ? group!.description : "nil"
-            let permsStr = permissions != nil ? String(format:"%o", permissions!) : "nil"
+            let permsStr = permissions != nil ? String(format: "%o", permissions!) : "nil"
             Library.log.debug("Ownership Change: \(uidStr):\(gidStr) with perms \(permsStr) at \(path)")
 
             // Apply directly to the core node (folder or mcworld package)

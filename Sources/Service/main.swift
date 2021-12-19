@@ -48,16 +48,9 @@ struct Server: ParsableCommand {
     var trace = false
 
     mutating func run() throws {
-        var intervalTimer: ServiceTimer<String>? = nil
+        var intervalTimer: ServiceTimer<String>?
 
-        // Update Logging Level
-        if trace {
-            ConsoleLogger.logLevelOverride = .trace
-            ConsoleLogger.showFilePosition = true
-        } else if debug {
-            ConsoleLogger.logLevelOverride = .debug
-            ConsoleLogger.showFilePosition = true
-        }
+        updateLoggingLevel()
 
         Server.logger.info("Initializing Bedrockifier Daemon")
 
@@ -108,7 +101,9 @@ struct Server: ParsableCommand {
             timer.schedule(startingAt: Date(), repeating: .seconds(Int(interval)))
             timer.setHandler {
                 Task {
-                    await Server.runBackup(config: config, backupUrl: URL(fileURLWithPath: backupPath), dockerPath: dockerPath)
+                    await Server.runBackup(config: config,
+                                           backupUrl: URL(fileURLWithPath: backupPath),
+                                           dockerPath: dockerPath)
                 }
             }
 
@@ -117,6 +112,16 @@ struct Server: ParsableCommand {
 
         // Start Event Loop
         dispatchMain()
+    }
+
+    private func updateLoggingLevel() {
+        if trace {
+            ConsoleLogger.logLevelOverride = .trace
+            ConsoleLogger.showFilePosition = true
+        } else if debug {
+            ConsoleLogger.logLevelOverride = .debug
+            ConsoleLogger.showFilePosition = true
+        }
     }
 
     private static func runBackup(config: BackupConfig, backupUrl: URL, dockerPath: String) async {
@@ -145,11 +150,11 @@ struct Server: ParsableCommand {
             }
 
             Server.logger.info("Backup Completed")
-            let _ = Server.markHealthy(backupUrl: backupUrl)
+            _ = Server.markHealthy(backupUrl: backupUrl)
         } catch let error {
             Server.logger.error("\(error.localizedDescription)")
             Server.logger.error("Backup Failed")
-            let _ = Server.markUnhealthy(backupUrl: backupUrl)
+            _ = Server.markUnhealthy(backupUrl: backupUrl)
         }
     }
 
