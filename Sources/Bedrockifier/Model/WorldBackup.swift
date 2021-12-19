@@ -129,15 +129,15 @@ extension WorldBackup {
         }
 
         do {
-            print("Starting Backup of worlds at: \(worldsPath.path)")
+            Library.log.info("Starting Backup of worlds at: \(worldsPath.path)")
             for world in try World.getWorlds(at: worldsPath) {
-                print("Backing Up: \(world.name)")
+                Library.log.info("Backing Up: \(world.name)")
                 let backupWorld = try world.backup(to: backupUrl)
-                print("Backed up as: \(backupWorld.location.lastPathComponent)")
+                Library.log.info("Backed up as: \(backupWorld.location.lastPathComponent)")
             }
-            print("Backup Complete...")
+            Library.log.info("Backup Complete...")
         } catch {
-            print("Backup Failed...")
+            Library.log.error("Backup Failed...")
         }
 
         // Release Save Hold
@@ -170,15 +170,15 @@ extension WorldBackup {
 
         let backups = try WorldBackup.getBackups(at: folder)
         for (worldName, worldBackups) in backups {
-            print("Processing: \(worldName)")
+            Library.log.debug("Processing: \(worldName)")
             let processedBackups = worldBackups.process(trimDays: trimDays, keepDays: keepDays, minKeep: minKeep)
             for processedBackup in processedBackups.filter({ $0.action == .trim }) {
-                print("\(deletingString): \(processedBackup.world.location.lastPathComponent)")
+                Library.log.info("\(deletingString): \(processedBackup.world.location.lastPathComponent)")
                 if !dryRun {
                     do {
                         try FileManager.default.removeItem(at: processedBackup.world.location)
                     } catch {
-                        print("Unable to delete \(processedBackup.world.location)")
+                        Library.log.error("Unable to delete \(processedBackup.world.location)")
                     }
                 }
             }
@@ -222,9 +222,9 @@ extension Array where Element: WorldBackup {
                 if self[keepItem].modificationDate < item.modificationDate {
                     keep[keepIndex] = index
                     self[keepItem].action = .trim
-                    print("Trimming \(self[keepItem].world.location.lastPathComponent)")
+                    Library.log.debug("Ejecting \(self[keepItem].world.location.lastPathComponent) from keep list")
                 } else {
-                    print("Trimming \(item.world.location.lastPathComponent)")
+                    Library.log.debug("Rejecting \(item.world.location.lastPathComponent) from keep list")
                     item.action = .trim
                 }
             }
@@ -256,7 +256,7 @@ extension Array where Element: WorldBackup {
 
         // Process Buckets
         for (_, bucket) in buckets {
-            print("Trimming a Bucket")
+            Library.log.debug("Trimming a Bucket")
             bucket.trimBucket()
         }
 
