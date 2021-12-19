@@ -32,8 +32,8 @@ import Bedrockifier
 struct Server: ParsableCommand {
     private static let logger = Logger(label: "bedrockifier")
 
-    @Argument(help: "Path to the config file")
-    var configPath: String
+    @Option(help: "Path to the config file")
+    var configPath: String?
 
     @Option(name: .shortAndLong, help: "Path to docker")
     var dockerPath: String?
@@ -48,14 +48,12 @@ struct Server: ParsableCommand {
     var trace = false
 
     mutating func run() throws {
+        let environment = EnvironmentConfig()
         var intervalTimer: ServiceTimer<String>?
-
-        updateLoggingLevel()
 
         Server.logger.info("Initializing Bedrockifier Daemon")
 
-        let configUri = URL(fileURLWithPath: self.configPath)
-
+        let configUri = getConfigFileUrl(environment: environment)
         guard FileManager.default.fileExists(atPath: configUri.path) else {
             Server.logger.error("Configuration file doesn't exist at path \(configUri.path)")
             return
@@ -67,21 +65,13 @@ struct Server: ParsableCommand {
         }
 
         // TODO: How much of this early checking can be folded into the library?
-        guard let backupPath = self.backupPath ?? config.backupPath else {
-            Server.logger.error("Backup path needs to be specified on command-line or config file")
-            return
-        }
-
+        let backupPath = self.backupPath ?? config.backupPath ?? environment.dataDirectory
         guard FileManager.default.fileExists(atPath: backupPath) else {
             Server.logger.error("Backup folder not found at path \(backupPath)")
             return
         }
 
-        guard let dockerPath = self.dockerPath ?? config.dockerPath else {
-            Server.logger.error("Docker path needs to be specified on command-line or config file")
-            return
-        }
-
+        let dockerPath = self.dockerPath ?? config.dockerPath ?? environment.dockerPath
         guard FileManager.default.fileExists(atPath: dockerPath) else {
             Server.logger.error("Docker not found at path \(dockerPath)")
             return
@@ -93,9 +83,54 @@ struct Server: ParsableCommand {
             return
         }
 
-        Server.logger.info("Configuration Loaded, Entering Event Loop...")
+        updateLoggingLevel(config: config, environment: environment)
 
-        if let interval = try config.schedule?.parseInterval() {
+        Server.logger.info("Configuration Loaded, Entering Event Loop...")
+        do {
+            intervalTimer = try startIntervalBackups(config: config,
+                                                     environment: environment,
+                                                     backupPath: backupPath,
+                                                     dockerPath: dockerPath)
+        } catch let error {
+            Server.logger.error("\(error.localizedDescription)")
+            Server.logger.error("Unable to start backup service handlers")
+            return
+        }
+
+        // Start Event Loop
+        dispatchMain()
+    }
+
+    private func getConfigFileUrl(environment: EnvironmentConfig) -> URL {
+        if let configPath = self.configPath {
+            return URL(fileURLWithPath: configPath)
+        }
+
+        let dataDirectory = URL(fileURLWithPath: environment.dataDirectory)
+        let defaultPath = dataDirectory.appendingPathComponent(environment.configFile).path
+        if FileManager.default.fileExists(atPath: defaultPath) {
+            return URL(fileURLWithPath: defaultPath)
+        }
+
+        Server.logger.warning("\(environment.configFile) not found, using older default: \(EnvironmentConfig.fallbackConfigFile)")
+        return dataDirectory.appendingPathComponent(EnvironmentConfig.fallbackConfigFile)
+    }
+
+    private func updateLoggingLevel(config: BackupConfig, environment: EnvironmentConfig) {
+        if trace || config.loggingLevel == .trace {
+            ConsoleLogger.logLevelOverride = .trace
+            ConsoleLogger.showFilePosition = true
+        } else if debug || config.loggingLevel == .debug {
+            ConsoleLogger.logLevelOverride = .debug
+            ConsoleLogger.showFilePosition = true
+        }
+    }
+
+    private func startIntervalBackups(config: BackupConfig,
+                                      environment: EnvironmentConfig,
+                                      backupPath: String,
+                                      dockerPath: String) throws -> ServiceTimer<String>? {
+        if let interval = try getBackupInterval(config: config, environment: environment) {
             Server.logger.info("Backup Interval: \(interval) seconds")
             let timer = Bedrockifier.ServiceTimer(identifier: "interval", queue: DispatchQueue.main)
             timer.schedule(startingAt: Date(), repeating: .seconds(Int(interval)))
@@ -107,21 +142,18 @@ struct Server: ParsableCommand {
                 }
             }
 
-            intervalTimer = timer
+            return timer
         }
 
-        // Start Event Loop
-        dispatchMain()
+        return nil
     }
 
-    private func updateLoggingLevel() {
-        if trace {
-            ConsoleLogger.logLevelOverride = .trace
-            ConsoleLogger.showFilePosition = true
-        } else if debug {
-            ConsoleLogger.logLevelOverride = .debug
-            ConsoleLogger.showFilePosition = true
+    private func getBackupInterval(config: BackupConfig, environment: EnvironmentConfig) throws -> TimeInterval? {
+        if let interval = config.schedule?.interval {
+            return try Bedrockifier.parse(interval: interval)
         }
+
+        return try Bedrockifier.parse(interval: environment.backupInterval)
     }
 
     private static func runBackup(config: BackupConfig, backupUrl: URL, dockerPath: String) async {

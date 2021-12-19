@@ -72,3 +72,28 @@ func parse(permissions: String) throws -> UInt16 {
 
     return permissionValue
 }
+
+public func parse(interval: String) throws -> TimeInterval {
+    if let scale = determineIntervalScale(interval) {
+        let endIndex = interval.index(interval.endIndex, offsetBy: -2)
+        let slicedInterval = interval[...endIndex]
+        guard let timeInterval = TimeInterval(slicedInterval) else {
+            throw ParseError.invalidSyntax
+        }
+        return timeInterval * scale
+    } else {
+        guard let timeInterval = TimeInterval(interval) else {
+            throw ParseError.invalidSyntax
+        }
+        return timeInterval
+    }
+}
+
+private func determineIntervalScale(_ interval: String) -> TimeInterval? {
+    switch interval.last?.lowercased() {
+    case "h": return 60.0 * 60.0
+    case "m": return 60.0
+    case "s": return 1.0
+    default: return nil
+    }
+}
