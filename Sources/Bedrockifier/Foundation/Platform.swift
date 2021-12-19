@@ -47,7 +47,7 @@ struct Platform {
         let realGid = gid ?? UInt32.max
 
         try path.withCString({ cchars in
-            let result = Darwin.chown(cchars, realUid, realGid)
+            let result = chown(cchars, realUid, realGid)
             guard result == 0 else {
                 throw PlatformError.Errno(error: errno)
             }
