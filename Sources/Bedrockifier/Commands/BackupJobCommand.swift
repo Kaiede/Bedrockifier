@@ -62,7 +62,7 @@ public final class BackupJobCommand: Command {
 
         let backupUrl = URL(fileURLWithPath: backupPath)
 
-        print("Performing Backups")
+        Library.log.info("Performing Backups")
         for (serverContainer, serverWorldsPath) in config.servers {
             let worldsUrl = URL(fileURLWithPath: serverWorldsPath)
             try WorldBackup.makeBackup(backupUrl: backupUrl,
@@ -72,12 +72,12 @@ public final class BackupJobCommand: Command {
         }
         
         if let ownershipConfig = config.ownership {
-            print("Performing Ownership Fixup")
+            Library.log.info("Performing Ownership Fixup")
             try WorldBackup.fixOwnership(at: backupUrl, config: ownershipConfig)
         }
 
         if let trimJob = config.trim {
-            print("Performing Trim Jobs")
+            Library.log.info("Performing Trim Jobs")
             try WorldBackup.trimBackups(at: backupUrl,
                                         dryRun: false,
                                         trimDays: trimJob.trimDays,

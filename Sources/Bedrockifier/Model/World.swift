@@ -28,8 +28,6 @@ import ZIPFoundation
 import Logging
 
 struct World {
-    static fileprivate let logger = Logger(label: "BedrockifierCLI:World")
-
     enum WorldError: Error {
         case invalidWorldType
         case invalidLevelArchive
@@ -151,27 +149,27 @@ extension World {
             let uidStr = owner != nil ? owner!.description : "nil"
             let gidStr = group != nil ? group!.description : "nil"
             let permsStr = permissions != nil ? String(format:"%o", permissions!) : "nil"
-            World.logger.debug("Ownership Change: \(uidStr):\(gidStr) with perms \(permsStr) at \(path)")
+            Library.log.debug("Ownership Change: \(uidStr):\(gidStr) with perms \(permsStr) at \(path)")
 
             // Apply directly to the core node (folder or mcworld package)
             var isDirectory: ObjCBool = false
             if FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) {
-                World.logger.trace("Processing \(path)")
+                Library.log.trace("Processing \(path)")
                 try World.applyOwnership(to: path, owner: owner, group: group, permissions: permissions)
             }
 
             // For folders, enumerate the children.
             // This can be expensive, but provided for completeness.
             if isDirectory.boolValue, let subPaths = FileManager.default.subpaths(atPath: path) {
-                World.logger.trace("Starting Procesing Directory Childen")
+                Library.log.trace("Starting Procesing Directory Childen")
                 for subPath in subPaths {
-                    World.logger.trace("Processing \(subPath)")
+                    Library.log.trace("Processing \(subPath)")
                     try World.applyOwnership(to: subPath, owner: owner, group: group, permissions: permissions)
                 }
-                World.logger.trace("Completed Processing Directory")
+                Library.log.trace("Completed Processing Directory")
             }
         } catch let error {
-            World.logger.error("Unable to set ownership/permissions on \(path)")
+            Library.log.error("Unable to set ownership/permissions on \(path)")
             throw error
         }
     }
