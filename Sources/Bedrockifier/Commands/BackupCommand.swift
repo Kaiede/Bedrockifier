@@ -64,22 +64,45 @@ public final class BackupCommand: Command {
     public func run(using context: CommandContext, signature: Signature) throws {
         let group = DispatchGroup()
         group.enter()
+        var commandError: Error?
+        let errorHandler = { error in
+            commandError = error
+        }
+
+        Library.log.trace("Created Dispatch Group")
 
         Task {
-            let backupUrl = URL(fileURLWithPath: signature.outputFolderPath)
-            let worldsPath = URL(fileURLWithPath: signature.worldsPath)
-            try await WorldBackup.makeBackup(backupUrl: backupUrl,
-                                       dockerPath: signature.dockerPath,
-                                       containerName: signature.containerName,
-                                       worldsPath: worldsPath)
+            do {
+                Library.log.trace("Entered Async Task")
 
-            // Run optional trim
-            if signature.trim {
-                try WorldBackup.trimBackups(at: backupUrl, dryRun: false, trimDays: nil, keepDays: nil, minKeep: nil)
+                Library.log.trace("Loading Configuration")
+                let backupUrl = URL(fileURLWithPath: signature.outputFolderPath)
+                let worldsPath = URL(fileURLWithPath: signature.worldsPath)
+                try await WorldBackup.makeBackup(backupUrl: backupUrl,
+                                           dockerPath: signature.dockerPath,
+                                           containerName: signature.containerName,
+                                           worldsPath: worldsPath)
+
+                // Run optional trim
+                if signature.trim {
+                    try WorldBackup.trimBackups(at: backupUrl, dryRun: false, trimDays: nil, keepDays: nil, minKeep: nil)
+                }
+            } catch let error {
+                Library.log.error("\(error.localizedDescription)")
+                Library.log.error("Backup Job Failed")
+                errorHandler(error)
             }
+
             group.leave()
         }
 
+        Library.log.trace("Waiting on Async Task")
         group.wait()
+
+        if let commandError = commandError {
+            throw commandError
+        }
+
+        Library.log.trace("Backup Job Complete")
     }
 }
