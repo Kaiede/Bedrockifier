@@ -49,48 +49,61 @@ public final class BackupJobCommand: Command {
     public func run(using context: CommandContext, signature: Signature) throws {
         let group = DispatchGroup()
         group.enter()
+        var commandError: Error?
+        let errorHandler = { error in
+            commandError = error
+        }
 
         Library.log.trace("Created Dispatch Group")
 
         Task {
-            Library.log.trace("Entered Async Task")
+            do {
+                Library.log.trace("Entered Async Task")
 
-            let configUrl = URL(fileURLWithPath: signature.configPath)
-            let config = try BackupConfig.getBackupConfig(from: configUrl)
+                Library.log.trace("Loading Configuration")
+                let configUrl = URL(fileURLWithPath: signature.configPath)
+                let config = try BackupConfig.getBackupConfig(from: configUrl)
 
-            guard let backupPath = signature.backupPath ?? config.backupPath else {
-                context.console.error("Backup path needs to be specified on command-line or config file")
-                return
-            }
+                Library.log.trace("Checking for backup Path")
+                guard let backupPath = signature.backupPath ?? config.backupPath else {
+                    context.console.error("Backup path needs to be specified on command-line or config file")
+                    return
+                }
 
-            guard let dockerPath = signature.dockerPath ?? config.dockerPath else {
-                context.console.error("Docker path needs to be specified on command-line or config file")
-                return
-            }
+                Library.log.trace("Checking for Docker Path")
+                guard let dockerPath = signature.dockerPath ?? config.dockerPath else {
+                    context.console.error("Docker path needs to be specified on command-line or config file")
+                    return
+                }
 
-            let backupUrl = URL(fileURLWithPath: backupPath)
+                let backupUrl = URL(fileURLWithPath: backupPath)
 
-            Library.log.info("Performing Backups")
-            for (serverContainer, serverWorldsPath) in config.servers {
-                let worldsUrl = URL(fileURLWithPath: serverWorldsPath)
-                try await WorldBackup.makeBackup(backupUrl: backupUrl,
-                                           dockerPath: dockerPath,
-                                           containerName: serverContainer,
-                                           worldsPath: worldsUrl)
-            }
+                Library.log.info("Performing Backups")
+                for (serverContainer, serverWorldsPath) in config.servers {
+                    let worldsUrl = URL(fileURLWithPath: serverWorldsPath)
+                    try await WorldBackup.makeBackup(backupUrl: backupUrl,
+                                               dockerPath: dockerPath,
+                                               containerName: serverContainer,
+                                               worldsPath: worldsUrl)
+                }
 
-            if let ownershipConfig = config.ownership {
-                Library.log.info("Performing Ownership Fixup")
-                try WorldBackup.fixOwnership(at: backupUrl, config: ownershipConfig)
-            }
+                if let ownershipConfig = config.ownership {
+                    Library.log.info("Performing Ownership Fixup")
+                    try WorldBackup.fixOwnership(at: backupUrl, config: ownershipConfig)
+                }
 
-            if let trimJob = config.trim {
-                Library.log.info("Performing Trim Jobs")
-                try WorldBackup.trimBackups(at: backupUrl,
-                                            dryRun: false,
-                                            trimDays: trimJob.trimDays,
-                                            keepDays: trimJob.keepDays,
-                                            minKeep: trimJob.minKeep)
+                if let trimJob = config.trim {
+                    Library.log.info("Performing Trim Jobs")
+                    try WorldBackup.trimBackups(at: backupUrl,
+                                                dryRun: false,
+                                                trimDays: trimJob.trimDays,
+                                                keepDays: trimJob.keepDays,
+                                                minKeep: trimJob.minKeep)
+                }
+            } catch let error {
+                Library.log.error("\(error.localizedDescription)")
+                Library.log.error("Backup Job Failed")
+                errorHandler(error)
             }
 
             group.leave()
@@ -98,6 +111,9 @@ public final class BackupJobCommand: Command {
 
         Library.log.trace("Waiting on Async Task")
         group.wait()
-        Library.log.trace("Completed")
+
+        if let commandError = commandError {
+            throw commandError
+        }
     }
 }
