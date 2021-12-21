@@ -33,7 +33,7 @@ jobs:
 
   macOSBuild:
     name: macOS - Latest Stable Xcode
-    runs-on: macOS-12
+    runs-on: macOS-latest
         
     steps:
       - name: Configure Xcode
