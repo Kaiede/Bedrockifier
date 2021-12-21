@@ -115,5 +115,7 @@ public final class BackupJobCommand: Command {
         if let commandError = commandError {
             throw commandError
         }
+
+        Library.log.trace("Backup Job Complete")
     }
 }
