@@ -50,7 +50,11 @@ public final class BackupJobCommand: Command {
         let group = DispatchGroup()
         group.enter()
 
+        Library.log.trace("Created Dispatch Group")
+
         Task {
+            Library.log.trace("Entered Async Task")
+
             let configUrl = URL(fileURLWithPath: signature.configPath)
             let config = try BackupConfig.getBackupConfig(from: configUrl)
 
@@ -92,6 +96,8 @@ public final class BackupJobCommand: Command {
             group.leave()
         }
 
+        Library.log.trace("Waiting on Async Task")
         group.wait()
+        Library.log.trace("Completed")
     }
 }
