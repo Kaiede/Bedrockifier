@@ -1,8 +1,7 @@
 # BedrockifierCLI
 
-![CI Status](https://github.com/Kaiede/BedrockifierCLI/actions/workflows/swift.yml/badge.svg)
+[![CI Status](https://github.com/Kaiede/BedrockifierCLI/actions/workflows/swift.yml/badge.svg)](https://github.com/Kaiede/BedrockifierCLI/actions)
 ![Swift](https://img.shields.io/badge/Swift-5.5.2-brightgreen.svg?style=flat)
-
 [![MIT license](http://img.shields.io/badge/License-MIT-brightgreen.svg)](http://opensource.org/licenses/MIT)
 
 A command-line tool 
