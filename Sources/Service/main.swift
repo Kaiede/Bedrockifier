@@ -59,7 +59,7 @@ struct Server: ParsableCommand {
             return
         }
 
-        guard let config = try? BackupConfig.getBackupConfig(from: configUri) else {
+        guard let config = try? getConfig(from: configUri) else {
             Server.logger.error("Unable to read configuration file, fix the above errors and try again")
             return
         }
@@ -99,6 +99,16 @@ struct Server: ParsableCommand {
 
         // Start Event Loop
         dispatchMain()
+    }
+
+    private func getConfig(from configUri: URL) throws -> BackupConfig {
+        do {
+            Server.logger.info("Loading Configuration From: \(configUri.path)")
+            return try BackupConfig.getBackupConfig(from: configUri)
+        } catch let error {
+            Server.logger.error("\(error)")
+            throw error
+        }
     }
 
     private func getConfigFileUrl(environment: EnvironmentConfig) -> URL {
