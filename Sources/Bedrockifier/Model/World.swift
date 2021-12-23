@@ -25,7 +25,6 @@
 
 import Foundation
 import Logging
-import System
 import ZIPFoundation
 
 struct World {
@@ -160,9 +159,9 @@ extension World {
         let dirEnum = FileManager.default.enumerator(atPath: self.location.path)
 
 
-        let folderBase = FilePath(self.location.lastPathComponent)
+        let folderBase = NSString(string: self.location.lastPathComponent)
         while let archiveItem = dirEnum?.nextObject() as? String {
-            let archivePath = folderBase.appending(archiveItem).string
+            let archivePath = String(folderBase.appendingPathComponent(archiveItem))
             let fullItemUrl = URL(fileURLWithPath: archiveItem, relativeTo: self.location)
             try archive.addEntry(with: archivePath, fileURL: fullItemUrl)
         }
