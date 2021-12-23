@@ -14,7 +14,7 @@ final class BackupConfigYamlTests: XCTestCase {
             let config = try BackupConfig.getBackupConfig(from: yamlData)
             XCTAssertNil(config.backupPath)
             XCTAssertNil(config.dockerPath)
-            XCTAssertEqual(config.servers.count, 2)
+            XCTAssertEqual(config.servers?.count, 2)
             XCTAssertNil(config.trim)
             XCTAssertNil(config.loggingLevel)
         } catch(let error) {
@@ -32,7 +32,7 @@ final class BackupConfigYamlTests: XCTestCase {
             let config = try BackupConfig.getBackupConfig(from: yamlData)
             XCTAssertNil(config.backupPath)
             XCTAssertNil(config.dockerPath)
-            XCTAssertEqual(config.servers.count, 2)
+            XCTAssertEqual(config.servers?.count, 2)
             XCTAssertNotNil(config.trim)
         } catch(let error) {
             XCTFail("Unable to decode valid YAML: \(error)")
@@ -49,7 +49,7 @@ final class BackupConfigYamlTests: XCTestCase {
             let config = try BackupConfig.getBackupConfig(from: yamlData)
             XCTAssertNotNil(config.backupPath)
             XCTAssertNotNil(config.dockerPath)
-            XCTAssertEqual(config.servers.count, 2)
+            XCTAssertEqual(config.servers?.count, 2)
             XCTAssertNotNil(config.trim)
             XCTAssertEqual(config.loggingLevel, .trace)
         } catch(let error) {
@@ -101,12 +101,46 @@ final class BackupConfigYamlTests: XCTestCase {
         }
     }
 
+    func testModernContainerConfig() {
+        guard let data = modernContainersYamlConfigString.data(using: .utf8) else {
+            XCTFail("couldn't get test data")
+            return
+        }
+
+        do {
+            let config = try BackupConfig.getBackupConfig(from: data)
+
+            XCTAssertNil(config.servers)
+            guard let javaContainers = config.containers?.java else {
+                XCTFail("Java containers should decode")
+                return
+            }
+
+            guard let bedrockContainers = config.containers?.bedrock else {
+                XCTFail("Bedrock containers should decode")
+                return
+            }
+
+            XCTAssertEqual(javaContainers.count, 1)
+            XCTAssertEqual(javaContainers[0].name, "minecraft_java")
+            XCTAssertEqual(javaContainers[0].worlds, ["/java/TheWorld"])
+
+
+            XCTAssertEqual(bedrockContainers.count, 1)
+            XCTAssertEqual(bedrockContainers[0].name, "minecraft_bedrock")
+            XCTAssertEqual(bedrockContainers[0].worlds, ["/bedrock/worlds/FirstWorld", "/bedrock/worlds/SecondWorld"])
+
+        } catch(let error) {
+            XCTFail("Unable to decode valid config: \(error)")
+        }
+    }
+
     static var allTests = [
         ("testMinimalConfig", testMinimalConfig),
         ("testDockerConfig", testDockerConfig),
         ("testGoodConfig", testGoodConfig),
         ("testOwnershipConfig", testOwnershipConfig),
-        ("testScheduleConfig", testScheduleConfig),
+        ("testScheduleConfig", testScheduleConfig)
     ]
 }
 
@@ -165,6 +199,26 @@ let scheduleYamlConfigString = """
     schedule:
         interval: 3h
         onPlayerLogin: true
+    trim:
+        trimDays: 2
+        keepDays: 14
+        minKeep: 2
+    """
+
+let modernContainersYamlConfigString = """
+    dockerPath: /usr/bin/docker
+    backupPath: /backups
+    loggingLevel: trace
+    containers:
+        bedrock:
+            - name: minecraft_bedrock
+              worlds:
+                - /bedrock/worlds/FirstWorld
+                - /bedrock/worlds/SecondWorld
+        java:
+            - name: minecraft_java
+              worlds:
+                - /java/TheWorld
     trim:
         trimDays: 2
         keepDays: 14

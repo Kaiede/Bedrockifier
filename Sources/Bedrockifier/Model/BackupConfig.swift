@@ -51,9 +51,20 @@ public struct BackupConfig: Codable {
         case trace
     }
 
+    public struct ContainerConfig: Codable {
+        public var name: String
+        public var worlds: [String]
+    }
+
+    public struct ServerContainersConfig: Codable {
+        public var java: [ContainerConfig]
+        public var bedrock: [ContainerConfig]
+    }
+
     public var dockerPath: String?
     public var backupPath: String?
-    public var servers: ServerConfig
+    public var servers: ServerConfig?
+    public var containers: ServerContainersConfig?
     public var trim: TrimConfig?
     public var ownership: OwnershipConfig?
     public var schedule: ScheduleConfig?
@@ -69,24 +80,7 @@ extension BackupConfig {
     public static func getBackupConfig(from data: Data) throws -> BackupConfig {
         let decodey = YAMLDecoder()
         let config = try decodey.decode(BackupConfig.self, from: data)
-        try config.validate(requireSchedule: false)
         return config
-    }
-}
-
-extension BackupConfig {
-    func validate(requireSchedule: Bool) throws {
-        if requireSchedule {
-            guard let schedule = self.schedule else {
-                return // TODO: Throw Missing Schedule
-            }
-
-            if schedule.interval == nil && schedule.onPlayerLogin != true && schedule.onPlayerLogout != true {
-                return // TODO: Throw needs at at least one schedule type
-            }
-
-            // TODO: Validate interval
-        }
     }
 }
 

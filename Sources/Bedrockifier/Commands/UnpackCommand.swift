@@ -46,7 +46,7 @@ public final class UnpackCommand: Command {
     public func run(using context: CommandContext, signature: Signature) throws {
         do {
             let world = try World(url: URL(fileURLWithPath: signature.mcworld))
-            guard world.type == .mcworld else {
+            guard world.type != .folder else {
                 context.console.error("Input was not an mcworld")
                 return
             }

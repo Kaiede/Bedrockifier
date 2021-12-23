@@ -159,13 +159,7 @@ struct Server: ParsableCommand {
     private static func runBackup(config: BackupConfig, backupUrl: URL, dockerPath: String) async {
         Server.logger.info("Starting Backup")
         do {
-            for (serverContainer, serverWorldsPath) in config.servers {
-                let worldsUrl = URL(fileURLWithPath: serverWorldsPath)
-                try await WorldBackup.makeBackup(backupUrl: backupUrl,
-                                           dockerPath: dockerPath,
-                                           containerName: serverContainer,
-                                           worldsPath: worldsUrl)
-            }
+            try await WorldBackup.runBackups(config: config, destination: backupUrl, dockerPath: dockerPath)
 
             if let ownershipConfig = config.ownership {
                 Server.logger.info("Performing Ownership Fixup")

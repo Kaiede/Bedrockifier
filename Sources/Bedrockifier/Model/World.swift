@@ -24,19 +24,22 @@
  */
 
 import Foundation
-import ZIPFoundation
 import Logging
+import System
+import ZIPFoundation
 
 struct World {
     enum WorldError: Error {
         case invalidWorldType
         case invalidLevelArchive
         case missingLevelName
+        case mismatchedDestination
     }
 
     enum WorldType {
         case folder
         case mcworld
+        case javaBackup
 
         init(url: URL) throws {
             let values = try url.resourceValues(forKeys: [.isDirectoryKey])
@@ -45,6 +48,8 @@ struct World {
                 self = .folder
             } else if url.pathExtension == "mcworld" {
                 self = .mcworld
+            } else if url.pathExtension == "zip" {
+                self = .javaBackup
             } else {
                 throw WorldError.invalidWorldType
             }
@@ -64,7 +69,14 @@ struct World {
     private static func fetchName(type: WorldType, location: URL) throws -> String {
         switch type {
         case .folder:
-            return try String(contentsOf: location.appendingPathComponent("levelname.txt"))
+            // Bedrock level name
+            let levelNameFile = location.appendingPathComponent("levelname.txt")
+            if FileManager.default.fileExists(atPath: levelNameFile.path) {
+                return try String(contentsOf: location.appendingPathComponent("levelname.txt"))
+            }
+
+            // Java default also works for corrupted Bedrock situations.
+            return location.lastPathComponent
         case .mcworld:
             guard let archive = Archive(url: location, accessMode: .read) else {
                 throw WorldError.invalidLevelArchive
@@ -82,6 +94,20 @@ struct World {
             }
 
             return finalResult
+        case .javaBackup:
+            guard let archive = Archive(url: location, accessMode: .read) else {
+                throw WorldError.invalidLevelArchive
+            }
+
+            guard let levelDat = archive.first(where: { $0.path.hasSuffix("level.dat") }) else {
+                throw WorldError.invalidLevelArchive
+            }
+
+            guard let worldName = URL(fileURLWithPath: levelDat.path).pathComponents.first else {
+                throw WorldError.missingLevelName
+            }
+
+            return worldName
         }
     }
 }
@@ -91,6 +117,16 @@ extension World {
         guard self.type == .folder else {
             throw WorldError.invalidWorldType
         }
+
+        if isBedrockFolder() {
+            return try packBedrock(to: url, progress: progress)
+        } else {
+            return try packJava(to: url, progress: progress)
+        }
+    }
+
+    private func packBedrock(to url: URL, progress: Progress? = nil) throws -> World {
+        assert(self.type == .folder)
 
         let targetFolder = url.deletingLastPathComponent()
         try FileManager.default.createDirectory(atPath: targetFolder.path,
@@ -110,10 +146,43 @@ extension World {
         return try World(url: url)
     }
 
+    func packJava(to url: URL, progress: Progress? = nil) throws -> World {
+        assert(self.type == .folder)
+
+        let targetFolder = url.deletingLastPathComponent()
+        try FileManager.default.createDirectory(atPath: targetFolder.path,
+                                                withIntermediateDirectories: true,
+                                                attributes: nil)
+        guard let archive = Archive(url: url, accessMode: .create) else {
+            throw WorldError.invalidLevelArchive
+        }
+
+        let dirEnum = FileManager.default.enumerator(atPath: self.location.path)
+
+
+        let folderBase = FilePath(self.location.lastPathComponent)
+        while let archiveItem = dirEnum?.nextObject() as? String {
+            let archivePath = folderBase.appending(archiveItem).string
+            let fullItemUrl = URL(fileURLWithPath: archiveItem, relativeTo: self.location)
+            try archive.addEntry(with: archivePath, fileURL: fullItemUrl)
+        }
+
+        return try World(url: url)
+    }
+
     func unpack(to url: URL, progress: Progress? = nil) throws -> World {
-        guard self.type == .mcworld else {
+        switch self.type {
+        case .mcworld:
+            return try unpackBedrock(to: url, progress: progress)
+        case .javaBackup:
+            return try unpackJava(to: url, progress: progress)
+        case .folder:
             throw WorldError.invalidWorldType
         }
+    }
+
+    private func unpackBedrock(to url: URL, progress: Progress? = nil) throws -> World {
+        assert(self.type == .mcworld)
 
         let targetFolder = url.appendingPathComponent(self.name)
         try FileManager.default.createDirectory(atPath: targetFolder.path,
@@ -127,9 +196,26 @@ extension World {
         return try World(url: targetFolder)
     }
 
+    private func unpackJava(to url: URL, progress: Progress? = nil) throws -> World {
+        assert(self.type == .javaBackup)
+
+        try FileManager.default.createDirectory(atPath: url.path,
+                                                withIntermediateDirectories: true,
+                                                attributes: nil)
+        try FileManager.default.unzipItem(at: self.location,
+                                          to: url,
+                                          skipCRC32: false,
+                                          progress: progress,
+                                          preferredEncoding: .utf8)
+
+        let finalFolder = url.appendingPathComponent(self.name)
+        return try World(url: finalFolder)
+    }
+
     func backup(to folder: URL) throws -> World {
         let timestamp = DateFormatter.backupDateFormatter.string(from: Date())
-        let fileName = "\(self.name).\(timestamp).mcworld"
+        let backupExtension = fetchBackupExtension()
+        let fileName = "\(self.name).\(timestamp).\(backupExtension)"
         let targetFile = folder.appendingPathComponent(fileName)
 
         try FileManager.default.createDirectory(atPath: folder.path, withIntermediateDirectories: true, attributes: nil)
@@ -140,7 +226,34 @@ extension World {
         case .mcworld:
             try FileManager.default.copyItem(at: self.location, to: targetFile)
             return try World(url: targetFile)
+        case .javaBackup:
+            try FileManager.default.copyItem(at: self.location, to: targetFile)
+            return try World(url: targetFile)
         }
+    }
+
+    private func fetchBackupExtension() -> String {
+        switch self.type {
+        case .folder:
+            if isBedrockFolder() {
+                return "mcworld"
+            }
+
+            return "zip"
+        case .mcworld:
+            fallthrough
+        case .javaBackup:
+            return self.location.pathExtension
+        }
+    }
+
+    private func isBedrockFolder() -> Bool {
+        let levelNameFile = location.appendingPathComponent("levelname.txt")
+        if FileManager.default.fileExists(atPath: levelNameFile.path) {
+            return true
+        }
+
+        return false
     }
 
     func applyOwnership(owner: UInt32?, group: UInt32?, permissions: UInt16?) throws {
