@@ -101,6 +101,32 @@ final class BackupConfigYamlTests: XCTestCase {
         }
     }
 
+    func testModernContainerPartialConfig() {
+        guard let data = modernContainersPartialYamlConfigString.data(using: .utf8) else {
+            XCTFail("couldn't get test data")
+            return
+        }
+
+        do {
+            let config = try BackupConfig.getBackupConfig(from: data)
+
+            XCTAssertNil(config.servers)
+            XCTAssertNil(config.containers?.java)
+
+            guard let bedrockContainers = config.containers?.bedrock else {
+                XCTFail("Bedrock containers should decode")
+                return
+            }
+
+            XCTAssertEqual(bedrockContainers.count, 1)
+            XCTAssertEqual(bedrockContainers[0].name, "minecraft_bedrock")
+            XCTAssertEqual(bedrockContainers[0].worlds, ["/bedrock/worlds/FirstWorld", "/bedrock/worlds/SecondWorld"])
+
+        } catch(let error) {
+            XCTFail("Unable to decode valid config: \(error)")
+        }
+    }
+
     func testModernContainerConfig() {
         guard let data = modernContainersYamlConfigString.data(using: .utf8) else {
             XCTFail("couldn't get test data")
@@ -199,6 +225,22 @@ let scheduleYamlConfigString = """
     schedule:
         interval: 3h
         onPlayerLogin: true
+    trim:
+        trimDays: 2
+        keepDays: 14
+        minKeep: 2
+    """
+
+let modernContainersPartialYamlConfigString = """
+    dockerPath: /usr/bin/docker
+    backupPath: /backups
+    loggingLevel: trace
+    containers:
+        bedrock:
+            - name: minecraft_bedrock
+              worlds:
+                - /bedrock/worlds/FirstWorld
+                - /bedrock/worlds/SecondWorld
     trim:
         trimDays: 2
         keepDays: 14
