@@ -204,8 +204,9 @@ extension WorldBackup {
     }
 
     private static func pauseSaveOnJava(process: PTYProcess) async throws {
+        // Need a longer timeout on the flush in case server is still starting up
         try process.sendLine("save-all flush")
-        if await process.expect(["Saved the game"], timeout: 10.0) == .noMatch {
+        if await process.expect(["Saved the game"], timeout: 30.0) == .noMatch {
             throw WorldBackupError.holdFailed
         }
 
