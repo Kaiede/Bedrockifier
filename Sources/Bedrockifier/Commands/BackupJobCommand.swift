@@ -79,13 +79,7 @@ public final class BackupJobCommand: Command {
                 let backupUrl = URL(fileURLWithPath: backupPath)
 
                 Library.log.info("Performing Backups")
-                for (serverContainer, serverWorldsPath) in config.servers {
-                    let worldsUrl = URL(fileURLWithPath: serverWorldsPath)
-                    try await WorldBackup.makeBackup(backupUrl: backupUrl,
-                                               dockerPath: dockerPath,
-                                               containerName: serverContainer,
-                                               worldsPath: worldsUrl)
-                }
+                try await WorldBackup.runBackups(config: config, destination: backupUrl, dockerPath: dockerPath)
 
                 if let ownershipConfig = config.ownership {
                     Library.log.info("Performing Ownership Fixup")
