@@ -57,8 +57,8 @@ public struct BackupConfig: Codable {
     }
 
     public struct ServerContainersConfig: Codable {
-        public var java: [ContainerConfig]
-        public var bedrock: [ContainerConfig]
+        public var java: [ContainerConfig]?
+        public var bedrock: [ContainerConfig]?
     }
 
     public var dockerPath: String?
