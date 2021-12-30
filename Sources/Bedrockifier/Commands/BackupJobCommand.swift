@@ -25,6 +25,7 @@
 
 import ConsoleKit
 import Foundation
+import PTYKit
 
 public final class BackupJobCommand: Command {
     public struct Signature: CommandSignature {
@@ -58,6 +59,8 @@ public final class BackupJobCommand: Command {
 
         Task {
             do {
+                let terminal = try PseudoTerminal()
+
                 Library.log.trace("Entered Async Task")
 
                 Library.log.trace("Loading Configuration")
@@ -79,7 +82,10 @@ public final class BackupJobCommand: Command {
                 let backupUrl = URL(fileURLWithPath: backupPath)
 
                 Library.log.info("Performing Backups")
-                try await WorldBackup.runBackups(config: config, destination: backupUrl, dockerPath: dockerPath)
+                try await WorldBackup.runBackups(terminal: terminal,
+                                                 config: config,
+                                                 destination: backupUrl,
+                                                 dockerPath: dockerPath)
 
                 if let ownershipConfig = config.ownership {
                     Library.log.info("Performing Ownership Fixup")

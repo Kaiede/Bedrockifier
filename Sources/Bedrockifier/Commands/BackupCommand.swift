@@ -25,6 +25,7 @@
 
 import ConsoleKit
 import Foundation
+import PTYKit
 
 public final class BackupCommand: Command {
     public struct Signature: CommandSignature {
@@ -73,15 +74,17 @@ public final class BackupCommand: Command {
 
         Task {
             do {
+                let terminal = try PseudoTerminal()
                 Library.log.trace("Entered Async Task")
 
                 Library.log.trace("Loading Configuration")
                 let backupUrl = URL(fileURLWithPath: signature.outputFolderPath)
                 let worldsPath = URL(fileURLWithPath: signature.worldsPath)
-                try await WorldBackup.makeBackup(backupUrl: backupUrl,
-                                           dockerPath: signature.dockerPath,
-                                           containerName: signature.containerName,
-                                           worldsPath: worldsPath)
+                try await WorldBackup.makeBackup(terminal: terminal,
+                                                 backupUrl: backupUrl,
+                                                 dockerPath: signature.dockerPath,
+                                                 containerName: signature.containerName,
+                                                 worldsPath: worldsPath)
 
                 // Run optional trim
                 if signature.trim {

@@ -92,14 +92,15 @@ extension WorldBackup {
         }
     }
 
-    static func stopProcess(_ process: PTYProcess) async {
+    static func stopProcess(_ process: Process, terminal: PseudoTerminal) async {
         if usePty {
             logger.debug("Detaching Docker Process")
-            try? process.send("Q")
-            await process.waitUntilExit()
+            try? terminal.send("Q")
+            process.waitUntilExit()
         } else {
             logger.debug("Terminating Docker Process")
-            await process.terminate()
+            process.terminate()
+            process.waitUntilExit()
         }
 
         if process.isRunning {
@@ -107,12 +108,13 @@ extension WorldBackup {
         }
     }
 
-    public static func runBackups(config: BackupConfig, destination: URL, dockerPath: String) async throws {
+    public static func runBackups(terminal: PseudoTerminal, config: BackupConfig, destination: URL, dockerPath: String) async throws {
         // Original Backup Logic
         if let servers = config.servers {
             for (serverContainer, serverWorldsPath) in servers {
                 let worldsUrl = URL(fileURLWithPath: serverWorldsPath)
-                try await WorldBackup.makeBackup(backupUrl: destination,
+                try await WorldBackup.makeBackup(terminal: terminal,
+                                                 backupUrl: destination,
                                            dockerPath: dockerPath,
                                            containerName: serverContainer,
                                            worldsPath: worldsUrl)
@@ -122,6 +124,7 @@ extension WorldBackup {
         // Modern Backup Logic
         if let bedrockContainers = config.containers?.bedrock {
             try await runBackupsForContainers(bedrockContainers,
+                                              terminal: terminal,
                                               destination: destination,
                                               dockerPath: dockerPath,
                                               bedrock: true)
@@ -129,15 +132,16 @@ extension WorldBackup {
 
         if let javaContainers = config.containers?.java {
             try await runBackupsForContainers(javaContainers,
+                                              terminal: terminal,
                                               destination: destination,
                                               dockerPath: dockerPath,
                                               bedrock: false)
         }
     }
 
-    private static func runBackupsForContainers(_ containers: [BackupConfig.ContainerConfig], destination: URL, dockerPath: String, bedrock: Bool) async throws {
+    private static func runBackupsForContainers(_ containers: [BackupConfig.ContainerConfig], terminal: PseudoTerminal, destination: URL, dockerPath: String, bedrock: Bool) async throws {
         for container in containers {
-            let process = try await pauseSaveOnServer(dockerPath: dockerPath, container: container.name, bedrock: bedrock)
+            let process = try await pauseSaveOnServer(terminal: terminal, dockerPath: dockerPath, container: container.name, bedrock: bedrock)
 
             do {
                 Library.log.info("Starting Backup of worlds for: \(container.name))")
@@ -155,43 +159,43 @@ extension WorldBackup {
                 Library.log.error("Backups for \(container.name) failed.")
             }
 
-            try await resumeSaveOnServer(process: process, bedrock: bedrock)
+            try await resumeSaveOnServer(terminal: terminal, process: process, bedrock: bedrock)
         }
     }
 
-    private static func pauseSaveOnServer(dockerPath: String, container: String, bedrock: Bool) async throws -> PTYProcess {
+    private static func pauseSaveOnServer(terminal: PseudoTerminal, dockerPath: String, container: String, bedrock: Bool) async throws -> Process {
         let arguments: [String] = getPtyArguments(dockerPath: dockerPath, containerName: container)
 
         // Attach To Container
-        let process = try PTYProcess(getPtyProcess(dockerPath: dockerPath), arguments: arguments)
+        let process = try Process(getPtyProcess(dockerPath: dockerPath), arguments: arguments, terminal: terminal)
         try process.run()
 
         do {
             if bedrock {
-                try await pauseSaveOnBedrock(process: process)
+                try await pauseSaveOnBedrock(terminal: terminal)
             } else {
-                try await pauseSaveOnJava(process: process)
+                try await pauseSaveOnJava(terminal: terminal)
             }
 
             return process
         } catch let error {
-            await stopProcess(process)
+            await stopProcess(process, terminal: terminal)
             throw error
         }
     }
 
-    private static func pauseSaveOnBedrock(process: PTYProcess) async throws {
+    private static func pauseSaveOnBedrock(terminal: PseudoTerminal) async throws {
         // Start Save Hold
-        try process.sendLine("save hold")
-        if await process.expect(["Saving", "The command is already running"], timeout: 10.0) == .noMatch {
+        try terminal.sendLine("save hold")
+        if await terminal.expect(["Saving", "The command is already running"], timeout: 10.0) == .noMatch {
             throw WorldBackupError.holdFailed
         }
 
         // Wait for files to be ready
         var attemptLimit = 3
         while attemptLimit > 0 {
-            try process.sendLine("save query")
-            if await process.expect("Files are now ready to be copied", timeout: 10.0) == .noMatch {
+            try terminal.sendLine("save query")
+            if await terminal.expect("Files are now ready to be copied", timeout: 10.0) == .noMatch {
                 attemptLimit -= 1
             } else {
                 break
@@ -203,60 +207,61 @@ extension WorldBackup {
         }
     }
 
-    private static func pauseSaveOnJava(process: PTYProcess) async throws {
+    private static func pauseSaveOnJava(terminal: PseudoTerminal) async throws {
         // Need a longer timeout on the flush in case server is still starting up
-        try process.sendLine("save-all flush")
-        if await process.expect(["Saved the game"], timeout: 30.0) == .noMatch {
+        try terminal.sendLine("save-all flush")
+        if await terminal.expect(["Saved the game"], timeout: 30.0) == .noMatch {
             throw WorldBackupError.holdFailed
         }
 
-        try process.sendLine("save-off")
-        if await process.expect(["Automatic saving is now disabled"], timeout: 10.0) == .noMatch {
+        try terminal.sendLine("save-off")
+        if await terminal.expect(["Automatic saving is now disabled"], timeout: 10.0) == .noMatch {
             throw WorldBackupError.holdFailed
         }
     }
 
-    private static func resumeSaveOnServer(process: PTYProcess, bedrock: Bool) async throws {
+    private static func resumeSaveOnServer(terminal: PseudoTerminal, process: Process, bedrock: Bool) async throws {
         do {
             if bedrock {
-                try await resumeSaveOnBedrock(process: process)
+                try await resumeSaveOnBedrock(terminal: terminal)
             } else {
-                try await resumeSaveOnJava(process: process)
+                try await resumeSaveOnJava(terminal: terminal)
             }
 
-            await stopProcess(process)
+            await stopProcess(process, terminal: terminal)
         } catch let error {
-            await stopProcess(process)
+            await stopProcess(process, terminal: terminal)
             throw error
         }
     }
 
-    private static func resumeSaveOnBedrock(process: PTYProcess) async throws {
+    private static func resumeSaveOnBedrock(terminal: PseudoTerminal) async throws {
         // Release Save Hold
-        try process.sendLine("save resume")
+        try terminal.sendLine("save resume")
         let saveResumeStrings = [
             "Changes to the level are resumed", // 1.17 and earlier
             "Changes to the world are resumed", // 1.18 and later
             "A previous save has not been completed"
         ]
-        if await process.expect(saveResumeStrings, timeout: 60.0) == .noMatch {
+        if await terminal.expect(saveResumeStrings, timeout: 60.0) == .noMatch {
             throw WorldBackupError.resumeFailed
         }
     }
 
-    private static func resumeSaveOnJava(process: PTYProcess) async throws {
-        try process.sendLine("save-on")
-        if await process.expect(["Automatic saving is now enabled"], timeout: 60.0) == .noMatch {
+    private static func resumeSaveOnJava(terminal: PseudoTerminal) async throws {
+        try terminal.sendLine("save-on")
+        if await terminal.expect(["Automatic saving is now enabled"], timeout: 60.0) == .noMatch {
             throw WorldBackupError.resumeFailed
         }
     }
 
     // Deprecated, as it only supports Bedrock
-    public static func makeBackup(backupUrl: URL,
+    public static func makeBackup(terminal: PseudoTerminal,
+                                  backupUrl: URL,
                                   dockerPath: String,
                                   containerName: String,
                                   worldsPath: URL) async throws {
-        let process = try await pauseSaveOnServer(dockerPath: dockerPath, container: containerName, bedrock: true)
+        let process = try await pauseSaveOnServer(terminal: terminal, dockerPath: dockerPath, container: containerName, bedrock: true)
 
         do {
             Library.log.info("Starting Backup of worlds for: \(containerName))")
@@ -271,7 +276,7 @@ extension WorldBackup {
             Library.log.error("Backups for \(containerName) failed.")
         }
 
-        try await resumeSaveOnServer(process: process, bedrock: true)
+        try await resumeSaveOnServer(terminal: terminal, process: process, bedrock: true)
     }
 
     public static func fixOwnership(at folder: URL, config: BackupConfig.OwnershipConfig) throws {

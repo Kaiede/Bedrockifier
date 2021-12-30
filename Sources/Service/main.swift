@@ -26,6 +26,7 @@
 import ArgumentParser
 import Foundation
 import Logging
+import PTYKit
 
 import Bedrockifier
 
@@ -141,12 +142,14 @@ struct Server: ParsableCommand {
                                       backupPath: String,
                                       dockerPath: String) throws -> ServiceTimer<String>? {
         if let interval = try getBackupInterval(config: config, environment: environment) {
+            let intervalTerminal = try PseudoTerminal()
             Server.logger.info("Backup Interval: \(interval) seconds")
             let timer = Bedrockifier.ServiceTimer(identifier: "interval", queue: DispatchQueue.main)
             timer.schedule(startingAt: Date(), repeating: .seconds(Int(interval)))
             timer.setHandler {
                 Task {
-                    await Server.runBackup(config: config,
+                    await Server.runBackup(terminal: intervalTerminal,
+                                           config: config,
                                            backupUrl: URL(fileURLWithPath: backupPath),
                                            dockerPath: dockerPath)
                 }
@@ -166,10 +169,16 @@ struct Server: ParsableCommand {
         return try Bedrockifier.parse(interval: environment.backupInterval)
     }
 
-    private static func runBackup(config: BackupConfig, backupUrl: URL, dockerPath: String) async {
+    private static func runBackup(terminal: PseudoTerminal,
+                                  config: BackupConfig,
+                                  backupUrl: URL,
+                                  dockerPath: String) async {
         Server.logger.info("Starting Backup")
         do {
-            try await WorldBackup.runBackups(config: config, destination: backupUrl, dockerPath: dockerPath)
+            try await WorldBackup.runBackups(terminal: terminal,
+                                             config: config,
+                                             destination: backupUrl,
+                                             dockerPath: dockerPath)
 
             if let ownershipConfig = config.ownership {
                 Server.logger.info("Performing Ownership Fixup")
