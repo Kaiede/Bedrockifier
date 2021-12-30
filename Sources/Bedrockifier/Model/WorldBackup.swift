@@ -96,7 +96,7 @@ extension WorldBackup {
         if usePty {
             logger.debug("Detaching Docker Process")
             try? process.send("Q")
-            process.waitUntilExit()
+            await process.waitUntilExit()
         } else {
             logger.debug("Terminating Docker Process")
             await process.terminate()
