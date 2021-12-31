@@ -54,11 +54,11 @@ public class ContainerConnection {
         if usePty {
             Library.log.debug("Detaching Docker Process")
             try? terminal.send("Q")
-            dockerProcess.waitUntilExit()
+            await terminal.waitForDetach()
         } else {
             Library.log.debug("Terminating Docker Process")
             dockerProcess.terminate()
-            dockerProcess.waitUntilExit()
+            await terminal.waitForDetach()
         }
 
         if dockerProcess.isRunning {
