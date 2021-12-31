@@ -112,7 +112,7 @@ final class BackupService {
     }
 
     private func needsListeners() -> Bool {
-        return config.schedule?.onPlayerLogin == true || config.schedule?.onPlayerLogout == true
+        return config.schedule?.onPlayerLogin == true || config.schedule?.onPlayerLogout == true || config.schedule?.onLastLogout == true
     }
 
     private func startIntervalBackups() throws {
@@ -170,6 +170,7 @@ final class BackupService {
             "left the game"
         ]
 
+        BackupService.logger.info("Starting Listeners for Containers")
         for container in containers {
             container.terminal.listen(for: playerNotifications) { content in
                 Task {
