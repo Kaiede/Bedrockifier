@@ -10,7 +10,7 @@ import PTYKit
 
 private let usePty = false
 
-public struct ContainerConnection {
+public class ContainerConnection {
     public enum ContainerError: Error {
         case processNotRunning
         case pauseFailed
@@ -23,13 +23,15 @@ public struct ContainerConnection {
         case java
     }
 
+    private let dockerPath: String
     let name: String
     let kind: Kind
     let terminal: PseudoTerminal
-    let dockerProcess: Process
+    var dockerProcess: Process
     let worlds: [URL]
 
     public init(terminal: PseudoTerminal, dockerPath: String, containerName: String, kind: Kind, worlds: [String]) throws {
+        self.dockerPath = dockerPath
         self.name = containerName
         self.kind = kind
         self.terminal = terminal
@@ -39,7 +41,7 @@ public struct ContainerConnection {
         self.dockerProcess = try Process(processUrl, arguments: processArgs, terminal: self.terminal)
     }
 
-    public init(dockerPath: String, containerName: String, kind: Kind, worlds: [String]) throws {
+    public convenience init(dockerPath: String, containerName: String, kind: Kind, worlds: [String]) throws {
         let terminal = try PseudoTerminal()
         try self.init(terminal: terminal, dockerPath: dockerPath, containerName: containerName, kind: kind, worlds: worlds)
     }
@@ -62,6 +64,12 @@ public struct ContainerConnection {
         if dockerProcess.isRunning {
             Library.log.error("Docker Process Still Running")
         }
+    }
+
+    public func reset() throws {
+        let processUrl = ContainerConnection.getPtyProcess(dockerPath: dockerPath)
+        let processArgs = ContainerConnection.getPtyArguments(dockerPath: dockerPath, containerName: name)
+        self.dockerProcess = try Process(processUrl, arguments: processArgs, terminal: terminal)
     }
 
     public func runBackup(destination: URL) async throws {
