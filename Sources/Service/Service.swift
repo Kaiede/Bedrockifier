@@ -164,12 +164,12 @@ final class BackupService {
             for container in containers {
                 let needsListeners = needsListeners()
                 if !needsListeners {
-                    try container.reset()
                     try container.start()
                 }
                 try await container.runBackup(destination: backupUrl)
                 if !needsListeners {
                     await container.stop()
+                    try container.reset()
                 }
             }
 
