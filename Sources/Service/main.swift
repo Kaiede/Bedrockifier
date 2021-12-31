@@ -31,6 +31,10 @@ import PTYKit
 import Bedrockifier
 
 struct Server: ParsableCommand {
+    enum ServerError: Error {
+        case dailyBackupTimerFailure
+    }
+
     private static let logger = Logger(label: "bedrockifier")
 
     @Option(help: "Path to the config file")
@@ -50,7 +54,6 @@ struct Server: ParsableCommand {
 
     mutating func run() throws {
         let environment = EnvironmentConfig()
-        var intervalTimer: ServiceTimer<String>?
 
         Server.logger.info("Initializing Bedrockifier Daemon")
 
@@ -79,27 +82,22 @@ struct Server: ParsableCommand {
         }
 
         let backupUrl = URL(fileURLWithPath: backupPath)
-        if !Server.markHealthy(backupUrl: backupUrl) {
-            Server.logger.error("Unable to write to backup folder, check that permissions are configured properly")
-            return
-        }
 
         updateLoggingLevel(config: config, environment: environment)
 
         Server.logger.info("Configuration Loaded, Entering Event Loop...")
         do {
-            intervalTimer = try startIntervalBackups(config: config,
-                                                     environment: environment,
-                                                     backupPath: backupPath,
-                                                     dockerPath: dockerPath)
-        } catch let error {
-            Server.logger.error("\(error.localizedDescription)")
-            Server.logger.error("Unable to start backup service handlers")
-            return
-        }
+            let service = BackupService(config: config, backupUrl: backupUrl, dockerPath: dockerPath)
+            if !service.markHealthy() {
+                Server.logger.error("Unable to write to backup folder, check that permissions are configured properly")
+                return
+            }
 
-        // Start Event Loop
-        dispatchMain()
+            try service.run()
+        } catch let error {
+            Server.logger.error("Starting Service Failed")
+            Server.logger.error("\(error.localizedDescription)")
+        }
     }
 
     private func getConfig(from configUri: URL) throws -> BackupConfig {
@@ -135,106 +133,6 @@ struct Server: ParsableCommand {
             ConsoleLogger.logLevelOverride = .debug
             ConsoleLogger.showFilePosition = true
         }
-    }
-
-    private func startIntervalBackups(config: BackupConfig,
-                                      environment: EnvironmentConfig,
-                                      backupPath: String,
-                                      dockerPath: String) throws -> ServiceTimer<String>? {
-        if let interval = try getBackupInterval(config: config, environment: environment) {
-            let intervalTerminal = try PseudoTerminal()
-            Server.logger.info("Backup Interval: \(interval) seconds")
-            let timer = Bedrockifier.ServiceTimer(identifier: "interval", queue: DispatchQueue.main)
-            timer.schedule(startingAt: Date(), repeating: .seconds(Int(interval)))
-            timer.setHandler {
-                Task {
-                    await Server.runBackup(terminal: intervalTerminal,
-                                           config: config,
-                                           backupUrl: URL(fileURLWithPath: backupPath),
-                                           dockerPath: dockerPath)
-                }
-            }
-
-            return timer
-        }
-
-        return nil
-    }
-
-    private func getBackupInterval(config: BackupConfig, environment: EnvironmentConfig) throws -> TimeInterval? {
-        if let interval = config.schedule?.interval {
-            return try Bedrockifier.parse(interval: interval)
-        }
-
-        return try Bedrockifier.parse(interval: environment.backupInterval)
-    }
-
-    private static func runBackup(terminal: PseudoTerminal,
-                                  config: BackupConfig,
-                                  backupUrl: URL,
-                                  dockerPath: String) async {
-        Server.logger.info("Starting Backup")
-        do {
-            try await WorldBackup.runBackups(terminal: terminal,
-                                             config: config,
-                                             destination: backupUrl,
-                                             dockerPath: dockerPath)
-
-            if let ownershipConfig = config.ownership {
-                Server.logger.info("Performing Ownership Fixup")
-                try WorldBackup.fixOwnership(at: backupUrl, config: ownershipConfig)
-            }
-
-            if let trimJob = config.trim {
-                Server.logger.info("Performing Trim Jobs")
-                try WorldBackup.trimBackups(at: backupUrl,
-                                            dryRun: false,
-                                            trimDays: trimJob.trimDays,
-                                            keepDays: trimJob.keepDays,
-                                            minKeep: trimJob.minKeep)
-            }
-
-            Server.logger.info("Backup Completed")
-            _ = Server.markHealthy(backupUrl: backupUrl)
-        } catch let error {
-            Server.logger.error("\(error.localizedDescription)")
-            Server.logger.error("Backup Failed")
-            _ = Server.markUnhealthy(backupUrl: backupUrl)
-        }
-    }
-
-    static private func markHealthy(backupUrl: URL) -> Bool {
-        do {
-            let healthFile = healthyFilePath(backupUrl: backupUrl)
-            if !FileManager.default.fileExists(atPath: healthFile.path) {
-                try Data().write(to: healthFile)
-            }
-            return true
-        } catch let error {
-            Server.logger.error("\(error.localizedDescription)")
-            Server.logger.error("Unable to mark service as healthy.")
-        }
-
-        return false
-    }
-
-    static private func markUnhealthy(backupUrl: URL) -> Bool {
-        do {
-            let healthFile = healthyFilePath(backupUrl: backupUrl)
-            if FileManager.default.fileExists(atPath: healthFile.path) {
-                try FileManager.default.removeItem(at: healthFile)
-            }
-            return true
-        } catch let error {
-            Server.logger.error("\(error.localizedDescription)")
-            Server.logger.error("Unable to mark service as unhealthy.")
-        }
-
-        return false
-    }
-
-    static private func healthyFilePath(backupUrl: URL) -> URL {
-        return backupUrl.appendingPathComponent(".service_is_healthy")
     }
 
     private func readBackupConfig(from uri: URL) -> BackupConfig? {

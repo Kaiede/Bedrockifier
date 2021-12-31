@@ -279,7 +279,7 @@ extension WorldBackup {
         try await resumeSaveOnServer(terminal: terminal, process: process, bedrock: true)
     }
 
-    public static func fixOwnership(at folder: URL, config: BackupConfig.OwnershipConfig) throws {
+    public static func fixOwnership(at folder: URL, config: OwnershipConfig) throws {
         let (uid, gid) = try config.parseOwnerAndGroup()
         let (permissions) = try config.parsePosixPermissions()
         let backups = try getBackups(at: folder)

@@ -23,34 +23,39 @@
  SOFTWARE.)
  */
 
-// Originally written for https://github.com/Kaiede/RPiLight
-
 import Foundation
 
-extension DispatchWallTime {
-    init(date: Date) {
-        let nsecInSec: UInt64 = 1_000_000_000
-        let interval = date.timeIntervalSince1970
-        let spec = timespec(tv_sec: Int(interval), tv_nsec: Int(UInt64(interval * Double(nsecInSec)) % nsecInSec))
-        self.init(timespec: spec)
-    }
+public struct ScheduleConfig: Codable {
+    public var interval: String?
+    public var daily: DayTime?
+    public var onPlayerLogin: Bool?
+    public var onPlayerLogout: Bool?
 }
 
-extension DispatchTimeInterval {
-    func toTimeInterval() -> TimeInterval {
-        switch self {
-        case .seconds(let seconds):
-            return TimeInterval(seconds)
-        case .milliseconds(let milliseconds):
-            return TimeInterval(milliseconds) * 1_000.0
-        case .microseconds(let microseconds):
-            return TimeInterval(microseconds) * 1_000_000.0
-        case .nanoseconds(let nanoseconds):
-            return TimeInterval(nanoseconds) * 1_000_000_000.0
-        case .never:
-            return TimeInterval.infinity
-        @unknown default:
-            fatalError("Unknown DispatchTimeInterval in toTimeInterval()")
+extension ScheduleConfig {
+    public func parseInterval() throws -> TimeInterval? {
+        guard let interval = self.interval else { return nil }
+
+        if let scale = determineIntervalScale(interval) {
+            let endIndex = interval.index(interval.endIndex, offsetBy: -2)
+            let slicedInterval = interval[...endIndex]
+            guard let timeInterval = TimeInterval(slicedInterval) else { return nil }
+            return timeInterval * scale
+        } else {
+            return TimeInterval(interval)
         }
+    }
+
+    private func determineIntervalScale(_ interval: String) -> TimeInterval? {
+        switch interval.last?.lowercased() {
+        case "h": return 60.0 * 60.0
+        case "m": return 60.0
+        case "s": return 1.0
+        default: return nil
+        }
+    }
+
+    public var usesSingleTerminal: Bool {
+        return self.interval != nil || self.daily != nil
     }
 }
