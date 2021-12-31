@@ -30,6 +30,7 @@ public class ContainerConnection {
     var dockerProcess: Process
     let worlds: [URL]
     var playerCount: Int
+    public var lastBackup: Date
 
     public init(terminal: PseudoTerminal, dockerPath: String, containerName: String, kind: Kind, worlds: [String]) throws {
         self.dockerPath = dockerPath
@@ -38,6 +39,7 @@ public class ContainerConnection {
         self.terminal = terminal
         self.worlds = worlds.map({ URL(fileURLWithPath: $0) })
         self.playerCount = 0
+        self.lastBackup = .distantPast
 
         let processUrl = ContainerConnection.getPtyProcess(dockerPath: dockerPath)
         let processArgs = ContainerConnection.getPtyArguments(dockerPath: dockerPath, containerName: containerName)
@@ -102,6 +104,7 @@ public class ContainerConnection {
         }
 
         try await resumeAutosave()
+        lastBackup = Date()
     }
 
     public func pauseAutosave() async throws {

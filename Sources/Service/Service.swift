@@ -180,7 +180,8 @@ final class BackupService {
     }
 
     private func onListenerEvent(container: ContainerConnection, content: String) async {
-        BackupService.logger.info("Listener Event[\(container.name)]: \(content)")
+        BackupService.logger.debug("Listener Event[\(container.name)]: \(content)")
+   
         if content.contains("Player connected:") || content.contains("joined the game") {
             // Login event
             let playerCount = container.incrementPlayerCount()
@@ -203,6 +204,14 @@ final class BackupService {
     }
 
     private func runSingleBackup(container: ContainerConnection) async {
+        if let minInterval = try? config.schedule?.parseMinInterval() {
+            let now = Date()
+            if container.lastBackup + minInterval > now {
+                BackupService.logger.info("Skipping Backup, still within \(minInterval) seconds since last backup")
+                return
+            }
+        }
+
         BackupService.logger.info("Running Backup for \(container.name)")
         do {
             try await container.runBackup(destination: backupUrl)

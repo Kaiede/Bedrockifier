@@ -26,11 +26,15 @@
 import Foundation
 
 public struct ScheduleConfig: Codable {
+    // Interval Based Schedules
     public var interval: String?
     public var daily: DayTime?
+
+    // Event Based Schedules
     public var onPlayerLogin: Bool?
     public var onPlayerLogout: Bool?
     public var onLastLogout: Bool?
+    public var minInterval: String?
 }
 
 extension ScheduleConfig {
@@ -56,7 +60,16 @@ extension ScheduleConfig {
         }
     }
 
-    public var usesSingleTerminal: Bool {
-        return self.interval != nil || self.daily != nil
+    public func parseMinInterval() throws -> TimeInterval? {
+        guard let interval = self.minInterval else { return nil }
+
+        if let scale = determineIntervalScale(interval) {
+            let endIndex = interval.index(interval.endIndex, offsetBy: -2)
+            let slicedInterval = interval[...endIndex]
+            guard let timeInterval = TimeInterval(slicedInterval) else { return nil }
+            return timeInterval * scale
+        } else {
+            return TimeInterval(interval)
+        }
     }
 }
