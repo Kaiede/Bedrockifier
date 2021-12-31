@@ -382,8 +382,8 @@ extension Array where Element: WorldBackup {
         }
 
         // Process Buckets
-        for (_, bucket) in buckets {
-            Library.log.debug("Trimming a Bucket")
+        for (bucketComponents, bucket) in buckets {
+            Library.log.debug("Trimming a Bucket: \(bucketDateString(bucketComponents))")
             bucket.trimBucket()
         }
 
@@ -403,5 +403,19 @@ extension Array where Element: WorldBackup {
         }
 
         return modifiedBackups
+    }
+
+    private func bucketDateString(_ dateComponents: DateComponents) -> String {
+        let bucketDate = Calendar.current.nextDate(
+            after: Date(),
+            matching: dateComponents,
+            matchingPolicy: .nextTime,
+            repeatedTimePolicy: .first,
+            direction: .backward)
+        if let realDate = bucketDate {
+            return Library.dayFormatter.string(from: realDate)
+        }
+
+        return "<<UNKNOWN DATE>>"
     }
 }

@@ -40,4 +40,12 @@ public struct Library {
         formatter.timeStyle = .medium
         return formatter
     }()
+
+    public static let dayFormatter: DateFormatter = {
+        var formatter = DateFormatter()
+        formatter.calendar = Calendar.current
+        formatter.timeZone = TimeZone.current
+        formatter.dateStyle = .medium
+        return formatter
+    }()
 }
