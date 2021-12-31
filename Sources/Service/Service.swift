@@ -206,8 +206,11 @@ final class BackupService {
 
     private func runSingleBackup(container: ContainerConnection) async {
         if let minInterval = try? config.schedule?.parseMinInterval() {
+            // Allow for some slop of a minute in the timing. 
+            let slop = 60.0
+            let intervalWithSlop = min(0.0, minInterval - slop)
             let now = Date()
-            if container.lastBackup + minInterval > now {
+            if container.lastBackup + intervalWithSlop > now {
                 BackupService.logger.info("Skipping Backup, still within \(minInterval) seconds since last backup")
                 return
             }
