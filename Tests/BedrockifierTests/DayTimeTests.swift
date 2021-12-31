@@ -133,7 +133,7 @@ class DayTimeTests: XCTestCase {
             XCTAssertEqual(targetTime, DayTime(from: calculatedDate))
             XCTAssertEqual(
                 targetTime.dateComponents,
-                Calendar.current.dateComponents(DayTime.Components, from: calculatedDate))
+                Calendar.current.dateComponents(DayTime.components, from: calculatedDate))
         }
     }
 
@@ -174,7 +174,7 @@ class DayTimeTests: XCTestCase {
             XCTAssertEqual(targetTime, DayTime(from: calculatedDate))
             XCTAssertEqual(
                 targetTime.dateComponents,
-                Calendar.current.dateComponents(DayTime.Components, from: calculatedDate))
+                Calendar.current.dateComponents(DayTime.components, from: calculatedDate))
         }
     }
 

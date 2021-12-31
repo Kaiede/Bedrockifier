@@ -38,20 +38,11 @@ public struct DayTime: Codable {
         case unableToGetDate
     }
 
-    internal static let Components: Set<Calendar.Component> = [.calendar, .timeZone, .hour, .minute, .second]
+    internal static let components: Set<Calendar.Component> = [.calendar, .timeZone, .hour, .minute, .second]
 
     public internal(set) var dateComponents: DateComponents
 
-    private static let componentFormatter: DateComponentsFormatter = {
-        let componentFormatter = DateComponentsFormatter()
-        componentFormatter.unitsStyle = .positional
-        componentFormatter.zeroFormattingBehavior = .pad
-        componentFormatter.allowedUnits = [.hour, .minute]
-        componentFormatter.calendar = Calendar.current
-        return componentFormatter
-    }()
-
-    private static let Formatter: DateFormatter = {
+    private static let formatter: DateFormatter = {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "HH:mm"
         dateFormatter.timeZone = TimeZone.current
@@ -60,7 +51,7 @@ public struct DayTime: Codable {
     }()
 
     public init(from date: Date, calendar: Calendar = Calendar.current) {
-        self.dateComponents = calendar.dateComponents(DayTime.Components, from: date)
+        self.dateComponents = calendar.dateComponents(DayTime.components, from: date)
     }
 
     public init(_ components: DateComponents) {
@@ -70,10 +61,10 @@ public struct DayTime: Codable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         let decodedString = try container.decode(String.self)
-        guard let parsedTime = DayTime.Formatter.date(from: decodedString) else {
+        guard let parsedTime = DayTime.formatter.date(from: decodedString) else {
             throw DecodeError.unableToParse
         }
-        dateComponents = Calendar.current.dateComponents(DayTime.Components, from: parsedTime)
+        dateComponents = Calendar.current.dateComponents(DayTime.components, from: parsedTime)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -81,7 +72,7 @@ public struct DayTime: Codable {
         guard let tempDate = self.calcNextDate(after: Date()) else {
             throw EncodeError.unableToGetDate
         }
-        let encodedString = DayTime.Formatter.string(from: tempDate)
+        let encodedString = DayTime.formatter.string(from: tempDate)
         try container.encode(encodedString)
     }
 }
@@ -94,7 +85,11 @@ extension DayTime: Equatable {
 
 extension DayTime: CustomStringConvertible {
     public var description: String {
-        return DayTime.componentFormatter.string(from: self.dateComponents) ?? "<<UNKNOWN DAYTIME>>"
+        if let tempDate = self.calcNextDate(after: Date()) {
+            return DayTime.formatter.string(from: tempDate)
+        }
+
+        return "<<UNKNOWN DAYTIME>>"
     }
 }
 
