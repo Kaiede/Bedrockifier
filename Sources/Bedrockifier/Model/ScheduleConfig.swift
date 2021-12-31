@@ -30,6 +30,7 @@ public struct ScheduleConfig: Codable {
     public var daily: DayTime?
     public var onPlayerLogin: Bool?
     public var onPlayerLogout: Bool?
+    public var onLastLogout: Bool?
 }
 
 extension ScheduleConfig {

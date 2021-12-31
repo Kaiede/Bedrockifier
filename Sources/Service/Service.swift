@@ -86,8 +86,10 @@ final class BackupService {
         containers = try ContainerConnection.loadContainers(from: config, dockerPath: dockerPath)
 
         // Attach to the containers
-        for container in containers {
-            try container.start()
+        if needsListeners() {
+            for container in containers {
+                try container.start()
+            }
         }
     }
 
@@ -103,6 +105,10 @@ final class BackupService {
         }
 
         return false
+    }
+
+    private func needsListeners() -> Bool {
+        return config.schedule?.onPlayerLogin == true || config.schedule?.onPlayerLogout == true
     }
 
     private func startIntervalBackups() throws {
@@ -156,7 +162,14 @@ final class BackupService {
         BackupService.logger.info("Starting Full Backup")
         do {
             for container in containers {
+                let needsListeners = needsListeners()
+                if needsListeners {
+                    try container.start()
+                }
                 try await container.runBackup(destination: backupUrl)
+                if needsListeners {
+                    await container.stop()
+                }
             }
 
             if let ownershipConfig = config.ownership {
