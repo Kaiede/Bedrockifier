@@ -12,6 +12,7 @@ private let usePty = false
 
 public struct ContainerConnection {
     public enum ContainerError: Error {
+        case processNotRunning
         case pauseFailed
         case saveNotCompleted
         case resumeFailed
@@ -64,6 +65,10 @@ public struct ContainerConnection {
     }
 
     public func runBackup(destination: URL) async throws {
+        guard dockerProcess.isRunning else {
+            throw ContainerError.processNotRunning
+        }
+
         try await pauseAutosave()
 
         do {
@@ -104,26 +109,6 @@ public struct ContainerConnection {
         }
     }
 
-    private func resumeSaveOnBedrock() async throws {
-        // Release Save Hold
-        try terminal.sendLine("save resume")
-        let saveResumeStrings = [
-            "Changes to the level are resumed", // 1.17 and earlier
-            "Changes to the world are resumed", // 1.18 and later
-            "A previous save has not been completed"
-        ]
-        if await terminal.expect(saveResumeStrings, timeout: 60.0) == .noMatch {
-            throw ContainerError.resumeFailed
-        }
-    }
-
-    private func resumeSaveOnJava() async throws {
-        try terminal.sendLine("save-on")
-        if await terminal.expect(["Automatic saving is now enabled"], timeout: 60.0) == .noMatch {
-            throw ContainerError.resumeFailed
-        }
-    }
-
     private func pauseSaveOnBedrock() async throws {
         // Start Save Hold
         try terminal.sendLine("save hold")
@@ -157,6 +142,26 @@ public struct ContainerConnection {
         try terminal.sendLine("save-off")
         if await terminal.expect(["Automatic saving is now disabled"], timeout: 10.0) == .noMatch {
             throw ContainerError.pauseFailed
+        }
+    }
+
+    private func resumeSaveOnBedrock() async throws {
+        // Release Save Hold
+        try terminal.sendLine("save resume")
+        let saveResumeStrings = [
+            "Changes to the level are resumed", // 1.17 and earlier
+            "Changes to the world are resumed", // 1.18 and later
+            "A previous save has not been completed"
+        ]
+        if await terminal.expect(saveResumeStrings, timeout: 60.0) == .noMatch {
+            throw ContainerError.resumeFailed
+        }
+    }
+
+    private func resumeSaveOnJava() async throws {
+        try terminal.sendLine("save-on")
+        if await terminal.expect(["Automatic saving is now enabled"], timeout: 60.0) == .noMatch {
+            throw ContainerError.resumeFailed
         }
     }
 
