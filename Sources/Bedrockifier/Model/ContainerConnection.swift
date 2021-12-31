@@ -98,13 +98,13 @@ public class ContainerConnection {
             }
 
             Library.log.info("Backups for \(name) Complete...")
+            lastBackup = Date()
         } catch let error {
             Library.log.error("\(error.localizedDescription)")
             Library.log.error("Backups for \(name) failed.")
         }
 
         try await resumeAutosave()
-        lastBackup = Date()
     }
 
     public func pauseAutosave() async throws {
