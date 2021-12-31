@@ -129,6 +129,7 @@ final class BackupService {
             throw ServiceError.noBackupInterval
         }
 
+        BackupService.logger.info("Next Backup: \(Library.dateFormatter.string(from: firstFiring))")
         timer.schedule(at: firstFiring)
         timer.setHandler {
             await self.runFullBackup()
@@ -139,6 +140,7 @@ final class BackupService {
                 exit(1)
             }
 
+            BackupService.logger.info("Next Backup: \(Library.dateFormatter.string(from: nextFiring))")
             timer.schedule(at: nextFiring)
         }
 

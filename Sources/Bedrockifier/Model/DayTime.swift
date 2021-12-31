@@ -42,6 +42,15 @@ public struct DayTime: Codable {
 
     public internal(set) var dateComponents: DateComponents
 
+    private static let componentFormatter: DateComponentsFormatter = {
+        let componentFormatter = DateComponentsFormatter()
+        componentFormatter.unitsStyle = .positional
+        componentFormatter.zeroFormattingBehavior = .pad
+        componentFormatter.allowedUnits = [.hour, .minute]
+        componentFormatter.calendar = Calendar.current
+        return componentFormatter
+    }()
+
     private static let Formatter: DateFormatter = {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "HH:mm"
@@ -85,7 +94,7 @@ extension DayTime: Equatable {
 
 extension DayTime: CustomStringConvertible {
     public var description: String {
-        return self.dateComponents.description
+        return DayTime.componentFormatter.string(from: self.dateComponents) ?? "<<UNKNOWN DAYTIME>>"
     }
 }
 
