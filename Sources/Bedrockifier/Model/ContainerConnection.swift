@@ -47,6 +47,7 @@ public class ContainerConnection {
     }
 
     public func start() throws {
+        Library.log.debug("Starting Container Process")
         try dockerProcess.run()
     }
 
@@ -67,6 +68,7 @@ public class ContainerConnection {
     }
 
     public func reset() throws {
+        Library.log.debug("Reseting Container Process")
         let processUrl = ContainerConnection.getPtyProcess(dockerPath: dockerPath)
         let processArgs = ContainerConnection.getPtyArguments(dockerPath: dockerPath, containerName: name)
         self.dockerProcess = try Process(processUrl, arguments: processArgs, terminal: terminal)
