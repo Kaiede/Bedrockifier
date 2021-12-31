@@ -46,44 +46,49 @@ final class BackupService {
     let healthFileUrl: URL
 
     var intervalTimer: ServiceTimer<String>?
-    var primaryTerminal: PseudoTerminal?
+    var containers: [ContainerConnection]
 
     init(config: BackupConfig, backupUrl: URL, dockerPath: String) {
         self.config = config
         self.environment = EnvironmentConfig()
         self.backupUrl = backupUrl
         self.dockerPath = dockerPath
+        self.containers = []
 
         self.healthFileUrl = backupUrl.appendingPathComponent(".service_is_healthy")
     }
 
     public func run() throws {
-        // TODO: Start
-
         // Start the backups
         if let schedule = config.schedule {
-            if schedule.usesSingleTerminal {
-                primaryTerminal = try PseudoTerminal()
-            }
-
             if schedule.interval != nil && schedule.daily != nil {
                 BackupService.logger.error("Only 'interval' or 'daily' backup types are allowed. Not both.")
                 throw ServiceError.onlyOneIntervalTypeAllowed
             }
+
+            try connectContainers()
 
             if schedule.interval != nil {
                 try startIntervalBackups()
             } else if schedule.daily != nil {
                 try startDailyBackups()
             }
-
         } else {
             // Without the schedule, we have to assume the docker container specifies an interval
-            primaryTerminal = try PseudoTerminal()
+            try connectContainers()
             try startIntervalBackups()
         }
 
         dispatchMain()
+    }
+
+    private func connectContainers() throws {
+        containers = try ContainerConnection.loadContainers(from: config, dockerPath: dockerPath)
+
+        // Attach to the containers
+        for container in containers {
+            try container.start()
+        }
     }
 
     func markHealthy() -> Bool {
@@ -148,17 +153,11 @@ final class BackupService {
     }
 
     private func runFullBackup() async {
-        BackupService.logger.info("Starting Backup")
+        BackupService.logger.info("Starting Full Backup")
         do {
-            guard let terminal = primaryTerminal else {
-                BackupService.logger.error("No Terminal Was Ready for Backups")
-                throw ServiceError.noActiveTerminal
+            for container in containers {
+                try await container.runBackup(destination: backupUrl)
             }
-
-            try await WorldBackup.runBackups(terminal: terminal,
-                                             config: config,
-                                             destination: backupUrl,
-                                             dockerPath: dockerPath)
 
             if let ownershipConfig = config.ownership {
                 BackupService.logger.info("Performing Ownership Fixup")
@@ -174,11 +173,11 @@ final class BackupService {
                                             minKeep: trimJob.minKeep)
             }
 
-            BackupService.logger.info("Backup Completed")
+            BackupService.logger.info("Full Backup Completed")
             _ = markHealthy()
         } catch let error {
             BackupService.logger.error("\(error.localizedDescription)")
-            BackupService.logger.error("Backup Failed")
+            BackupService.logger.error("Full Backup Failed")
             markUnhealthy()
         }
     }
