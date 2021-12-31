@@ -24,11 +24,12 @@ public class ContainerConnection {
     }
 
     private let dockerPath: String
-    let name: String
+    public let name: String
     let kind: Kind
-    let terminal: PseudoTerminal
+    public let terminal: PseudoTerminal
     var dockerProcess: Process
     let worlds: [URL]
+    var playerCount: Int
 
     public init(terminal: PseudoTerminal, dockerPath: String, containerName: String, kind: Kind, worlds: [String]) throws {
         self.dockerPath = dockerPath
@@ -36,6 +37,8 @@ public class ContainerConnection {
         self.kind = kind
         self.terminal = terminal
         self.worlds = worlds.map({ URL(fileURLWithPath: $0) })
+        self.playerCount = 0
+
         let processUrl = ContainerConnection.getPtyProcess(dockerPath: dockerPath)
         let processArgs = ContainerConnection.getPtyArguments(dockerPath: dockerPath, containerName: containerName)
         self.dockerProcess = try Process(processUrl, arguments: processArgs, terminal: self.terminal)
@@ -117,6 +120,16 @@ public class ContainerConnection {
         case .java:
             try await resumeSaveOnJava()
         }
+    }
+
+    public func incrementPlayerCount() -> Int {
+        playerCount += 1
+        return playerCount
+    }
+
+    public func decrementPlayerCount() -> Int {
+        playerCount = max(0, playerCount - 1)
+        return playerCount
     }
 
     private func pauseSaveOnBedrock() async throws {

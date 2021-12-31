@@ -73,6 +73,10 @@ final class BackupService {
             } else if schedule.daily != nil {
                 try startDailyBackups()
             }
+
+            if needsListeners() {
+                startListenerBackups()
+            }
         } else {
             // Without the schedule, we have to assume the docker container specifies an interval
             try connectContainers()
@@ -158,18 +162,67 @@ final class BackupService {
         self.intervalTimer = timer
     }
 
+    private func startListenerBackups() {
+        let playerNotifications = [
+            "Player connected:",
+            "Player disconnected:",
+            "joined the game",
+            "left the game"
+        ]
+
+        for container in containers {
+            container.terminal.listen(for: playerNotifications) { content in
+                Task {
+                    await self.onListenerEvent(container: container, content: content)
+                }
+            }
+        }
+    }
+
+    private func onListenerEvent(container: ContainerConnection, content: String) async {
+        BackupService.logger.info("Listener Event[\(container.name)]: \(content)")
+        if content.contains("Player connected:") || content.contains("joined the game") {
+            // Login event
+            let playerCount = container.incrementPlayerCount()
+            BackupService.logger.info("Player Logged In: \(container.name), Players Active: \(playerCount)")
+            if config.schedule?.onPlayerLogin == true {
+                await runSingleBackup(container: container)
+            }
+        }
+
+        if content.contains("Player disconnected:") || content.contains("left the game") {
+            // Logout event
+            let playerCount = container.decrementPlayerCount()
+            BackupService.logger.info("Player Logged Out: \(container.name), Players Active: \(playerCount)")
+            if config.schedule?.onPlayerLogout == true {
+                await runSingleBackup(container: container)
+            } else if config.schedule?.onLastLogout == true && playerCount == 0 {
+                await runSingleBackup(container: container)
+            }
+        }
+    }
+
+    private func runSingleBackup(container: ContainerConnection) async {
+        BackupService.logger.info("Running Backup for \(container.name)")
+        do {
+            try await container.runBackup(destination: backupUrl)
+        } catch let error {
+            BackupService.logger.error("Backup for \(container.name) failed")
+            BackupService.logger.error("\(error.localizedDescription)")
+        }
+    }
+
     private func runFullBackup() async {
         BackupService.logger.info("Starting Full Backup")
         do {
+            let needsListeners = needsListeners()
             for container in containers {
-                let needsListeners = needsListeners()
                 if !needsListeners {
                     try container.start()
                 }
                 try await container.runBackup(destination: backupUrl)
                 if !needsListeners {
                     await container.stop()
-                    try container.reset()
                 }
             }
 
@@ -188,6 +241,12 @@ final class BackupService {
             }
 
             BackupService.logger.info("Full Backup Completed")
+
+            if !needsListeners {
+                for container in containers {
+                    try container.reset()
+                }
+            }
             _ = markHealthy()
         } catch let error {
             BackupService.logger.error("\(error.localizedDescription)")
