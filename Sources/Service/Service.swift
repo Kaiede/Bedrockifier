@@ -77,6 +77,10 @@ final class BackupService {
             if needsListeners() {
                 startListenerBackups()
             }
+
+            if let minInterval = try schedule.parseMinInterval() {
+                BackupService.logger.info("Backup Minimum Interval is \(minInterval) seconds")
+            }
         } else {
             // Without the schedule, we have to assume the docker container specifies an interval
             try connectContainers()
