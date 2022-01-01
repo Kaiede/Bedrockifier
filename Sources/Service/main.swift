@@ -68,7 +68,6 @@ struct Server: ParsableCommand {
             return
         }
 
-        // TODO: How much of this early checking can be folded into the library?
         let backupPath = self.backupPath ?? config.backupPath ?? environment.dataDirectory
         guard FileManager.default.fileExists(atPath: backupPath) else {
             Server.logger.error("Backup folder not found at path \(backupPath)")

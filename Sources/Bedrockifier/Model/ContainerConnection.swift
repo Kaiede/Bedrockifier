@@ -97,8 +97,8 @@ public class ContainerConnection {
                 Library.log.info("Backed up as: \(backupWorld.location.lastPathComponent)")
             }
 
-            Library.log.info("Backups for \(name) Complete...")
             lastBackup = Date()
+            Library.log.info("Backups for \(name) Complete...")
         } catch let error {
             Library.log.error("\(error.localizedDescription)")
             Library.log.error("Backups for \(name) failed.")
