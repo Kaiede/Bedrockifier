@@ -192,7 +192,7 @@ final class BackupService {
             let playerCount = container.incrementPlayerCount()
             BackupService.logger.info("Player Logged In: \(container.name), Players Active: \(playerCount)")
             if config.schedule?.onPlayerLogin == true {
-                await runSingleBackup(container: container)
+                await runListenerBackup(container: container)
             }
         }
 
@@ -201,10 +201,24 @@ final class BackupService {
             let playerCount = container.decrementPlayerCount()
             BackupService.logger.info("Player Logged Out: \(container.name), Players Active: \(playerCount)")
             if config.schedule?.onPlayerLogout == true {
-                await runSingleBackup(container: container)
+                await runListenerBackup(container: container)
             } else if config.schedule?.onLastLogout == true && playerCount == 0 {
-                await runSingleBackup(container: container)
+                await runListenerBackup(container: container)
             }
+        }
+    }
+
+    private func runListenerBackup(container: ContainerConnection) async {
+        do {
+            await runSingleBackup(container: container)
+            try runPostBackupTasks()
+
+            BackupService.logger.info("Listener Backup Completed")
+            _ = markHealthy()
+        } catch let error {
+            BackupService.logger.error("\(error.localizedDescription)")
+            BackupService.logger.error("Listener Backup Failed")
+            markUnhealthy()
         }
     }
 
@@ -244,19 +258,7 @@ final class BackupService {
                 }
             }
 
-            if let ownershipConfig = config.ownership {
-                BackupService.logger.info("Performing Ownership Fixup")
-                try WorldBackup.fixOwnership(at: backupUrl, config: ownershipConfig)
-            }
-
-            if let trimJob = config.trim {
-                BackupService.logger.info("Performing Trim Jobs")
-                try WorldBackup.trimBackups(at: backupUrl,
-                                            dryRun: false,
-                                            trimDays: trimJob.trimDays,
-                                            keepDays: trimJob.keepDays,
-                                            minKeep: trimJob.minKeep)
-            }
+            try runPostBackupTasks()
 
             BackupService.logger.info("Full Backup Completed")
 
@@ -270,6 +272,22 @@ final class BackupService {
             BackupService.logger.error("\(error.localizedDescription)")
             BackupService.logger.error("Full Backup Failed")
             markUnhealthy()
+        }
+    }
+
+    private func runPostBackupTasks() throws {
+        if let ownershipConfig = config.ownership {
+            BackupService.logger.info("Performing Ownership Fixup")
+            try WorldBackup.fixOwnership(at: backupUrl, config: ownershipConfig)
+        }
+
+        if let trimJob = config.trim {
+            BackupService.logger.info("Performing Trim Jobs")
+            try WorldBackup.trimBackups(at: backupUrl,
+                                        dryRun: false,
+                                        trimDays: trimJob.trimDays,
+                                        keepDays: trimJob.keepDays,
+                                        minKeep: trimJob.minKeep)
         }
     }
 
