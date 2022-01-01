@@ -192,7 +192,7 @@ final class BackupService {
             let playerCount = container.incrementPlayerCount()
             BackupService.logger.info("Player Logged In: \(container.name), Players Active: \(playerCount)")
             if config.schedule?.onPlayerLogin == true {
-                await runListenerBackup(container: container)
+                await runSingleBackup(container: container)
             }
         }
 
@@ -201,24 +201,10 @@ final class BackupService {
             let playerCount = container.decrementPlayerCount()
             BackupService.logger.info("Player Logged Out: \(container.name), Players Active: \(playerCount)")
             if config.schedule?.onPlayerLogout == true {
-                await runListenerBackup(container: container)
+                await runSingleBackup(container: container)
             } else if config.schedule?.onLastLogout == true && playerCount == 0 {
-                await runListenerBackup(container: container)
+                await runSingleBackup(container: container)
             }
-        }
-    }
-
-    private func runListenerBackup(container: ContainerConnection) async {
-        do {
-            await runSingleBackup(container: container)
-            try runPostBackupTasks()
-
-            BackupService.logger.info("Listener Backup Completed")
-            _ = markHealthy()
-        } catch let error {
-            BackupService.logger.error("\(error.localizedDescription)")
-            BackupService.logger.error("Listener Backup Failed")
-            markUnhealthy()
         }
     }
 
@@ -235,12 +221,16 @@ final class BackupService {
             }
         }
 
-        BackupService.logger.info("Running Backup for \(container.name)")
+        BackupService.logger.info("Running Single Backup for \(container.name)")
         do {
             try await container.runBackup(destination: backupUrl)
+            try runPostBackupTasks()
+            BackupService.logger.info("Single Backup Completed")
+            _ = markHealthy()
         } catch let error {
-            BackupService.logger.error("Backup for \(container.name) failed")
+            BackupService.logger.error("Single Backup for \(container.name) failed")
             BackupService.logger.error("\(error.localizedDescription)")
+            markUnhealthy()
         }
     }
 
