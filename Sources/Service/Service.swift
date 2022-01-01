@@ -212,7 +212,7 @@ final class BackupService {
         if let minInterval = try? config.schedule?.parseMinInterval() {
             // Allow for some slop of a minute in the timing.
             let slop = 60.0
-            let intervalWithSlop = min(0.0, minInterval - slop)
+            let intervalWithSlop = max(0.0, minInterval - slop)
             BackupService.logger.debug("Checking Min Interval of \(minInterval), with slop: \(intervalWithSlop)")
             let now = Date()
             if container.lastBackup + intervalWithSlop > now {
