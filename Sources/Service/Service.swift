@@ -129,7 +129,7 @@ final class BackupService {
         let timer = ServiceTimer(identifier: "interval", queue: DispatchQueue.main)
         timer.schedule(startingAt: Date(), repeating: .seconds(Int(interval)))
         timer.setHandler {
-            await self.runFullBackup()
+            await self.runFullBackup(isDaily: false)
         }
 
         self.intervalTimer = timer
@@ -151,7 +151,7 @@ final class BackupService {
         BackupService.logger.info("Next Backup: \(Library.dateFormatter.string(from: firstFiring))")
         timer.schedule(at: firstFiring)
         timer.setHandler {
-            await self.runFullBackup()
+            await self.runFullBackup(isDaily: true)
 
             guard let nextFiring = dayTime.calcNextDate(after: Date()) else {
                 BackupService.logger.error("Unable to calculate next daily backup date")
@@ -209,16 +209,8 @@ final class BackupService {
     }
 
     private func runSingleBackup(container: ContainerConnection) async {
-        if let minInterval = try? config.schedule?.parseMinInterval() {
-            // Allow for some slop of a minute in the timing.
-            let slop = 60.0
-            let intervalWithSlop = max(0.0, minInterval - slop)
-            BackupService.logger.debug("Checking Min Interval of \(minInterval), with slop: \(intervalWithSlop)")
-            let now = Date()
-            if container.lastBackup + intervalWithSlop > now {
-                BackupService.logger.info("Skipping Backup, still within \(minInterval) seconds since last backup")
-                return
-            }
+        guard shouldRunBackup(container: container) else {
+            return
         }
 
         BackupService.logger.info("Running Single Backup for \(container.name)")
@@ -234,11 +226,15 @@ final class BackupService {
         }
     }
 
-    private func runFullBackup() async {
+    private func runFullBackup(isDaily: Bool) async {
         BackupService.logger.info("Starting Full Backup")
         do {
             let needsListeners = needsListeners()
             for container in containers {
+                guard shouldRunBackup(container: container) || isDaily else {
+                    continue
+                }
+
                 if !needsListeners {
                     try container.start()
                 }
@@ -279,6 +275,22 @@ final class BackupService {
                                         keepDays: trimJob.keepDays,
                                         minKeep: trimJob.minKeep)
         }
+    }
+
+    private func shouldRunBackup(container: ContainerConnection) -> Bool {
+        if let minInterval = try? config.schedule?.parseMinInterval() {
+            // Allow for some slop of a minute in the timing.
+            let slop = 60.0
+            let intervalWithSlop = max(0.0, minInterval - slop)
+            BackupService.logger.debug("Checking Min Interval of \(minInterval), with slop: \(intervalWithSlop)")
+            let now = Date()
+            if container.lastBackup + intervalWithSlop > now {
+                BackupService.logger.info("Skipping Backup, still within \(minInterval) seconds since last backup")
+                return false
+            }
+        }
+
+        return true
     }
 
     private func getBackupInterval() throws -> TimeInterval? {
