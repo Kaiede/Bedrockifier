@@ -30,6 +30,17 @@ import PTYKit
 import Bedrockifier
 
 final class BackupService {
+    struct Strings {
+        static let bedrockLogin = "joined the game"
+        static let bedrockLogout = "left the game"
+        static let javaLogin = "Player connected:"
+        static let javaLogout = "Player disconnected:"
+
+        static let listenerStrings = [bedrockLogin, bedrockLogout, javaLogin, javaLogout]
+        static let loginStrings = [bedrockLogin, javaLogin]
+        static let logoutStrings = [bedrockLogout, javaLogout]
+    }
+
     enum ServiceError: Error {
         case noBackupInterval
         case noActiveTerminal
@@ -172,16 +183,9 @@ final class BackupService {
     }
 
     private func startListenerBackups() {
-        let playerNotifications = [
-            "Player connected:",
-            "Player disconnected:",
-            "joined the game",
-            "left the game"
-        ]
-
         BackupService.logger.info("Starting Listeners for Containers")
         for container in containers {
-            container.terminal.listen(for: playerNotifications) { content in
+            container.terminal.listen(for: Strings.listenerStrings) { content in
                 Task {
                     await self.onListenerEvent(container: container, content: content)
                 }
@@ -191,8 +195,8 @@ final class BackupService {
 
     private func onListenerEvent(container: ContainerConnection, content: String) async {
         BackupService.logger.debug("Listener Event for \(container.name): \(content)")
-   
-        if content.contains("Player connected:") || content.contains("joined the game") {
+
+        if content.contains(oneOf: Strings.loginStrings) {
             // Login event
             let playerCount = container.incrementPlayerCount()
             BackupService.logger.info("Player Logged In: \(container.name), Players Active: \(playerCount)")
@@ -201,7 +205,7 @@ final class BackupService {
             }
         }
 
-        if content.contains("Player disconnected:") || content.contains("left the game") {
+        if content.contains(oneOf: Strings.logoutStrings) {
             // Logout event
             let playerCount = container.decrementPlayerCount()
             BackupService.logger.info("Player Logged Out: \(container.name), Players Active: \(playerCount)")
