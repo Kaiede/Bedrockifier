@@ -29,13 +29,13 @@ import Foundation
 struct EnvironmentConfig {
     static let fallbackConfigFile = "config.json"
 
-    let backupInterval: String
+    let backupInterval: String?
     let dataDirectory: String
     let configFile: String
     let dockerPath: String
 
     init() {
-        self.backupInterval = ProcessInfo.processInfo.environment["BACKUP_INTERVAL"] ?? "24h"
+        self.backupInterval = ProcessInfo.processInfo.environment["BACKUP_INTERVAL"]
         self.dataDirectory = ProcessInfo.processInfo.environment["DATA_DIR"] ?? "/backups"
         self.configFile = ProcessInfo.processInfo.environment["CONFIG_FILE"] ?? "config.yml"
         self.dockerPath = ProcessInfo.processInfo.environment["DOCKER_PATH"] ?? "/usr/bin/docker"

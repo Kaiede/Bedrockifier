@@ -79,7 +79,7 @@ final class BackupService {
 
             try connectContainers()
 
-            if schedule.interval != nil {
+            if schedule.interval != nil || environment.backupInterval != nil {
                 try startIntervalBackups()
             } else if schedule.daily != nil {
                 try startDailyBackups()
@@ -307,7 +307,7 @@ final class BackupService {
             return interval
         }
 
-        return try Bedrockifier.parse(interval: environment.backupInterval)
+        if let interval = environment.backupInterval {
     }
 
     private func getStartupDelay() throws -> TimeInterval? {
