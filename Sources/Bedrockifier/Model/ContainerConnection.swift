@@ -87,7 +87,7 @@ public class ContainerConnection {
         try await pauseAutosave()
 
         do {
-            Library.log.info("Starting Backup of worlds for: \(name))")
+            Library.log.info("Starting Backup of worlds for: \(name)")
 
             for worldUrl in worlds {
                 let world = try World(url: worldUrl)
