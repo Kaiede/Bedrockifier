@@ -127,7 +127,12 @@ final class BackupService {
 
         BackupService.logger.info("Backup Interval: \(interval) seconds")
         let timer = ServiceTimer(identifier: "interval", queue: DispatchQueue.main)
-        timer.schedule(startingAt: Date(), repeating: .seconds(Int(interval)))
+        var startTime = Date()
+        if let startupDelay = try getStartupDelay() {
+            BackupService.logger.info("Delaying First Backup: \(startupDelay) seconds")
+            startTime += startupDelay
+        }
+        timer.schedule(startingAt: startTime, repeating: .seconds(Int(interval)))
         timer.setHandler {
             await self.runFullBackup(isDaily: false)
         }
@@ -299,6 +304,10 @@ final class BackupService {
         }
 
         return try Bedrockifier.parse(interval: environment.backupInterval)
+    }
+
+    private func getStartupDelay() throws -> TimeInterval? {
+        return try config.schedule?.parseStartupDelay()
     }
 
     private func markUnhealthy() {

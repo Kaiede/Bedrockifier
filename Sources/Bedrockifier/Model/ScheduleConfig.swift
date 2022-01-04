@@ -27,8 +27,9 @@ import Foundation
 
 public struct ScheduleConfig: Codable {
     // Interval Based Schedules
-    public var interval: String?
     public var daily: DayTime?
+    public var interval: String?
+    public var startupDelay: String?
 
     // Event Based Schedules
     public var onPlayerLogin: Bool?
@@ -40,15 +41,7 @@ public struct ScheduleConfig: Codable {
 extension ScheduleConfig {
     public func parseInterval() throws -> TimeInterval? {
         guard let interval = self.interval else { return nil }
-
-        if let scale = determineIntervalScale(interval) {
-            let endIndex = interval.index(interval.endIndex, offsetBy: -2)
-            let slicedInterval = interval[...endIndex]
-            guard let timeInterval = TimeInterval(slicedInterval) else { return nil }
-            return timeInterval * scale
-        } else {
-            return TimeInterval(interval)
-        }
+        return try parseTimeInterval(interval)
     }
 
     private func determineIntervalScale(_ interval: String) -> TimeInterval? {
@@ -61,8 +54,16 @@ extension ScheduleConfig {
     }
 
     public func parseMinInterval() throws -> TimeInterval? {
-        guard let interval = self.minInterval else { return nil }
+        guard let minInterval = self.minInterval else { return nil }
+        return try parseTimeInterval(minInterval)
+    }
 
+    public func parseStartupDelay() throws -> TimeInterval? {
+        guard let startupDelay = self.startupDelay else { return nil }
+        return try parseTimeInterval(startupDelay)
+    }
+
+    private func parseTimeInterval(_ interval: String) throws -> TimeInterval? {
         if let scale = determineIntervalScale(interval) {
             let endIndex = interval.index(interval.endIndex, offsetBy: -2)
             let slicedInterval = interval[...endIndex]
