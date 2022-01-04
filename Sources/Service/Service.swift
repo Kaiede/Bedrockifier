@@ -308,6 +308,10 @@ final class BackupService {
         }
 
         if let interval = environment.backupInterval {
+            return try Bedrockifier.parse(interval: interval)
+        }
+
+        return nil
     }
 
     private func getStartupDelay() throws -> TimeInterval? {
