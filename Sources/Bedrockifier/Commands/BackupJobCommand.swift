@@ -59,8 +59,6 @@ public final class BackupJobCommand: Command {
 
         Task {
             do {
-                let terminal = try PseudoTerminal()
-
                 Library.log.trace("Entered Async Task")
 
                 Library.log.trace("Loading Configuration")
@@ -81,11 +79,14 @@ public final class BackupJobCommand: Command {
 
                 let backupUrl = URL(fileURLWithPath: backupPath)
 
+                let containers = try ContainerConnection.loadContainers(from: config, dockerPath: dockerPath)
+
                 Library.log.info("Performing Backups")
-                try await WorldBackup.runBackups(terminal: terminal,
-                                                 config: config,
-                                                 destination: backupUrl,
-                                                 dockerPath: dockerPath)
+                for container in containers {
+                    try container.start()
+                    try await container.runBackup(destination: backupUrl)
+                    await container.stop()
+                }
 
                 if let ownershipConfig = config.ownership {
                     Library.log.info("Performing Ownership Fixup")

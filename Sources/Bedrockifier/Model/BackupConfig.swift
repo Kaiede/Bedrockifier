@@ -35,17 +35,6 @@ public struct BackupConfig: Codable {
         public var minKeep: Int?
     }
 
-    public struct OwnershipConfig: Codable {
-        public var chown: String?
-        public var permissions: String?
-    }
-
-    public struct ScheduleConfig: Codable {
-        public var interval: String?
-        public var onPlayerLogin: Bool?
-        public var onPlayerLogout: Bool?
-    }
-
     public enum LoggingConfig: String, Codable {
         case debug
         case trace
@@ -84,38 +73,4 @@ extension BackupConfig {
     }
 }
 
-extension BackupConfig.OwnershipConfig {
-    func parseOwnerAndGroup() throws -> (UInt32?, UInt32?) {
-        guard let chownString = self.chown else { return (nil, nil) }
-        return try parse(ownership: chownString)
-    }
 
-    func parsePosixPermissions() throws -> UInt16? {
-        guard let permissionsString = self.permissions else { return nil }
-        return try parse(permissions: permissionsString)
-    }
-}
-
-extension BackupConfig.ScheduleConfig {
-    public func parseInterval() throws -> TimeInterval? {
-        guard let interval = self.interval else { return nil }
-
-        if let scale = determineIntervalScale(interval) {
-            let endIndex = interval.index(interval.endIndex, offsetBy: -2)
-            let slicedInterval = interval[...endIndex]
-            guard let timeInterval = TimeInterval(slicedInterval) else { return nil }
-            return timeInterval * scale
-        } else {
-            return TimeInterval(interval)
-        }
-    }
-
-    private func determineIntervalScale(_ interval: String) -> TimeInterval? {
-        switch interval.last?.lowercased() {
-        case "h": return 60.0 * 60.0
-        case "m": return 60.0
-        case "s": return 1.0
-        default: return nil
-        }
-    }
-}

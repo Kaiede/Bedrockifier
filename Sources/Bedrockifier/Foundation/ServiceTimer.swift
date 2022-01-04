@@ -23,11 +23,16 @@
  SOFTWARE.)
  */
 
+// Originally written for https://github.com/Kaiede/RPiLight
+// Changes:
+// - Adding async Handler Support
+
 import Dispatch
 import Foundation
 import Logging
 
 public typealias ServiceTimerHandler = () -> Void
+public typealias ServiceTimerAsyncHandler = () async -> Void
 
 public class ServiceTimer<IDType> {
     public private(set) var timerId: IDType
@@ -50,6 +55,14 @@ public class ServiceTimer<IDType> {
 
     public func setHandler(handler: @escaping ServiceTimerHandler) {
         self.handler = handler
+    }
+
+    public func setHandler(handler: @escaping ServiceTimerAsyncHandler) {
+        self.handler = {
+            Task {
+                await handler()
+            }
+        }
     }
 
     public func schedule(at date: Date) {

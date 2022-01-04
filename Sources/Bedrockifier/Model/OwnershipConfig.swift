@@ -23,34 +23,21 @@
  SOFTWARE.)
  */
 
-// Originally written for https://github.com/Kaiede/RPiLight
-
 import Foundation
 
-extension DispatchWallTime {
-    init(date: Date) {
-        let nsecInSec: UInt64 = 1_000_000_000
-        let interval = date.timeIntervalSince1970
-        let spec = timespec(tv_sec: Int(interval), tv_nsec: Int(UInt64(interval * Double(nsecInSec)) % nsecInSec))
-        self.init(timespec: spec)
-    }
+public struct OwnershipConfig: Codable {
+    public var chown: String?
+    public var permissions: String?
 }
 
-extension DispatchTimeInterval {
-    func toTimeInterval() -> TimeInterval {
-        switch self {
-        case .seconds(let seconds):
-            return TimeInterval(seconds)
-        case .milliseconds(let milliseconds):
-            return TimeInterval(milliseconds) * 1_000.0
-        case .microseconds(let microseconds):
-            return TimeInterval(microseconds) * 1_000_000.0
-        case .nanoseconds(let nanoseconds):
-            return TimeInterval(nanoseconds) * 1_000_000_000.0
-        case .never:
-            return TimeInterval.infinity
-        @unknown default:
-            fatalError("Unknown DispatchTimeInterval in toTimeInterval()")
-        }
+extension OwnershipConfig {
+    func parseOwnerAndGroup() throws -> (UInt32?, UInt32?) {
+        guard let chownString = self.chown else { return (nil, nil) }
+        return try parse(ownership: chownString)
+    }
+
+    func parsePosixPermissions() throws -> UInt16? {
+        guard let permissionsString = self.permissions else { return nil }
+        return try parse(permissions: permissionsString)
     }
 }

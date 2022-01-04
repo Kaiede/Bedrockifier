@@ -74,21 +74,32 @@ public final class BackupCommand: Command {
 
         Task {
             do {
-                let terminal = try PseudoTerminal()
                 Library.log.trace("Entered Async Task")
 
                 Library.log.trace("Loading Configuration")
+                // Configure Task
                 let backupUrl = URL(fileURLWithPath: signature.outputFolderPath)
                 let worldsPath = URL(fileURLWithPath: signature.worldsPath)
-                try await WorldBackup.makeBackup(terminal: terminal,
-                                                 backupUrl: backupUrl,
-                                                 dockerPath: signature.dockerPath,
-                                                 containerName: signature.containerName,
-                                                 worldsPath: worldsPath)
+                let worlds = try World.getWorlds(at: worldsPath)
+                let worldsPaths = worlds.map({ $0.location.path })
+                let connection = try ContainerConnection(dockerPath: signature.dockerPath,
+                                                         containerName: signature.containerName,
+                                                         kind: .bedrock,
+                                                         worlds: worldsPaths)
+
+                // Run Backup
+                try connection.start()
+                try await connection.runBackup(destination: backupUrl)
+                await connection.stop()
+
 
                 // Run optional trim
                 if signature.trim {
-                    try WorldBackup.trimBackups(at: backupUrl, dryRun: false, trimDays: nil, keepDays: nil, minKeep: nil)
+                    try WorldBackup.trimBackups(at: backupUrl,
+                                                dryRun: false,
+                                                trimDays: signature.keepDays,
+                                                keepDays: signature.keepDays,
+                                                minKeep: signature.minKeep)
                 }
             } catch let error {
                 Library.log.error("\(error.localizedDescription)")

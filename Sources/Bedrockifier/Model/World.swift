@@ -27,7 +27,7 @@ import Foundation
 import Logging
 import ZIPFoundation
 
-struct World {
+public struct World {
     enum WorldError: Error {
         case invalidWorldType
         case invalidLevelArchive
@@ -35,7 +35,7 @@ struct World {
         case mismatchedDestination
     }
 
-    enum WorldType {
+    public enum WorldType {
         case folder
         case mcworld
         case javaBackup
@@ -55,11 +55,11 @@ struct World {
         }
     }
 
-    let name: String
-    let type: WorldType
-    let location: URL
+    public let name: String
+    public let type: WorldType
+    public let location: URL
 
-    init(url: URL) throws {
+    public init(url: URL) throws {
         self.type = try WorldType(url: url)
         self.location = url
         self.name = try World.fetchName(type: type, location: location)
@@ -298,7 +298,7 @@ extension World {
 }
 
 extension World {
-    static func getWorlds(at url: URL) throws -> [World] {
+    public static func getWorlds(at url: URL) throws -> [World] {
         var results: [World] = []
 
         let folders = try FileManager.default.contentsOfDirectory(atPath: url.path)

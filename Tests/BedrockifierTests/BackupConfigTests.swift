@@ -3,7 +3,7 @@ import XCTest
 
 final class BackupConfigTests: XCTestCase {
     func testScheduleInterval() {
-        var schedule = BackupConfig.ScheduleConfig()
+        var schedule = ScheduleConfig()
 
         XCTAssertEqual(try schedule.parseInterval(), nil)
 
