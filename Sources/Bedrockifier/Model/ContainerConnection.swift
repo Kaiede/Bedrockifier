@@ -11,11 +11,8 @@ import PTYKit
 private let usePty = false
 
 public class ContainerConnection {
-    public enum ContainerError: Error {
-        case processNotRunning
-        case pauseFailed
-        case saveNotCompleted
-        case resumeFailed
+    struct Strings {
+        static let dockerConnectError = "Got permission denied while trying to connect to the Docker daemon"
     }
 
     public enum Kind {
@@ -138,7 +135,7 @@ public class ContainerConnection {
     private func pauseSaveOnBedrock() async throws {
         // Start Save Hold
         try terminal.sendLine("save hold")
-        if await terminal.expect(["Saving", "The command is already running"], timeout: 10.0) == .noMatch {
+        if try await expect(["Saving", "The command is already running"], timeout: 10.0) == .noMatch {
             throw ContainerError.pauseFailed
         }
 
@@ -146,7 +143,7 @@ public class ContainerConnection {
         var attemptLimit = 3
         while attemptLimit > 0 {
             try terminal.sendLine("save query")
-            if await terminal.expect("Files are now ready to be copied", timeout: 10.0) == .noMatch {
+            if try await expect(["Files are now ready to be copied"], timeout: 10.0) == .noMatch {
                 attemptLimit -= 1
             } else {
                 break
@@ -161,12 +158,12 @@ public class ContainerConnection {
     private func pauseSaveOnJava() async throws {
         // Need a longer timeout on the flush in case server is still starting up
         try terminal.sendLine("save-all flush")
-        if await terminal.expect(["Saved the game"], timeout: 30.0) == .noMatch {
+        if try await expect(["Saved the game"], timeout: 30.0) == .noMatch {
             throw ContainerError.pauseFailed
         }
 
         try terminal.sendLine("save-off")
-        if await terminal.expect(["Automatic saving is now disabled"], timeout: 10.0) == .noMatch {
+        if try await expect(["Automatic saving is now disabled"], timeout: 10.0) == .noMatch {
             throw ContainerError.pauseFailed
         }
     }
@@ -179,16 +176,35 @@ public class ContainerConnection {
             "Changes to the world are resumed", // 1.18 and later
             "A previous save has not been completed"
         ]
-        if await terminal.expect(saveResumeStrings, timeout: 60.0) == .noMatch {
+        if try await expect(saveResumeStrings, timeout: 60.0) == .noMatch {
             throw ContainerError.resumeFailed
         }
     }
 
     private func resumeSaveOnJava() async throws {
         try terminal.sendLine("save-on")
-        if await terminal.expect(["Automatic saving is now enabled"], timeout: 60.0) == .noMatch {
+        if try await expect(["Automatic saving is now enabled"], timeout: 60.0) == .noMatch {
             throw ContainerError.resumeFailed
         }
+    }
+
+    private func expect(_ expressions: [String], timeout: TimeInterval) async throws -> PseudoTerminal.ExpectResult {
+        let possibleErrors = [Strings.dockerConnectError: ContainerError.dockerConnectPermissionError]
+        let allExpectations = expressions + possibleErrors.keys
+
+        let result = await terminal.expect(allExpectations, timeout: timeout)
+        switch result {
+        case .noMatch:
+            break
+        case .match(let matchString):
+            for (errorKey, errorType) in possibleErrors {
+                if matchString.contains(errorKey) {
+                    throw errorType
+                }
+            }
+        }
+
+        return result
     }
 
     private static func getPtyArguments(dockerPath: String, containerName: String) -> [String] {
@@ -242,5 +258,27 @@ extension ContainerConnection {
         }
 
         return containers
+    }
+}
+
+extension ContainerConnection {
+    public enum ContainerError: Error {
+        case processNotRunning
+        case dockerConnectPermissionError
+        case pauseFailed
+        case saveNotCompleted
+        case resumeFailed
+    }
+}
+
+extension ContainerConnection.ContainerError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .processNotRunning: return "Docker process didn't start successfully, or has died"
+        case .dockerConnectPermissionError: return "Docker was blocked from accessing docker.sock, make sure UID/GID are set correctly"
+        case .pauseFailed: return "Server container failed to pause autosave before timeout was reached"
+        case .saveNotCompleted: return "Server container failed to flush data to disk before timeout was reached"
+        case .resumeFailed: return "Server container failed to resume autosave before timeout was reached"
+        }
     }
 }

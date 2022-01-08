@@ -31,10 +31,6 @@ import PTYKit
 import Bedrockifier
 
 struct Server: ParsableCommand {
-    enum ServerError: Error {
-        case dailyBackupTimerFailure
-    }
-
     private static let logger = Logger(label: "bedrockifier")
 
     @Option(help: "Path to the config file")

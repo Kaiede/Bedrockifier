@@ -28,13 +28,6 @@ import Logging
 import ZIPFoundation
 
 public struct World {
-    enum WorldError: Error {
-        case invalidWorldType
-        case invalidLevelArchive
-        case missingLevelName
-        case mismatchedDestination
-    }
-
     public enum WorldType {
         case folder
         case mcworld
@@ -310,5 +303,23 @@ extension World {
         }
 
         return results
+    }
+}
+
+extension World {
+    enum WorldError: Error {
+        case invalidWorldType
+        case invalidLevelArchive
+        case missingLevelName
+    }
+}
+
+extension World.WorldError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .invalidWorldType: return "World isn't a zip file, mcworld file, or valid Minecraft world folder"
+        case .invalidLevelArchive: return "World archive is not a valid zip or mcworld file"
+        case .missingLevelName: return "Unable to determine name of the world"
+        }
     }
 }

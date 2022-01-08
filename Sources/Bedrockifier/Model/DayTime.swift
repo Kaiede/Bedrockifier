@@ -30,14 +30,6 @@
 import Foundation
 
 public struct DayTime: Codable {
-    enum DecodeError: Error {
-        case unableToParse
-    }
-
-    enum EncodeError: Error {
-        case unableToGetDate
-    }
-
     internal static let components: Set<Calendar.Component> = [.calendar, .timeZone, .hour, .minute, .second]
 
     public internal(set) var dateComponents: DateComponents
@@ -129,5 +121,33 @@ fileprivate extension DateComponents {
                               minute: self.minute,
                               second: self.second,
                               nanosecond: self.nanosecond)
+    }
+}
+
+// MARK: Errors
+
+extension DayTime {
+    enum DecodeError: Error {
+        case unableToParse
+    }
+
+    enum EncodeError: Error {
+        case unableToGetDate
+    }
+}
+
+extension DayTime.DecodeError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .unableToParse: return "Unable to parse, not in the expected \(DayTime.formatter.dateFormat ?? "<nil>") form"
+        }
+    }
+}
+
+extension DayTime.EncodeError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .unableToGetDate: return "Unable to calculate next date for formatting"
+        }
     }
 }
