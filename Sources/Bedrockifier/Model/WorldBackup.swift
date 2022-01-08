@@ -46,25 +46,6 @@ public class WorldBackup {
     }
 }
 
-public enum WorldBackupError: Error {
-    case holdFailed
-    case queryFailed
-    case resumeFailed
-}
-
-extension WorldBackupError: LocalizedError {
-    public var errorDescription: String? {
-        switch self {
-        case .holdFailed:
-            return "Failed to pause auto-save on the server"
-        case .queryFailed:
-            return "Failed to confirm data is ready for backup"
-        case .resumeFailed:
-            return "Failed to resume auto-save on the server"
-        }
-    }
-}
-
 extension WorldBackup {
     public static func fixOwnership(at folder: URL, config: OwnershipConfig) throws {
         let (uid, gid) = try config.parseOwnerAndGroup()

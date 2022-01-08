@@ -38,10 +38,6 @@ struct Platform {
     typealias Mode = __mode_t
     #endif
 
-    enum PlatformError: Error {
-        case errno(error: Int32)
-    }
-
     static func changeOwner(path: String, uid: UInt32?, gid: UInt32?) throws {
         let realUid = uid ?? UInt32.max
         let realGid = gid ?? UInt32.max
@@ -61,5 +57,19 @@ struct Platform {
                 throw PlatformError.errno(error: errno)
             }
         })
+    }
+}
+
+extension Platform {
+    enum PlatformError: Error {
+        case errno(error: Int32)
+    }
+}
+
+extension Platform.PlatformError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .errno(let errorCode): return "Platform returned error code \(errorCode)"
+        }
     }
 }

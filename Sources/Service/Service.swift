@@ -41,12 +41,6 @@ final class BackupService {
         static let logoutStrings = [bedrockLogout, javaLogout]
     }
 
-    enum ServiceError: Error {
-        case noBackupInterval
-        case noActiveTerminal
-        case onlyOneIntervalTypeAllowed
-    }
-
     private static let logger = Logger(label: "bedrockifier")
 
     let config: BackupConfig
@@ -326,6 +320,22 @@ final class BackupService {
         } catch let error {
             BackupService.logger.error("\(error.localizedDescription)")
             BackupService.logger.error("Unable to mark service as unhealthy.")
+        }
+    }
+}
+
+extension BackupService {
+    enum ServiceError: Error {
+        case noBackupInterval
+        case onlyOneIntervalTypeAllowed
+    }
+}
+
+extension BackupService.ServiceError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .noBackupInterval: return "No valid backup interval was able to be read from configuration or environment"
+        case .onlyOneIntervalTypeAllowed: return "Only one of `interval` and `daily` are allowed"
         }
     }
 }

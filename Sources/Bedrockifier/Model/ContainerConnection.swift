@@ -15,14 +15,6 @@ public class ContainerConnection {
         static let dockerConnectError = "Got permission denied while trying to connect to the Docker daemon"
     }
 
-    public enum ContainerError: Error {
-        case processNotRunning
-        case dockerConnectPermissionError
-        case pauseFailed
-        case saveNotCompleted
-        case resumeFailed
-    }
-
     public enum Kind {
         case bedrock
         case java
@@ -266,5 +258,27 @@ extension ContainerConnection {
         }
 
         return containers
+    }
+}
+
+extension ContainerConnection {
+    public enum ContainerError: Error {
+        case processNotRunning
+        case dockerConnectPermissionError
+        case pauseFailed
+        case saveNotCompleted
+        case resumeFailed
+    }
+}
+
+extension ContainerConnection.ContainerError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .processNotRunning: return "Docker process didn't start successfully, or has died"
+        case .dockerConnectPermissionError: return "Docker was blocked from accessing docker.sock, make sure UID/GID are set correctly"
+        case .pauseFailed: return "Server container failed to pause autosave before timeout was reached"
+        case .saveNotCompleted: return "Server container failed to flush data to disk before timeout was reached"
+        case .resumeFailed: return "Server container failed to resume autosave before timeout was reached"
+        }
     }
 }
