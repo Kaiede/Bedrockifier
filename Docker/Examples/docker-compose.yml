@@ -1,0 +1,56 @@
+version: '3.7'
+
+services:
+  backup:
+    image: kaiede/minecraft-bedrock-backup
+    restart: always
+    depends_on:
+      - "public"
+      - "private"
+    environment:
+        BACKUP_INTERVAL: "3h"
+        TZ: "America/Los_Angeles"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/bedrock/backups:/backups
+      - /opt/bedrock/private:/bedrock_private
+      - /opt/bedrock/public:/bedrock_public
+    
+  manymine:
+    image: illiteratealliterator/manymine
+    restart: always
+    container_name: manymine
+    ports:
+      - '19132:19132/udp'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+  
+  private:
+    image: itzg/minecraft-bedrock-server
+    restart: always
+    container_name: bedrock_private
+    environment:
+      EULA: "TRUE"
+    ports:
+      - 60601:19132/udp
+    volumes:
+      - /opt/bedrock/private:/data
+    stdin_open: true
+    tty: true
+    labels:
+      - manymine.enable=true
+
+  public:
+    image: itzg/minecraft-bedrock-server
+    restart: always
+    container_name: bedrock_public
+    environment:
+      EULA: "TRUE"
+    ports:
+      - 60602:19132/udp
+    volumes:
+      - /opt/bedrock/public:/data
+    stdin_open: true
+    tty: true
+    labels:
+      - manymine.enable=true

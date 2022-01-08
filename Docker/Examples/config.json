@@ -1,0 +1,11 @@
+{
+    "servers": {
+        "bedrock_private": "/bedrock_private/worlds",
+        "bedrock_public": "/bedrock_public/worlds"
+    },
+    "trim": {
+        "trimDays":   2,
+        "keepDays":   14,
+        "minKeep":    2
+    }
+}
