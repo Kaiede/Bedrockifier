@@ -1,12 +1,12 @@
-# BedrockifierCLI
+# Bedrockifier
 
-[![CI Status](https://github.com/Kaiede/BedrockifierCLI/actions/workflows/swift.yml/badge.svg)](https://github.com/Kaiede/BedrockifierCLI/actions)
+[![CI Status](https://github.com/Kaiede/Bedrockifier/actions/workflows/swift.yml/badge.svg)](https://github.com/Kaiede/Bedrockifier/actions)
 ![Swift](https://img.shields.io/badge/Swift-5.5.2-brightgreen.svg?style=flat)
 [![MIT license](http://img.shields.io/badge/License-MIT-brightgreen.svg)](http://opensource.org/licenses/MIT)
 
-[![CI Status](https://github.com/Kaiede/BedrockifierCLI/actions/workflows/docker.yml/badge.svg)](https://github.com/Kaiede/BedrockifierCLI/actions)
+[![CI Status](https://github.com/Kaiede/Bedrockifier/actions/workflows/docker.yml/badge.svg)](https://github.com/Kaiede/Bedrockifier/actions)
 [![Docker Pulls](https://img.shields.io/docker/pulls/kaiede/minecraft-bedrock-backup.svg)](https://hub.docker.com/r/kaiede/minecraft-bedrock-backup)
-[![GitHub Issues](https://img.shields.io/github/issues-raw/kaiede/BedrockifierCLI.svg)](https://github.com/kaiede/BedrockifierCLI/issues)
+[![GitHub Issues](https://img.shields.io/github/issues-raw/kaiede/Bedrockifier.svg)](https://github.com/kaiede/Bedrockifier/issues)
 
 A multi-purpose tool for working with Minecraft Java and Bedrock world backups, including a manual tool, a backup service, and a dockerized contianer for making backups of the Minecraft [Bedrock](https://hub.docker.com/r/itzg/minecraft-bedrock-server) and [Java](https://hub.docker.com/r/itzg/minecraft-server) docker containers provided by itzg.
 
@@ -19,11 +19,11 @@ A multi-purpose tool for working with Minecraft Java and Bedrock world backups, 
 
 ### Usage
 
-Detailed instructions are in the [Wiki](https://github.com/Kaiede/BedrockifierCLI/wiki).
+Detailed instructions are in the [Wiki](https://github.com/Kaiede/Bedrockifier/wiki).
 
 ### Release Notes
 
-Release Notes are available on [GitHub](https://github.com/Kaiede/BedrockifierCLI/releases).
+Release Notes are available on [GitHub](https://github.com/Kaiede/Bedrockifier/releases).
 
 ### Credits
 
