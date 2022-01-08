@@ -15,7 +15,7 @@ env:
 jobs:
   arm64:
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request' && github.repository == 'Kaiede/BedrockifierCLI'
+    if: github.event_name != 'pull_request' && github.repository == 'Kaiede/Bedrockifier'
 
     steps:
     - name: Checkout
@@ -60,7 +60,7 @@ jobs:
 
   amd64:
     runs-on: ubuntu-latest
-    if: github.repository == 'Kaiede/BedrockifierCLI'
+    if: github.repository == 'Kaiede/Bedrockifier'
 
     steps:
     - name: Checkout
@@ -101,7 +101,7 @@ jobs:
   merge-tags:
     needs: ['arm64', 'amd64']
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request' && github.repository == 'Kaiede/BedrockifierCLI'
+    if: github.event_name != 'pull_request' && github.repository == 'Kaiede/Bedrockifier'
 
     steps:
     - name: Checkout
