@@ -28,3 +28,5 @@ Release Notes are available on [GitHub](https://github.com/Kaiede/Bedrockifier/r
 ### Credits
 
 This was built in part by understanding how itzg/mc-backup works for Java, and is offered under similar license: https://github.com/itzg/docker-mc-backup 
+
+Older source history for the docker container can be found at https://github.com/Kaiede/docker-minecraft-bedrock-backup
