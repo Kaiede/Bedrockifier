@@ -1,31 +1,30 @@
 # BedrockifierCLI
 
 [![CI Status](https://github.com/Kaiede/BedrockifierCLI/actions/workflows/swift.yml/badge.svg)](https://github.com/Kaiede/BedrockifierCLI/actions)
-[![CI Status](https://github.com/Kaiede/BedrockifierCLI/actions/workflows/docker.yml/badge.svg)](https://github.com/Kaiede/BedrockifierCLI/actions)
 ![Swift](https://img.shields.io/badge/Swift-5.5.2-brightgreen.svg?style=flat)
 [![MIT license](http://img.shields.io/badge/License-MIT-brightgreen.svg)](http://opensource.org/licenses/MIT)
 
-A command-line tool 
+[![CI Status](https://github.com/Kaiede/BedrockifierCLI/actions/workflows/docker.yml/badge.svg)](https://github.com/Kaiede/BedrockifierCLI/actions)
+[![Docker Pulls](https://img.shields.io/docker/pulls/kaiede/minecraft-bedrock-backup.svg)](https://hub.docker.com/r/kaiede/minecraft-bedrock-backup)
+[![GitHub Issues](https://img.shields.io/github/issues-raw/kaiede/BedrockifierCLI.svg)](https://github.com/kaiede/BedrockifierCLI/issues)
+
+A multi-purpose tool for working with Minecraft Java and Bedrock world backups, including a manual tool, a backup service, and a dockerized contianer for making backups of the Minecraft [Bedrock](https://hub.docker.com/r/itzg/minecraft-bedrock-server) and [Java](https://hub.docker.com/r/itzg/minecraft-server) docker containers provided by itzg.
+
+### Features
+
+- Bedrock backups use the .mcworld format, meaning Vanilla worlds can be imported using any Bedrock client.
+- Java backups use the same .zip backup format as the game client, making them easier to work with.
+- Takes snapshots while the server is running.
+- Supports trimming backups to limit disk space usage.
 
 ### Usage
 
-There are a set of commands available currently:
+Detailed instructions are in the [Wiki](https://github.com/Kaiede/BedrockifierCLI/wiki).
 
-* pack
-* unpack
+### Release Notes
 
-These pack or unpack Bedrock worlds. They are intended to let you package up a world folder into a *.mcworld file, or vice versa.
+Release Notes are available on [GitHub](https://github.com/Kaiede/BedrockifierCLI/releases).
 
-* backup
-* backupjob
-* trim
+### Credits
 
-These provide backup support for a running bedrock server. backup can perform a single backup task. backupjob can do the same using JSON to configure one or more backup tasks in situations where you are running multiple servers in different docker containers. Finally, trim allows manual trimming of the backups folder given specific rules. 
-
-These commands can be used to setup a cron job or timer-based service using systemd to periodically backup worlds on bedrock dedicated servers. The trim functionality has support for limiting how many days of backups are kept, but also turning more frequent snapshots into dailies. An example of how I use it is to take a snapshot every 3 hours (8 backups a day), then trim them to dailies after 2 days, and keep 14 days total. 
-
-Currently, this only works for certain docker containers like itzg/minecraft-bedrock-server, as it assumes it needs to attach to the container to safely save game data for backup. 
-
-### Docker Container
-
-Also available is a containerized version of this tool which is pre-configured to help run backups: https://github.com/Kaiede/docker-minecraft-bedrock-backup
+This was built in part by understanding how itzg/mc-backup works for Java, and is offered under similar license: https://github.com/itzg/docker-mc-backup 
