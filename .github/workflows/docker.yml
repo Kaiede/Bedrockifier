@@ -49,7 +49,7 @@ jobs:
       with:
         builder: ${{ steps.buildx.outputs.name }}
         context: .
-        file: ./arm64.dockerfile
+        file: ./Docker/arm64.dockerfile
         platforms: linux/arm64
         push: ${{ github.event_name != 'pull_request' }}
         tags: kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}-arm64
@@ -89,7 +89,7 @@ jobs:
       with:
         builder: ${{ steps.buildx.outputs.name }}
         context: .
-        file: ./amd64.dockerfile
+        file: ./Docker/amd64.dockerfile
         platforms: linux/amd64
         push: ${{ github.event_name != 'pull_request' }}
         tags: kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}-amd64
