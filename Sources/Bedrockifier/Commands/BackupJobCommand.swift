@@ -49,7 +49,6 @@ public final class BackupJobCommand: Command {
 
     public func run(using context: CommandContext, signature: Signature) throws {
         let group = DispatchGroup()
-        group.enter()
         var commandError: Error?
         let errorHandler = { error in
             commandError = error
@@ -57,25 +56,48 @@ public final class BackupJobCommand: Command {
 
         Library.log.trace("Created Dispatch Group")
 
+        Library.log.trace("Loading Configuration")
+        let configUrl = URL(fileURLWithPath: signature.configPath)
+        let config = try BackupConfig.getBackupConfig(from: configUrl)
+
+        Library.log.trace("Checking for backup Path")
+        guard let backupPath = signature.backupPath ?? config.backupPath else {
+            context.console.error("Backup path needs to be specified on command-line or config file")
+            return
+        }
+
+        Library.log.trace("Checking for Docker Path")
+        guard let dockerPath = signature.dockerPath ?? config.dockerPath else {
+            context.console.error("Docker path needs to be specified on command-line or config file")
+            return
+        }
+
+        runBackupTask(group: group,
+                      config: config,
+                      backupPath: backupPath,
+                      dockerPath: dockerPath,
+                      errorHandler: errorHandler)
+
+        Library.log.trace("Waiting on Async Task")
+        group.wait()
+
+        if let commandError = commandError {
+            throw commandError
+        }
+
+        Library.log.trace("Backup Job Complete")
+    }
+
+    private func runBackupTask(group: DispatchGroup,
+                               config: BackupConfig,
+                               backupPath: String,
+                               dockerPath: String,
+                               errorHandler: @escaping (Error) -> Void) {
+        group.enter()
+
         Task {
             do {
                 Library.log.trace("Entered Async Task")
-
-                Library.log.trace("Loading Configuration")
-                let configUrl = URL(fileURLWithPath: signature.configPath)
-                let config = try BackupConfig.getBackupConfig(from: configUrl)
-
-                Library.log.trace("Checking for backup Path")
-                guard let backupPath = signature.backupPath ?? config.backupPath else {
-                    context.console.error("Backup path needs to be specified on command-line or config file")
-                    return
-                }
-
-                Library.log.trace("Checking for Docker Path")
-                guard let dockerPath = signature.dockerPath ?? config.dockerPath else {
-                    context.console.error("Docker path needs to be specified on command-line or config file")
-                    return
-                }
 
                 let backupUrl = URL(fileURLWithPath: backupPath)
 
@@ -109,14 +131,5 @@ public final class BackupJobCommand: Command {
 
             group.leave()
         }
-
-        Library.log.trace("Waiting on Async Task")
-        group.wait()
-
-        if let commandError = commandError {
-            throw commandError
-        }
-
-        Library.log.trace("Backup Job Complete")
     }
 }

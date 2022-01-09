@@ -64,13 +64,27 @@ public final class BackupCommand: Command {
 
     public func run(using context: CommandContext, signature: Signature) throws {
         let group = DispatchGroup()
-        group.enter()
         var commandError: Error?
         let errorHandler = { error in
             commandError = error
         }
 
         Library.log.trace("Created Dispatch Group")
+
+        runBackupTask(group: group, signature: signature, errorHandler: errorHandler)
+
+        Library.log.trace("Waiting on Async Task")
+        group.wait()
+
+        if let commandError = commandError {
+            throw commandError
+        }
+
+        Library.log.trace("Backup Job Complete")
+    }
+
+    private func runBackupTask(group: DispatchGroup, signature: Signature, errorHandler: @escaping (Error) -> Void) {
+        group.enter()
 
         Task {
             do {
@@ -92,7 +106,6 @@ public final class BackupCommand: Command {
                 try await connection.runBackup(destination: backupUrl)
                 await connection.stop()
 
-
                 // Run optional trim
                 if signature.trim {
                     try WorldBackup.trimBackups(at: backupUrl,
@@ -109,14 +122,5 @@ public final class BackupCommand: Command {
 
             group.leave()
         }
-
-        Library.log.trace("Waiting on Async Task")
-        group.wait()
-
-        if let commandError = commandError {
-            throw commandError
-        }
-
-        Library.log.trace("Backup Job Complete")
     }
 }

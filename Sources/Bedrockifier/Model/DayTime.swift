@@ -139,7 +139,8 @@ extension DayTime {
 extension DayTime.DecodeError: LocalizedError {
     var errorDescription: String? {
         switch self {
-        case .unableToParse: return "Unable to parse, not in the expected \(DayTime.formatter.dateFormat ?? "<nil>") form"
+        case .unableToParse:
+            return "Unable to parse, not in the expected \(DayTime.formatter.dateFormat ?? "<nil>") form"
         }
     }
 }
@@ -147,7 +148,8 @@ extension DayTime.DecodeError: LocalizedError {
 extension DayTime.EncodeError: LocalizedError {
     var errorDescription: String? {
         switch self {
-        case .unableToGetDate: return "Unable to calculate next date for formatting"
+        case .unableToGetDate:
+            return "Unable to calculate next date for formatting"
         }
     }
 }

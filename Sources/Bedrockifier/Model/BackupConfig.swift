@@ -72,5 +72,3 @@ extension BackupConfig {
         return config
     }
 }
-
-

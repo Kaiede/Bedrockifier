@@ -121,7 +121,9 @@ final class BackupService {
     }
 
     private func needsListeners() -> Bool {
-        return config.schedule?.onPlayerLogin == true || config.schedule?.onPlayerLogout == true || config.schedule?.onLastLogout == true
+        return config.schedule?.onPlayerLogin == true
+        || config.schedule?.onPlayerLogout == true
+        || config.schedule?.onLastLogout == true
     }
 
     private func startIntervalBackups() throws {
