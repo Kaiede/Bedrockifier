@@ -29,7 +29,11 @@ public class ContainerConnection {
     var playerCount: Int
     public var lastBackup: Date
 
-    public init(terminal: PseudoTerminal, dockerPath: String, containerName: String, kind: Kind, worlds: [String]) throws {
+    public init(terminal: PseudoTerminal,
+                dockerPath: String,
+                containerName: String,
+                kind: Kind,
+                worlds: [String]) throws {
         self.dockerPath = dockerPath
         self.name = containerName
         self.kind = kind
@@ -45,7 +49,11 @@ public class ContainerConnection {
 
     public convenience init(dockerPath: String, containerName: String, kind: Kind, worlds: [String]) throws {
         let terminal = try PseudoTerminal()
-        try self.init(terminal: terminal, dockerPath: dockerPath, containerName: containerName, kind: kind, worlds: worlds)
+        try self.init(terminal: terminal,
+                      dockerPath: dockerPath,
+                      containerName: containerName,
+                      kind: kind,
+                      worlds: worlds)
     }
 
     public func start() throws {
@@ -238,12 +246,18 @@ extension ContainerConnection {
     public static func loadContainers(from config: BackupConfig, dockerPath: String) throws -> [ContainerConnection] {
         var containers: [ContainerConnection] = []
         for container in config.containers?.bedrock ?? [] {
-            let connection = try ContainerConnection(dockerPath: dockerPath, containerName: container.name, kind: .bedrock, worlds: container.worlds)
+            let connection = try ContainerConnection(dockerPath: dockerPath,
+                                                     containerName: container.name,
+                                                     kind: .bedrock,
+                                                     worlds: container.worlds)
             containers.append(connection)
         }
 
         for container in config.containers?.java ?? [] {
-            let connection = try ContainerConnection(dockerPath: dockerPath, containerName: container.name, kind: .java, worlds: container.worlds)
+            let connection = try ContainerConnection(dockerPath: dockerPath,
+                                                     containerName: container.name,
+                                                     kind: .java,
+                                                     worlds: container.worlds)
             containers.append(connection)
         }
 
@@ -253,7 +267,10 @@ extension ContainerConnection {
             let worldsFolder = URL(fileURLWithPath: container.value)
             let worlds = try World.getWorlds(at: worldsFolder)
             let worldPaths = worlds.map({ $0.location.path })
-            let connection = try ContainerConnection(dockerPath: dockerPath, containerName: containerName, kind: .bedrock, worlds: worldPaths)
+            let connection = try ContainerConnection(dockerPath: dockerPath,
+                                                     containerName: containerName,
+                                                     kind: .bedrock,
+                                                     worlds: worldPaths)
             containers.append(connection)
         }
 
@@ -274,11 +291,16 @@ extension ContainerConnection {
 extension ContainerConnection.ContainerError: LocalizedError {
     public var errorDescription: String? {
         switch self {
-        case .processNotRunning: return "Docker process didn't start successfully, or has died"
-        case .dockerConnectPermissionError: return "Docker was blocked from accessing docker.sock, make sure UID/GID are set correctly"
-        case .pauseFailed: return "Server container failed to pause autosave before timeout was reached"
-        case .saveNotCompleted: return "Server container failed to flush data to disk before timeout was reached"
-        case .resumeFailed: return "Server container failed to resume autosave before timeout was reached"
+        case .processNotRunning:
+            return "Docker process didn't start successfully, or has died"
+        case .dockerConnectPermissionError:
+            return "Docker was blocked from accessing docker.sock, make sure UID/GID are set correctly"
+        case .pauseFailed:
+            return "Server container failed to pause autosave before timeout was reached"
+        case .saveNotCompleted:
+            return "Server container failed to flush data to disk before timeout was reached"
+        case .resumeFailed:
+            return "Server container failed to resume autosave before timeout was reached"
         }
     }
 }

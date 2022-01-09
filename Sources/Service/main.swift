@@ -116,7 +116,9 @@ struct Server: ParsableCommand {
             return URL(fileURLWithPath: defaultPath)
         }
 
-        Server.logger.warning("\(environment.configFile) not found, using older default: \(EnvironmentConfig.fallbackConfigFile)")
+        Server.logger.warning(
+            "\(environment.configFile) not found, using older default: \(EnvironmentConfig.fallbackConfigFile)"
+        )
         return dataDirectory.appendingPathComponent(EnvironmentConfig.fallbackConfigFile)
     }
 

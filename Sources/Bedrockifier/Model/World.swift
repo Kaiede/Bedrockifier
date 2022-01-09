@@ -70,50 +70,62 @@ public struct World {
     private static func fetchName(type: WorldType, location: URL) throws -> String {
         switch type {
         case .folder:
-            // Bedrock level name
-            let levelNameFile = location.appendingPathComponent("levelname.txt")
-            if FileManager.default.fileExists(atPath: levelNameFile.path) {
-                do {
-                    return try String(contentsOf: location.appendingPathComponent("levelname.txt"))
-                } catch {
-                    throw WorldError.invalidLevelNameFile
-                }
-            }
-
-            // Java default also works for corrupted Bedrock situations.
-            return location.lastPathComponent
+            return try fetchFolderName(location: location)
         case .mcworld:
-            guard let archive = Archive(url: location, accessMode: .read) else {
-                throw WorldError.invalidLevelArchive
-            }
-
-            guard let levelnameEntry = archive["levelname.txt"] else {
-                throw WorldError.missingLevelName
-            }
-
-            var result: String?
-            _ = try archive.extract(levelnameEntry, consumer: { result = String(data: $0, encoding: .utf8) })
-
-            guard let finalResult = result else {
-                throw WorldError.missingLevelName
-            }
-
-            return finalResult
+            return try fetchBedrockBackupName(location: location)
         case .javaBackup:
-            guard let archive = Archive(url: location, accessMode: .read) else {
-                throw WorldError.invalidLevelArchive
-            }
-
-            guard let levelDat = archive.first(where: { $0.path.hasSuffix("level.dat") }) else {
-                throw WorldError.invalidLevelArchive
-            }
-
-            guard let worldName = URL(fileURLWithPath: levelDat.path).pathComponents.first else {
-                throw WorldError.missingLevelName
-            }
-
-            return worldName
+            return try fetchJavaBackupName(location: location)
         }
+    }
+
+    private static func fetchFolderName(location: URL) throws -> String {
+        // Bedrock level name
+        let levelNameFile = location.appendingPathComponent("levelname.txt")
+        if FileManager.default.fileExists(atPath: levelNameFile.path) {
+            do {
+                return try String(contentsOf: location.appendingPathComponent("levelname.txt"))
+            } catch {
+                throw WorldError.invalidLevelNameFile
+            }
+        }
+
+        // Java default also works for corrupted Bedrock situations.
+        return location.lastPathComponent
+    }
+
+    private static func fetchBedrockBackupName(location: URL) throws -> String {
+        guard let archive = Archive(url: location, accessMode: .read) else {
+            throw WorldError.invalidLevelArchive
+        }
+
+        guard let levelnameEntry = archive["levelname.txt"] else {
+            throw WorldError.missingLevelName
+        }
+
+        var result: String?
+        _ = try archive.extract(levelnameEntry, consumer: { result = String(data: $0, encoding: .utf8) })
+
+        guard let finalResult = result else {
+            throw WorldError.missingLevelName
+        }
+
+        return finalResult
+    }
+
+    private static func fetchJavaBackupName(location: URL) throws -> String {
+        guard let archive = Archive(url: location, accessMode: .read) else {
+            throw WorldError.invalidLevelArchive
+        }
+
+        guard let levelDat = archive.first(where: { $0.path.hasSuffix("level.dat") }) else {
+            throw WorldError.invalidLevelArchive
+        }
+
+        guard let worldName = URL(fileURLWithPath: levelDat.path).pathComponents.first else {
+            throw WorldError.missingLevelName
+        }
+
+        return worldName
     }
 }
 
@@ -163,7 +175,6 @@ extension World {
         }
 
         let dirEnum = FileManager.default.enumerator(atPath: self.location.path)
-
 
         let folderBase = NSString(string: self.location.lastPathComponent)
         while let archiveItem = dirEnum?.nextObject() as? String {
@@ -246,7 +257,7 @@ extension World {
 
             return "zip"
         case .mcworld:
-            fallthrough
+            return self.location.pathExtension
         case .javaBackup:
             return self.location.pathExtension
         }
