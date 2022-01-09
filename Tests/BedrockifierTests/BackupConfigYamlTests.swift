@@ -20,6 +20,26 @@ final class BackupConfigYamlTests: XCTestCase {
         }
     }
 
+    func testMinimalConfigWithSpaces() {
+        guard let yamlData = minimalYamlConfigWithSpacesString.data(using: .utf8) else {
+            XCTFail("couldn't get data for test YAML")
+            return
+        }
+
+        do {
+            let config = try BackupConfig.getBackupConfig(from: yamlData)
+            XCTAssertNil(config.backupPath)
+            XCTAssertNil(config.dockerPath)
+            XCTAssertEqual(config.servers?.count, 2)
+            XCTAssertNil(config.trim)
+            XCTAssertNil(config.loggingLevel)
+            XCTAssertEqual(config.servers?["bedrock_public"], "/bedrock public/worlds")
+            XCTAssertEqual(config.servers?["bedrock_private"], "/bedrock private/worlds")
+        } catch(let error) {
+            XCTFail("Unable to decode valid YAML: \(error)")
+        }
+    }
+
     func testDockerConfig() {
         guard let yamlData = dockerYamlConfigString.data(using: .utf8) else {
             XCTFail("couldn't get data for test YAML")
@@ -174,6 +194,12 @@ let minimalYamlConfigString = """
     servers:
        bedrock_private: /bedrock_private/worlds
        bedrock_public: /bedrock_public/worlds
+    """
+
+let minimalYamlConfigWithSpacesString = """
+    servers:
+       bedrock_private: "/bedrock private/worlds"
+       bedrock_public: /bedrock public/worlds
     """
 
 let dockerYamlConfigString = """
