@@ -34,9 +34,9 @@ public struct World {
         case javaBackup
 
         init(url: URL) throws {
-            let values = try url.resourceValues(forKeys: [.isDirectoryKey])
+            let isDirectory = try WorldType.isDirectory(url: url)
 
-            if values.isDirectory == true {
+            if isDirectory {
                 self = .folder
             } else if url.pathExtension == "mcworld" {
                 self = .mcworld
@@ -44,6 +44,15 @@ public struct World {
                 self = .javaBackup
             } else {
                 throw WorldError.invalidWorldType
+            }
+        }
+
+        private static func isDirectory(url: URL) throws -> Bool {
+            do {
+                let values = try url.resourceValues(forKeys: [.isDirectoryKey])
+                return values.isDirectory == true
+            } catch {
+                throw WorldError.invalidUrl(url: url)
             }
         }
     }
@@ -64,7 +73,11 @@ public struct World {
             // Bedrock level name
             let levelNameFile = location.appendingPathComponent("levelname.txt")
             if FileManager.default.fileExists(atPath: levelNameFile.path) {
-                return try String(contentsOf: location.appendingPathComponent("levelname.txt"))
+                do {
+                    return try String(contentsOf: location.appendingPathComponent("levelname.txt"))
+                } catch {
+                    throw WorldError.invalidLevelNameFile
+                }
             }
 
             // Java default also works for corrupted Bedrock situations.
@@ -309,8 +322,10 @@ extension World {
 extension World {
     enum WorldError: Error {
         case invalidWorldType
+        case invalidUrl(url: URL)
         case invalidLevelArchive
         case missingLevelName
+        case invalidLevelNameFile
     }
 }
 
@@ -318,8 +333,10 @@ extension World.WorldError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidWorldType: return "World isn't a zip file, mcworld file, or valid Minecraft world folder"
+        case .invalidUrl(let url): return "Unable to access world path at '\(url.path)'"
         case .invalidLevelArchive: return "World archive is not a valid zip or mcworld file"
         case .missingLevelName: return "Unable to determine name of the world"
+        case .invalidLevelNameFile: return "Unable to read contents of levelname.txt"
         }
     }
 }
