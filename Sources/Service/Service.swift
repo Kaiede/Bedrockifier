@@ -64,6 +64,12 @@ final class BackupService {
     }
 
     public func run() throws {
+        // Do startup validation
+        try validateServerFolders()
+        if !markHealthy() {
+            throw ServiceError.unableToMarkHealthy
+        }
+
         // Start the backups
         if let schedule = config.schedule {
             if schedule.interval != nil && schedule.daily != nil {
@@ -106,7 +112,7 @@ final class BackupService {
         }
     }
 
-    func markHealthy() -> Bool {
+    private func markHealthy() -> Bool {
         do {
             if !FileManager.default.fileExists(atPath: healthFileUrl.path) {
                 try Data().write(to: healthFileUrl)
@@ -118,6 +124,24 @@ final class BackupService {
         }
 
         return false
+    }
+
+    private func validateServerFolders() throws {
+        let bedrockWorlds = config.containers?.bedrock?.flatMap({ $0.worlds }) ?? []
+        let javaWorlds = config.containers?.java?.flatMap({ $0.worlds }) ?? []
+        let oldWorlds = config.servers?.values.map({ $0 }) ?? []
+
+        let allWorlds: [String] = bedrockWorlds + javaWorlds + oldWorlds
+        var failedWorlds: [String] = []
+        for world in allWorlds {
+            if !FileManager.default.fileExists(atPath: world) {
+                failedWorlds.append(world)
+            }
+        }
+
+        if failedWorlds.count > 0 {
+            throw ServiceError.worldFoldersNotFound(failedWorlds)
+        }
     }
 
     private func needsListeners() -> Bool {
@@ -330,14 +354,23 @@ extension BackupService {
     enum ServiceError: Error {
         case noBackupInterval
         case onlyOneIntervalTypeAllowed
+        case worldFoldersNotFound([String])
+        case unableToMarkHealthy
     }
 }
 
 extension BackupService.ServiceError: LocalizedError {
     var errorDescription: String? {
         switch self {
-        case .noBackupInterval: return "No valid backup interval was able to be read from configuration or environment"
-        case .onlyOneIntervalTypeAllowed: return "Only one of `interval` and `daily` are allowed"
+        case .noBackupInterval:
+            return "No valid backup interval was able to be read from configuration or environment"
+        case .onlyOneIntervalTypeAllowed:
+            return "Only one of `interval` and `daily` are allowed"
+        case .worldFoldersNotFound(let worlds):
+            let worldsString = worlds.joined(separator: ", ")
+            return "One or more worlds weren't found: \(worldsString)"
+        case .unableToMarkHealthy:
+            return "Unable to write to backups folder"
         }
     }
 }
