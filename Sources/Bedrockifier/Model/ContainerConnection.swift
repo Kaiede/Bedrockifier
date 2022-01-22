@@ -91,25 +91,35 @@ public class ContainerConnection {
 
         try await pauseAutosave()
 
-        do {
-            Library.log.info("Starting Backup of worlds for: \(name)")
+        var failedBackups: [String] = []
+        Library.log.info("Starting Backup of worlds for: \(name)")
 
-            for worldUrl in worlds {
+        for worldUrl in worlds {
+            do {
                 let world = try World(url: worldUrl)
 
                 Library.log.info("Backing Up: \(world.name)")
                 let backupWorld = try world.backup(to: destination)
                 Library.log.info("Backed up as: \(backupWorld.location.lastPathComponent)")
+            } catch let error {
+                Library.log.error("\(error.localizedDescription)")
+                Library.log.error("Backup of world at \(worldUrl.path) failed.")
+                failedBackups.append(worldUrl.path)
             }
+        }
 
-            lastBackup = Date()
-            Library.log.info("Backups for \(name) Complete...")
-        } catch let error {
-            Library.log.error("\(error.localizedDescription)")
-            Library.log.error("Backups for \(name) failed.")
+        lastBackup = Date()
+        if failedBackups.count > 0 {
+            Library.log.error("Backups for \(name) had failures...")
+        } else {
+            Library.log.info("Backups for \(name) finished successfully...")
         }
 
         try await resumeAutosave()
+
+        if failedBackups.count > 0 {
+            throw ContainerError.backupsFailed(failedBackups)
+        }
     }
 
     public func pauseAutosave() async throws {
@@ -285,6 +295,7 @@ extension ContainerConnection {
         case pauseFailed
         case saveNotCompleted
         case resumeFailed
+        case backupsFailed([String])
     }
 }
 
@@ -301,6 +312,9 @@ extension ContainerConnection.ContainerError: LocalizedError {
             return "Server container failed to flush data to disk before timeout was reached"
         case .resumeFailed:
             return "Server container failed to resume autosave before timeout was reached"
+        case .backupsFailed(let worlds):
+            let worldsString = worlds.joined(separator: ", ")
+            return "Server container had worlds that failed to backup: \(worldsString)"
         }
     }
 }
