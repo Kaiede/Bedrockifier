@@ -83,10 +83,6 @@ struct Server: ParsableCommand {
         Server.logger.info("Configuration Loaded, Entering Event Loop...")
         do {
             let service = BackupService(config: config, backupUrl: backupUrl, dockerPath: dockerPath)
-            if !service.markHealthy() {
-                Server.logger.error("Unable to write to backup folder, check that permissions are configured properly")
-                return
-            }
 
             try service.run()
         } catch let error {
