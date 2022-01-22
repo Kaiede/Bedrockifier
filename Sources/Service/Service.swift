@@ -257,9 +257,10 @@ final class BackupService {
 
     private func runFullBackup(isDaily: Bool) async {
         BackupService.logger.info("Starting Full Backup")
-        do {
-            let needsListeners = needsListeners()
-            for container in containers {
+        let needsListeners = needsListeners()
+        var failedContainers = 0
+        for container in containers {
+            do {
                 guard shouldRunBackup(container: container) || isDaily else {
                     continue
                 }
@@ -271,8 +272,14 @@ final class BackupService {
                 if !needsListeners {
                     await container.stop()
                 }
+            } catch let error {
+                failedContainers += 1
+                BackupService.logger.error("\(error.localizedDescription)")
+                BackupService.logger.error("Container \(container.name) failed to backup properly")
             }
+        }
 
+        do {
             try runPostBackupTasks()
 
             BackupService.logger.info("Full Backup Completed")
@@ -282,7 +289,12 @@ final class BackupService {
                     try container.reset()
                 }
             }
-            _ = markHealthy()
+
+            if failedContainers > 0 {
+                markUnhealthy()
+            } else {
+                _ = markHealthy()
+            }
         } catch let error {
             BackupService.logger.error("\(error.localizedDescription)")
             BackupService.logger.error("Full Backup Failed")
