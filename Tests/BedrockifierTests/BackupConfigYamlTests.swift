@@ -179,6 +179,30 @@ final class BackupConfigYamlTests: XCTestCase {
         }
     }
 
+    func spacesInPathYamlConfigString() {
+        guard let data = modernContainersYamlConfigString.data(using: .utf8) else {
+            XCTFail("couldn't get test data")
+            return
+        }
+
+        do {
+            let config = try BackupConfig.getBackupConfig(from: data)
+
+            XCTAssertNil(config.servers)
+            guard let bedrockContainers = config.containers?.bedrock else {
+                XCTFail("Bedrock containers should decode")
+                return
+            }
+
+            XCTAssertEqual(bedrockContainers.count, 1)
+            XCTAssertEqual(bedrockContainers[0].name, "minecraft_bedrock")
+            XCTAssertEqual(bedrockContainers[0].worlds, ["/bedrock/worlds/First World", "/bedrock/worlds/Second World"])
+
+        } catch(let error) {
+            XCTFail("Unable to decode valid config: \(error)")
+        }
+    }
+
     static var allTests = [
         ("testMinimalConfig", testMinimalConfig),
         ("testDockerConfig", testDockerConfig),
@@ -285,6 +309,22 @@ let modernContainersYamlConfigString = """
             - name: minecraft_java
               worlds:
                 - /java/TheWorld
+    trim:
+        trimDays: 2
+        keepDays: 14
+        minKeep: 2
+    """
+
+let spacesInPathYamlConfigString = """
+    dockerPath: /usr/bin/docker
+    backupPath: /backups
+    loggingLevel: trace
+    containers:
+        bedrock:
+            - name: minecraft_bedrock
+              worlds:
+                - /bedrock/worlds/First World
+                - "/bedrock/worlds/Second World"
     trim:
         trimDays: 2
         keepDays: 14
