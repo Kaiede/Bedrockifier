@@ -101,11 +101,7 @@ private struct LoggingOutputStream: TextOutputStream {
     public static let stdErr = LoggingOutputStream(stderr)
 
     public static func appropriateStream(for level: Logger.Level) -> LoggingOutputStream {
-        if level >= .error {
-            return LoggingOutputStream.stdErr
-        } else {
-            return LoggingOutputStream.stdOut
-        }
+        return LoggingOutputStream.stdErr
     }
 
     private let outStr: UnsafeMutablePointer<FILE>
