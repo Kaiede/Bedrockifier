@@ -66,7 +66,7 @@ final class BackupService {
     public func run() throws {
         // Do startup validation
         try validateServerFolders()
-        if !markHealthy() {
+        if !markHealthy(forceWrite: true) {
             throw ServiceError.unableToMarkHealthy
         }
 
@@ -112,11 +112,16 @@ final class BackupService {
         }
     }
 
-    private func markHealthy() -> Bool {
+    private func markHealthy(forceWrite: Bool = false) -> Bool {
         do {
+            if FileManager.default.fileExists(atPath: healthFileUrl.path) && forceWrite {
+                try FileManager.default.removeItem(at: healthFileUrl)
+            }
+
             if !FileManager.default.fileExists(atPath: healthFileUrl.path) {
                 try Data().write(to: healthFileUrl)
             }
+
             return true
         } catch let error {
             BackupService.logger.error("\(error.localizedDescription)")
