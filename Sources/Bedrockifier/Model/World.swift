@@ -156,6 +156,7 @@ extension World {
         try FileManager.default.createDirectory(atPath: targetFolder.path,
                                                 withIntermediateDirectories: true,
                                                 attributes: nil)
+        
         guard let archive = Archive(url: url, accessMode: .create) else {
             throw WorldError.invalidLevelArchive
         }
@@ -164,7 +165,11 @@ extension World {
 
         while let archiveItem = dirEnum?.nextObject() as? String {
             let fullItemUrl = URL(fileURLWithPath: archiveItem, relativeTo: self.location)
-            try archive.addEntry(with: archiveItem, fileURL: fullItemUrl)
+            do {
+                try archive.addEntry(with: archiveItem, fileURL: fullItemUrl)
+            } catch {
+                throw WorldError.archiveItemFailed(url: fullItemUrl)
+            }
         }
 
         return try World(url: url)
@@ -241,7 +246,9 @@ extension World {
         let fileName = "\(self.name).\(timestamp).\(backupExtension)"
         let targetFile = folder.appendingPathComponent(fileName)
 
-        try FileManager.default.createDirectory(atPath: folder.path, withIntermediateDirectories: true, attributes: nil)
+        try FileManager.default.createDirectory(atPath: folder.path,
+                                                withIntermediateDirectories: true,
+                                                attributes: nil)
 
         switch self.type {
         case .folder:
@@ -344,6 +351,8 @@ extension World {
         case invalidLevelArchive
         case missingLevelName
         case invalidLevelNameFile
+        case createDestinationFailed
+        case archiveItemFailed(url: URL)
     }
 }
 
@@ -355,6 +364,8 @@ extension World.WorldError: LocalizedError {
         case .invalidLevelArchive: return "World archive is not a valid zip or mcworld file"
         case .missingLevelName: return "Unable to determine name of the world"
         case .invalidLevelNameFile: return "Unable to read contents of levelname.txt"
+        case .createDestinationFailed: return "Unable to create destination folder"
+        case .archiveItemFailed(let url): return "Unable to add '\(url.path)' to archive"
         }
     }
 }
