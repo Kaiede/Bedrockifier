@@ -131,7 +131,8 @@ public struct World {
 
 extension World {
     func copy(to url: URL) throws -> World {
-        let target = url.appendingPathComponent(self.location.lastPathComponent)
+        let isFolder = self.type == .folder
+        let target = url.appendingPathComponent(self.location.lastPathComponent, isDirectory: isFolder)
         try FileManager.default.copyItem(at: self.location, to: target)
 
         return try World(url: target)
