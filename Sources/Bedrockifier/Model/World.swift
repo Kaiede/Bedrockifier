@@ -131,9 +131,10 @@ public struct World {
 
 extension World {
     func copy(to url: URL) throws -> World {
-        try FileManager.default.copyItem(at: self.location, to: url)
+        let target = url.appendingPathComponent(self.location.lastPathComponent)
+        try FileManager.default.copyItem(at: self.location, to: target)
 
-        return try World(url: url)
+        return try World(url: target)
     }
 
     func pack(to url: URL, progress: Progress? = nil) throws -> World {
