@@ -114,7 +114,7 @@ public class ContainerConnection {
                 Library.log.info("Backing Up: \(world.name)")
                 if let tempDestination = temporaryFolder {
                     let copiedWorld = try world.copy(to: tempDestination)
-                    Library.log.info("Temporary copy at: \(copiedWorld.location)")
+                    Library.log.info("Temporary copy at: \(copiedWorld.location.path)")
                     copies.append(copiedWorld)
                 } else {
                     let backupWorld = try world.backup(to: destination)
@@ -148,13 +148,11 @@ public class ContainerConnection {
             Library.log.info("Backups for \(name) finished successfully...")
         }
 
-        /*
         do {
             try cleanUpTemporaryDirectory(destination: destination)
         } catch let error {
             Library.log.error("\(error.localizedDescription)")
         }
-        */
 
         if failedBackups.count > 0 {
             throw ContainerError.backupsFailed(failedBackups)
