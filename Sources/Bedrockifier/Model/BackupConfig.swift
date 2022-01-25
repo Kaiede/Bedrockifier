@@ -52,6 +52,7 @@ public struct BackupConfig: Codable {
 
     public var dockerPath: String?
     public var backupPath: String?
+    public var deferCompression: Bool?
     public var servers: ServerConfig?
     public var containers: ServerContainersConfig?
     public var trim: TrimConfig?

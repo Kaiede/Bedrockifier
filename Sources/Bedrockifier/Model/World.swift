@@ -130,6 +130,12 @@ public struct World {
 }
 
 extension World {
+    func copy(to url: URL) throws -> World {
+        try FileManager.default.copyItem(at: self.location, to: url)
+
+        return try World(url: url)
+    }
+
     func pack(to url: URL, progress: Progress? = nil) throws -> World {
         guard self.type == .folder else {
             throw WorldError.invalidWorldType

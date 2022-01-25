@@ -11,6 +11,8 @@ import PTYKit
 private let usePty = false
 
 public class ContainerConnection {
+    static let temporarySubfolder = ".temp"
+
     struct Strings {
         static let dockerConnectError = "Got permission denied while trying to connect to the Docker daemon"
     }
@@ -21,6 +23,7 @@ public class ContainerConnection {
     }
 
     private let dockerPath: String
+    private let deferCompression: Bool
     public let name: String
     let kind: Kind
     public let terminal: PseudoTerminal
@@ -33,7 +36,8 @@ public class ContainerConnection {
                 dockerPath: String,
                 containerName: String,
                 kind: Kind,
-                worlds: [String]) throws {
+                worlds: [String],
+                deferCompression: Bool = false) throws {
         self.dockerPath = dockerPath
         self.name = containerName
         self.kind = kind
@@ -41,19 +45,25 @@ public class ContainerConnection {
         self.worlds = worlds.map({ URL(fileURLWithPath: $0) })
         self.playerCount = 0
         self.lastBackup = .distantPast
+        self.deferCompression = deferCompression
 
         let processUrl = ContainerConnection.getPtyProcess(dockerPath: dockerPath)
         let processArgs = ContainerConnection.getPtyArguments(dockerPath: dockerPath, containerName: containerName)
         self.dockerProcess = try Process(processUrl, arguments: processArgs, terminal: self.terminal)
     }
 
-    public convenience init(dockerPath: String, containerName: String, kind: Kind, worlds: [String]) throws {
+    public convenience init(dockerPath: String,
+                            containerName: String,
+                            kind: Kind,
+                            worlds: [String],
+                            deferCompression: Bool = false) throws {
         let terminal = try PseudoTerminal()
         try self.init(terminal: terminal,
                       dockerPath: dockerPath,
                       containerName: containerName,
                       kind: kind,
-                      worlds: worlds)
+                      worlds: worlds,
+                      deferCompression: deferCompression)
     }
 
     public func start() throws {
@@ -89,9 +99,12 @@ public class ContainerConnection {
             throw ContainerError.processNotRunning
         }
 
+        let temporaryFolder = try createTemporaryDirectory(destination: destination)
+
         try await pauseAutosave()
 
         var failedBackups: [String] = []
+        var copies: [World] = []
         Library.log.info("Starting Backup of worlds for: \(name)")
 
         for worldUrl in worlds {
@@ -99,12 +112,32 @@ public class ContainerConnection {
                 let world = try World(url: worldUrl)
 
                 Library.log.info("Backing Up: \(world.name)")
-                let backupWorld = try world.backup(to: destination)
-                Library.log.info("Backed up as: \(backupWorld.location.lastPathComponent)")
+                if let tempDestination = temporaryFolder {
+                    let copiedWorld = try world.copy(to: tempDestination)
+                    Library.log.info("Temporary copy at: \(copiedWorld.location.lastPathComponent)")
+                    copies.append(copiedWorld)
+                } else {
+                    let backupWorld = try world.backup(to: destination)
+                    Library.log.info("Backed up as: \(backupWorld.location.lastPathComponent)")
+                }
             } catch let error {
                 Library.log.error("\(error.localizedDescription)")
                 Library.log.error("Backup of world at \(worldUrl.path) failed.")
                 failedBackups.append(worldUrl.path)
+            }
+        }
+
+        try await resumeAutosave()
+
+        // Handle deferred compression
+        for copiedWorld in copies {
+            do {
+                let backupWorld = try copiedWorld.backup(to: destination)
+                Library.log.info("Backup completed at: \(backupWorld.location.lastPathComponent)")
+            } catch let error {
+                Library.log.error("\(error.localizedDescription)")
+                Library.log.error("Compression of backup at \(copiedWorld.location.path) failed.")
+                failedBackups.append(copiedWorld.location.path)
             }
         }
 
@@ -115,10 +148,44 @@ public class ContainerConnection {
             Library.log.info("Backups for \(name) finished successfully...")
         }
 
-        try await resumeAutosave()
+        do {
+            try cleanUpTemporaryDirectory(destination: destination)
+        } catch let error {
+            Library.log.error("\(error.localizedDescription)")
+        }
 
         if failedBackups.count > 0 {
             throw ContainerError.backupsFailed(failedBackups)
+        }
+    }
+
+    private func getTemporaryDirectory(destination: URL) -> URL {
+        return destination.appendingPathComponent(ContainerConnection.temporarySubfolder, isDirectory: true)
+    }
+
+    private func createTemporaryDirectory(destination: URL) throws -> URL? {
+        guard deferCompression else { return nil }
+
+        let folder = getTemporaryDirectory(destination: destination)
+
+        do {
+            if !FileManager.default.fileExists(atPath: folder.path) {
+                try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true, attributes: nil)
+            }
+
+            return folder
+        } catch {
+            throw ContainerError.tempFolderCreationFailed
+        }
+    }
+
+    private func cleanUpTemporaryDirectory(destination: URL) throws {
+        let folder = getTemporaryDirectory(destination: destination)
+
+        do {
+         try FileManager.default.removeItem(at: folder)
+        } catch {
+            throw ContainerError.tempFolderCleanupFailed
         }
     }
 
@@ -254,12 +321,14 @@ public class ContainerConnection {
 
 extension ContainerConnection {
     public static func loadContainers(from config: BackupConfig, dockerPath: String) throws -> [ContainerConnection] {
+        let deferCompression = config.deferCompression ?? false
         var containers: [ContainerConnection] = []
         for container in config.containers?.bedrock ?? [] {
             let connection = try ContainerConnection(dockerPath: dockerPath,
                                                      containerName: container.name,
                                                      kind: .bedrock,
-                                                     worlds: container.worlds)
+                                                     worlds: container.worlds,
+                                                     deferCompression: deferCompression)
             containers.append(connection)
         }
 
@@ -267,7 +336,8 @@ extension ContainerConnection {
             let connection = try ContainerConnection(dockerPath: dockerPath,
                                                      containerName: container.name,
                                                      kind: .java,
-                                                     worlds: container.worlds)
+                                                     worlds: container.worlds,
+                                                     deferCompression: deferCompression)
             containers.append(connection)
         }
 
@@ -280,7 +350,8 @@ extension ContainerConnection {
             let connection = try ContainerConnection(dockerPath: dockerPath,
                                                      containerName: containerName,
                                                      kind: .bedrock,
-                                                     worlds: worldPaths)
+                                                     worlds: worldPaths,
+                                                     deferCompression: deferCompression)
             containers.append(connection)
         }
 
@@ -296,6 +367,8 @@ extension ContainerConnection {
         case saveNotCompleted
         case resumeFailed
         case backupsFailed([String])
+        case tempFolderCreationFailed
+        case tempFolderCleanupFailed
     }
 }
 
@@ -315,6 +388,10 @@ extension ContainerConnection.ContainerError: LocalizedError {
         case .backupsFailed(let worlds):
             let worldsString = worlds.joined(separator: ", ")
             return "Server container had worlds that failed to backup: \(worldsString)"
+        case .tempFolderCreationFailed:
+            return "Unable to create temporary folder for deferred compression"
+        case .tempFolderCleanupFailed:
+            return "Unable to cleanup temporary folder after compressing backups"
         }
     }
 }
