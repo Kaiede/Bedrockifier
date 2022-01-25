@@ -28,6 +28,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.0.0"),
         .package(url: "https://github.com/jpsim/Yams.git", from: "4.0.0"),
+        .package(url: "https://github.com/swift-server/swift-backtrace.git", from: "1.3.1"),
         .package(url: "https://github.com/Kaiede/PTYKit.git", .branch("master")),
         //.package(path: "../PTYKit")
     ],
@@ -45,7 +46,8 @@ let package = Package(
             name: "Service",
             dependencies: [
                 "Bedrockifier",
-                .product(name: "ArgumentParser", package: "swift-argument-parser")
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "Backtrace", package: "swift-backtrace")
             ]
         ),
         .target(

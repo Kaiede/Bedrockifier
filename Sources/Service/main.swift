@@ -24,6 +24,7 @@
  */
 
 import ArgumentParser
+import Backtrace
 import Foundation
 import Logging
 import PTYKit
@@ -142,4 +143,5 @@ struct Server: ParsableCommand {
 // Initialize Service
 ConsoleLogger.showDetails = true
 LoggingSystem.bootstrap(ConsoleLogger.init)
+Backtrace.install()
 Server.main()
