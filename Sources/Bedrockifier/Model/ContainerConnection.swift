@@ -148,11 +148,13 @@ public class ContainerConnection {
             Library.log.info("Backups for \(name) finished successfully...")
         }
 
+        /*
         do {
             try cleanUpTemporaryDirectory(destination: destination)
         } catch let error {
             Library.log.error("\(error.localizedDescription)")
         }
+        */
 
         if failedBackups.count > 0 {
             throw ContainerError.backupsFailed(failedBackups)
@@ -183,7 +185,9 @@ public class ContainerConnection {
         let folder = getTemporaryDirectory(destination: destination)
 
         do {
-         try FileManager.default.removeItem(at: folder)
+            if FileManager.default.fileExists(atPath: folder.path) {
+                try FileManager.default.removeItem(at: folder)
+            }
         } catch {
             throw ContainerError.tempFolderCleanupFailed
         }
