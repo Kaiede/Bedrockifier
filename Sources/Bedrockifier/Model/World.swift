@@ -165,6 +165,7 @@ extension World {
 
         while let archiveItem = dirEnum?.nextObject() as? String {
             let fullItemUrl = URL(fileURLWithPath: archiveItem, relativeTo: self.location)
+            Library.log.trace("\(archiveItem) + \(self.location.path) -> \(fullItemUrl.path)")
             do {
                 try archive.addEntry(with: archiveItem, fileURL: fullItemUrl)
             } catch {
