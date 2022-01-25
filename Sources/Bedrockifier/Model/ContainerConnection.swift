@@ -114,7 +114,7 @@ public class ContainerConnection {
                 Library.log.info("Backing Up: \(world.name)")
                 if let tempDestination = temporaryFolder {
                     let copiedWorld = try world.copy(to: tempDestination)
-                    Library.log.info("Temporary copy at: \(copiedWorld.location.lastPathComponent)")
+                    Library.log.info("Temporary copy at: \(copiedWorld.location)")
                     copies.append(copiedWorld)
                 } else {
                     let backupWorld = try world.backup(to: destination)
