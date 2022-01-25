@@ -2,15 +2,8 @@
 FROM %%BASE_IMAGE%% as builder
 WORKDIR /project
 
-ARG COMMIT
-
-RUN apt-get install -y \
-  git
-
 ADD . /project
-#RUN git clone https://github.com/Kaiede/BedrockifierCLI.git /project
-#RUN git checkout ${COMMIT}
-RUN swift build -j 1 -c release
+RUN swift build -j 1 -c release -Xswiftc -g
 
 ###### RUNTIME CONTAINER
 FROM %%BASE_IMAGE%%-slim
