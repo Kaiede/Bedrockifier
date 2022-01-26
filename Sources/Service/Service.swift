@@ -42,6 +42,7 @@ final class BackupService {
     }
 
     private static let logger = Logger(label: "bedrockifier")
+    private static let backupPriority = TaskPriority.background
 
     let config: BackupConfig
     let environment: EnvironmentConfig
@@ -169,7 +170,7 @@ final class BackupService {
             startTime += startupDelay
         }
         timer.schedule(startingAt: startTime, repeating: .seconds(Int(interval)))
-        timer.setHandler {
+        timer.setHandler(priority: BackupService.backupPriority) {
             await self.runFullBackup(isDaily: false)
         }
 
@@ -211,7 +212,7 @@ final class BackupService {
         BackupService.logger.info("Starting Listeners for Containers")
         for container in containers {
             container.terminal.listen(for: Strings.listenerStrings) { content in
-                Task {
+                Task(priority: BackupService.backupPriority) {
                     await self.onListenerEvent(container: container, content: content)
                 }
             }

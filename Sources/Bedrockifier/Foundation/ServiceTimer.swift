@@ -57,9 +57,9 @@ public class ServiceTimer<IDType> {
         self.handler = handler
     }
 
-    public func setHandler(handler: @escaping ServiceTimerAsyncHandler) {
+    public func setHandler(priority: TaskPriority? = nil, handler: @escaping ServiceTimerAsyncHandler) {
         self.handler = {
-            Task {
+            Task(priority: priority) {
                 await handler()
             }
         }
