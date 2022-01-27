@@ -37,10 +37,6 @@ jobs:
         username: ${{ secrets.DOCKER_USER }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Get current date
-      id: date
-      run: echo "::set-output name=date::$(date +%s)"
-
     - name: Render Dockerfiles
       run: bash Docker/render.sh all
 
@@ -54,8 +50,7 @@ jobs:
         push: ${{ github.event_name != 'pull_request' }}
         tags: kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}-arm64
         build-args: |
-          CACHEBUST=${{ steps.date.outputs.date }}
-          COMMIT=main
+          QEMU_CPU=max
           ARCH=arm64
 
   amd64:
@@ -77,10 +72,6 @@ jobs:
         username: ${{ secrets.DOCKER_USER }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Get current date
-      id: date
-      run: echo "::set-output name=date::$(date +%s)"
-
     - name: Render Dockerfiles
       run: bash Docker/render.sh all
 
@@ -94,8 +85,6 @@ jobs:
         push: ${{ github.event_name != 'pull_request' }}
         tags: kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}-amd64
         build-args: |
-          CACHEBUST=${{ steps.date.outputs.date }}
-          COMMIT=main
           ARCH=amd64
 
   merge-tags:
