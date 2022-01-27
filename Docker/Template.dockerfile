@@ -3,7 +3,7 @@ FROM %%BASE_IMAGE%% as builder
 WORKDIR /project
 
 ADD . /project
-RUN swift build -j 1 -c release -Xswiftc -g
+RUN swift build -c release -Xswiftc -g
 
 ###### RUNTIME CONTAINER
 FROM %%BASE_IMAGE%%-slim
