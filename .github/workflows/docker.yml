@@ -14,12 +14,17 @@ env:
 
 jobs:
   arm64:
-    runs-on: [self-hosted, linux, ARM64]
+    runs-on: ubuntu-latest
     if: github.event_name != 'pull_request' && github.repository == 'Kaiede/Bedrockifier'
 
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@master
+      with:
+        platforms: arm64
 
     - name: Set up Docker Buildx
       id: buildx
