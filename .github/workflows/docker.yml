@@ -26,7 +26,7 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Set up Variables
-      run: bash Docker/configure.sh ${{ matrix.arch }}
+      run: . Docker/configure.sh ${{ matrix.arch }}
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@master
