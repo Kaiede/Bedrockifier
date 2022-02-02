@@ -16,7 +16,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     name: Docker - linux/${{ matrix.arch }}
-    if: github.repository == 'Kaiede/Bedrockifier' && ( matrix.arch == 'amd64' || github.event_name != 'pull_request' )
+    if: github.repository == 'Kaiede/Bedrockifier' && github.event_name != 'pull_request'
     strategy:
       matrix:
         arch: [amd64, arm64]
