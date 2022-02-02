@@ -16,7 +16,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     name: Docker - linux/${{ matrix.arch }}
-    if: github.repository == 'Kaiede/Bedrockifier' && github.event_name != 'pull_request'
+    if: github.repository == 'Kaiede/Bedrockifier'
     strategy:
       matrix:
         arch: [amd64, arm64]
@@ -63,7 +63,7 @@ jobs:
   merge-tags:
     needs: ['build']
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request' && github.repository == 'Kaiede/Bedrockifier'
+    if: github.repository == 'Kaiede/Bedrockifier' && github.event_name != 'pull_request'
 
     steps:
     - name: Checkout
