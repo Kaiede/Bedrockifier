@@ -18,14 +18,12 @@ if [ "$arch" == "aarch64" ]; then
     arch=arm64
 fi
 
-. Docker/render.sh $arch
+. Docker/configure.sh $arch
 
 dockerTag=$dockerRepo:${tag}-${arch}
-dockerfile=$arch.dockerfile
 
-docker build . -f Docker/$dockerfile \
+docker build . -f Docker/Dockerfile \
     -t $dockerTag \
-    --build-arg QEMU_CPU=max \
-    --build-arg CACHEBUST=$(date +%s) \
-    --build-arg COMMIT=${COMMIT} \
-    --build-arg ARCH=${arch}
+    --build-arg arch=${arch} \
+    --build-arg swift_base=${swift_base} \
+    --build-arg swift_version=${swift_version}
