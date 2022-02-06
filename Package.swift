@@ -46,6 +46,7 @@ let package = Package(
             name: "Service",
             dependencies: [
                 "Bedrockifier",
+                "B2Kit",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "Backtrace", package: "swift-backtrace")
             ]

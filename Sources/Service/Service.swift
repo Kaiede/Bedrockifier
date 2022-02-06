@@ -27,6 +27,7 @@ import Foundation
 import Logging
 import PTYKit
 
+import B2Kit
 import Bedrockifier
 
 final class BackupService {
@@ -54,6 +55,8 @@ final class BackupService {
     var intervalTimer: ServiceTimer<String>?
     var containers: [ContainerConnection]
 
+    var b2BucketId: String?
+
     init(config: BackupConfig, backupUrl: URL, dockerPath: String) {
         self.config = config
         self.environment = EnvironmentConfig()
@@ -69,6 +72,11 @@ final class BackupService {
         try validateServerFolders()
         if !markHealthy(forceWrite: true) {
             throw ServiceError.unableToMarkHealthy
+        }
+
+        // Configure upload service
+        try Task.sync {
+            try await self.authorizeUploadServices()
         }
 
         // Start the backups
@@ -100,6 +108,50 @@ final class BackupService {
         }
 
         dispatchMain()
+    }
+
+    private func authorizeUploadServices() async throws {
+        if let backblazeConfig = config.upload?.b2 {
+            Task {
+                let applicationId = backblazeConfig.applicationId
+                let applicationKey = backblazeConfig.applicationKey
+                let result = try await B2Session.shared.authorize(keyId: applicationId, applicationKey: applicationKey)
+
+
+                if let bucketName = result.allowed.bucketName, bucketName != backblazeConfig.bucketName {
+                    BackupService.logger.error("B2: Access to \(bucketName) is prohibited.")
+                    throw ServiceError.invalidB2Config
+                }
+
+                let canListFiles = result.allowed.capabilities.contains("listFiles")
+                if !canListFiles {
+                    BackupService.logger.error("B2: List files capability is required")
+                    throw ServiceError.invalidB2Config
+                }
+
+                let canWriteFiles = result.allowed.capabilities.contains("writeFiles")
+                if !canWriteFiles {
+                    BackupService.logger.error("B2: Write files capability is required")
+                    throw ServiceError.invalidB2Config
+                }
+
+                let canDeleteFiles = result.allowed.capabilities.contains("deleteFiles")
+                if !canDeleteFiles {
+                    BackupService.logger.error("B2: Delete files capability is required")
+                    throw ServiceError.invalidB2Config
+                }
+
+                let bucketName = backblazeConfig.bucketName
+                let buckets = try await B2Session.shared.listBuckets(accountId: result.accountId, bucketName: bucketName)
+
+                guard let bucket = buckets.buckets.first(where: { $0.bucketName == bucketName }) else {
+                    BackupService.logger.error("B2: Bucket could not be found: \(bucketName)")
+                    throw ServiceError.invalidB2Config
+                }
+
+                b2BucketId = bucket.bucketId
+            }
+        }
     }
 
     private func connectContainers() throws {
@@ -250,8 +302,8 @@ final class BackupService {
 
         BackupService.logger.info("Running Single Backup for \(container.name)")
         do {
-            try await container.runBackup(destination: backupUrl)
-            try runPostBackupTasks()
+            let backups = try await container.runBackup(destination: backupUrl)
+            try await runPostBackupTasks(backupsMade: backups)
             BackupService.logger.info("Single Backup Completed")
             _ = markHealthy()
         } catch let error {
@@ -265,6 +317,7 @@ final class BackupService {
         BackupService.logger.info("Starting Full Backup")
         let needsListeners = needsListeners()
         var failedContainers = 0
+        var backups: [World] = []
         for container in containers {
             do {
                 guard shouldRunBackup(container: container) || isDaily else {
@@ -274,7 +327,8 @@ final class BackupService {
                 if !needsListeners {
                     try container.start()
                 }
-                try await container.runBackup(destination: backupUrl)
+                let containerBackups = try await container.runBackup(destination: backupUrl)
+                backups.append(contentsOf: containerBackups)
                 if !needsListeners {
                     await container.stop()
                 }
@@ -286,7 +340,7 @@ final class BackupService {
         }
 
         do {
-            try runPostBackupTasks()
+            try await runPostBackupTasks(backupsMade: backups)
 
             BackupService.logger.info("Full Backup Completed")
 
@@ -308,10 +362,17 @@ final class BackupService {
         }
     }
 
-    private func runPostBackupTasks() throws {
+    private func runPostBackupTasks(backupsMade backups: [World]) async throws {
         if let ownershipConfig = config.ownership {
             BackupService.logger.info("Performing Ownership Fixup")
             try WorldBackup.fixOwnership(at: backupUrl, config: ownershipConfig)
+        }
+
+        if let b2UploadJob = config.upload?.b2 {
+            BackupService.logger.info("Uploading New Backups to: \(b2UploadJob.bucketName)")
+            for backup in backups {
+                try await uploadBackup(backup, bucketName: b2UploadJob.bucketName, folderPath: URL(fileURLWithPath: b2UploadJob.folderPath))
+            }
         }
 
         if let trimJob = config.trim {
@@ -322,6 +383,20 @@ final class BackupService {
                                         keepDays: trimJob.keepDays,
                                         minKeep: trimJob.minKeep)
         }
+    }
+
+    private func uploadBackup(_ backup: World, bucketName: String, folderPath: URL) async throws {
+        let fileUrl = backup.location
+        let backupName = backup.location.lastPathComponent
+        let bucketFilePath = folderPath.appendingPathComponent(backupName)
+        BackupService.logger.info("Uploading \(backupName)")
+
+        guard let bucketId = b2BucketId else {
+            BackupService.logger.error("Bucket ID was invalid for upload")
+            throw ServiceError.invalidB2Config
+        }
+
+        try await B2Session.shared.uploadFile(fileUrl, bucketId: bucketId, uploadPath: bucketFilePath.path)
     }
 
     private func shouldRunBackup(container: ContainerConnection) -> Bool {
@@ -374,6 +449,7 @@ extension BackupService {
         case onlyOneIntervalTypeAllowed
         case worldFoldersNotFound([String])
         case unableToMarkHealthy
+        case invalidB2Config
     }
 }
 
@@ -389,6 +465,8 @@ extension BackupService.ServiceError: LocalizedError {
             return "One or more worlds weren't found: \(worldsString)"
         case .unableToMarkHealthy:
             return "Unable to write to backups folder"
+        case .invalidB2Config:
+            return "B2 backup configuration is invalid"
         }
     }
 }

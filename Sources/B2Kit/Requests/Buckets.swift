@@ -26,43 +26,39 @@
 import Foundation
 
 public extension B2Request {
-    static func authorize(keyId: String, applicationKey: String) -> B2Request<B2Authorization> {
-        var request = B2Request<B2Authorization>(
-            function: "b2_authorize_account",
+    static func listBuckets(accountId: String, bucketName: String? = nil) -> B2Request<B2BucketList> {
+        var payload = [
+            "accountId": accountId
+        ]
+
+        if let bucketName = bucketName {
+            payload["bucketName"] = bucketName
+        }
+
+        return B2Request<B2BucketList>(
+            function: "b2_list_buckets",
             method: .get,
-            authorization: "Basic \(keyId):\(applicationKey)"
+            payload: payload
         )
-        request.onSuccess({ (session, result) in
-            session.currentAuthorization = result
-        })
-        return request
     }
 }
 
 @available(iOS 15, tvOS 15, watchOS 8, macOS 12, *)
 public extension B2Session {
-    func authorize(keyId: String, applicationKey: String) async throws -> B2Authorization {
-        return try await request(.authorize(keyId: keyId, applicationKey: applicationKey))
+    func listBuckets(accountId: String, bucketName: String? = nil) async throws -> B2BucketList {
+        return try await request(.listBuckets(accountId: accountId, bucketName: bucketName))
     }
 }
 
-public struct B2Authorization: Codable {
+public struct B2BucketList: Codable {
+    public var buckets: [B2Bucket]
+}
+
+public struct B2Bucket: Codable {
     public var accountId: String
-    public var authorizationToken: String
+    public var bucketId: String
+    public var bucketName: String
+    public var bucketType: String
 
-    public var apiUrl: URL
-    public var downloadUrl: URL
-    public var s3ApiUrl: URL
-
-    public var recommendedPartSize: Int
-    public var absoluteMinimumPartSize: Int
-
-    public var allowed: Allowed
-
-    public struct Allowed: Codable {
-        public var capabilities: [String]
-        public var bucketId: String?
-        public var bucketName: String?
-        public var namePrefix: String?
-    }
+    // TODO: There are more items here, but not necessary for upload
 }

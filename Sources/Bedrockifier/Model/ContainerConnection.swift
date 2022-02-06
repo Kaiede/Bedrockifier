@@ -84,7 +84,7 @@ public class ContainerConnection {
         self.dockerProcess = try Process(processUrl, arguments: processArgs, terminal: terminal)
     }
 
-    public func runBackup(destination: URL) async throws {
+    public func runBackup(destination: URL) async throws -> [World] {
         guard dockerProcess.isRunning else {
             throw ContainerError.processNotRunning
         }
@@ -94,6 +94,7 @@ public class ContainerConnection {
         var failedBackups: [String] = []
         Library.log.info("Starting Backup of worlds for: \(name)")
 
+        var backups: [World] = []
         for worldUrl in worlds {
             do {
                 let world = try World(url: worldUrl)
@@ -101,6 +102,7 @@ public class ContainerConnection {
                 Library.log.info("Backing Up: \(world.name)")
                 let backupWorld = try world.backup(to: destination)
                 Library.log.info("Backed up as: \(backupWorld.location.lastPathComponent)")
+                backups.append(backupWorld)
             } catch let error {
                 Library.log.error("\(error.localizedDescription)")
                 Library.log.error("Backup of world at \(worldUrl.path) failed.")
@@ -120,6 +122,8 @@ public class ContainerConnection {
         if failedBackups.count > 0 {
             throw ContainerError.backupsFailed(failedBackups)
         }
+
+        return backups
     }
 
     public func pauseAutosave() async throws {

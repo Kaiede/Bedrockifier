@@ -50,6 +50,17 @@ public struct BackupConfig: Codable {
         public var bedrock: [ContainerConfig]?
     }
 
+    public struct UploadConfig: Codable {
+        public var b2: BackblazeConfig?
+    }
+
+    public struct BackblazeConfig: Codable {
+        public var applicationId: String
+        public var applicationKey: String
+        public var bucketName: String
+        public var folderPath: String
+    }
+
     public var dockerPath: String?
     public var backupPath: String?
     public var servers: ServerConfig?
@@ -58,6 +69,7 @@ public struct BackupConfig: Codable {
     public var ownership: OwnershipConfig?
     public var schedule: ScheduleConfig?
     public var loggingLevel: LoggingConfig?
+    public var upload: UploadConfig?
 }
 
 extension BackupConfig {
