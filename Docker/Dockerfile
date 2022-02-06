@@ -8,7 +8,7 @@ FROM $swift_image as builder
 WORKDIR /project
 
 RUN apt-get update && \
-  && apt-get install -y openssl libssl-dev
+  apt-get install -y openssl libssl-dev
 
 ADD . /project
 RUN swift build -c release -Xswiftc -g
