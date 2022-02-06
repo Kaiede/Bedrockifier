@@ -24,6 +24,9 @@
  */
 
 import Foundation
+#if os(Linux)
+import FoundationNetworking
+#endif
 
 public class B2Session {
     public static let shared: B2Session = B2Session()

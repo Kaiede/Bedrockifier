@@ -24,6 +24,9 @@
  */
 
 import Foundation
+#if os(Linux)
+import FoundationNetworking
+#endif
 
 public struct B2Request<Response> where Response: Decodable {
     public enum HTTPMethod: String, RawRepresentable {
