@@ -7,6 +7,9 @@ ARG swift_image=$swift_base:$swift_version
 FROM $swift_image as builder
 WORKDIR /project
 
+RUN apt-get update && \
+  && apt-get install -y openssl libssl-dev
+
 ADD . /project
 RUN swift build -c release -Xswiftc -g
 
@@ -18,7 +21,7 @@ ARG arch
 
 RUN apt-get update && \
   DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    docker.io \
+    docker.io openssl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
