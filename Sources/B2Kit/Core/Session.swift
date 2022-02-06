@@ -23,7 +23,6 @@
  SOFTWARE.)
  */
 
-import Combine
 import Foundation
 
 public class B2Session {
