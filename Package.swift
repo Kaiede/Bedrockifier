@@ -59,6 +59,8 @@ let package = Package(
                 .product(name: "Yams", package: "Yams"),
                 .product(name: "ZIPFoundation", package: "ZIPFoundation")
             ]),
+        .target(name: "B2Kit",
+               dependencies: []),
         .testTarget(
             name: "BedrockifierTests",
             dependencies: ["Bedrockifier"]),
