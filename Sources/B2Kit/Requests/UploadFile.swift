@@ -23,7 +23,7 @@
  SOFTWARE.)
  */
 
-import CryptoKit
+import Cryptor
 import Foundation
 
 public extension B2Request {
@@ -48,7 +48,7 @@ public extension B2Request {
                 "X-Bz-File-Name": encodedFileName,
                 "Content-Type": "b2/x-auto",
                 "Content-Length": "\(data.count)",
-                "X-Bz-Content-Sha1": ""
+                "X-Bz-Content-Sha1": data.sha1String
             ],
             payload: data,
             apiUrl: url.uploadUrl,
@@ -88,7 +88,7 @@ public extension B2Request {
             headers: [
                 "X-Bz-Part-Number": "\(partNumber)",
                 "Content-Length": "\(data.count)",
-                "X-Bz-Content-Sha1": ""
+                "X-Bz-Content-Sha1": data.sha1String
             ],
             payload: data,
             apiUrl: url.uploadUrl,

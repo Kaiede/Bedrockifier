@@ -29,6 +29,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.0.0"),
         .package(url: "https://github.com/jpsim/Yams.git", from: "4.0.0"),
         .package(url: "https://github.com/swift-server/swift-backtrace.git", from: "1.3.1"),
+        .package(url: "https://github.com/Kitura/BlueCryptor.git", from: "2.0.1"),
         .package(url: "https://github.com/Kaiede/PTYKit.git", .branch("master")),
         //.package(path: "../PTYKit")
     ],
@@ -60,8 +61,11 @@ let package = Package(
                 .product(name: "Yams", package: "Yams"),
                 .product(name: "ZIPFoundation", package: "ZIPFoundation")
             ]),
-        .target(name: "B2Kit",
-               dependencies: []),
+        .target(
+            name: "B2Kit",
+            dependencies: [
+                .product(name: "Cryptor", package: "BlueCryptor")
+            ]),
         .testTarget(
             name: "BedrockifierTests",
             dependencies: ["Bedrockifier"]),
