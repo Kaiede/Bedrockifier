@@ -42,7 +42,7 @@ public extension B2Request {
 @available(iOS 15, tvOS 15, watchOS 8, macOS 12, *)
 public extension B2Session {
     func authorize(keyId: String, applicationKey: String) async throws -> B2Authorization {
-        return try await request(.authorize(keyId: keyId, applicationKey: applicationKey))
+        return try await execute(.authorize(keyId: keyId, applicationKey: applicationKey))
     }
 }
 

@@ -46,7 +46,7 @@ public extension B2Request {
 @available(iOS 15, tvOS 15, watchOS 8, macOS 12, *)
 public extension B2Session {
     func listBuckets(accountId: String, bucketName: String? = nil) async throws -> B2BucketList {
-        return try await request(.listBuckets(accountId: accountId, bucketName: bucketName))
+        return try await execute(.listBuckets(accountId: accountId, bucketName: bucketName))
     }
 }
 

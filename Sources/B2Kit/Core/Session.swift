@@ -23,6 +23,7 @@
  SOFTWARE.)
  */
 
+import AsyncHTTPClient
 import Foundation
 #if os(Linux)
 import FoundationNetworking
@@ -31,31 +32,11 @@ import FoundationNetworking
 public class B2Session {
     public static let shared: B2Session = B2Session()
     internal var urlSession: URLSession = URLSession.shared
+    internal var httpClient: HTTPClient = HTTPClient(eventLoopGroupProvider: .createNew)
 
     internal var currentAuthorization: B2Authorization? = nil
 
-    @available(iOS 15, tvOS 15, watchOS 8, macOS 12, *)
-    public func request<Response>(_ request: B2Request<Response>) async throws -> Response {
-        guard let taskRequest = try URLRequest(request: request, authorization: currentAuthorization) else {
-            throw B2Error.invalidRequest
-        }
-        let (data, response) = try await urlSession.data(for: taskRequest, delegate: nil)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw B2Error.invalidResponse
-        }
-
-        guard httpResponse.statusCode == 200 else {
-            let error = try decodeError(data)
-            throw error
-        }
-
-        let result = try request.decode(response: response, data: data)
-        request.success?(self, result)
-        return result
-    }
-
-    private func decodeError(_ data: Data) throws -> B2ServerError {
+    func decodeError(_ data: Data) throws -> B2ServerError {
         let decoder = JSONDecoder()
         return try decoder.decode(B2ServerError.self, from: data)
     }

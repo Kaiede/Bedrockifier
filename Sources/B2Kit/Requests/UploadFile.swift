@@ -111,27 +111,27 @@ public extension B2Request {
 @available(iOS 15, tvOS 15, watchOS 8, macOS 12, *)
 public extension B2Session {
     func getUploadUrl(bucketId: String) async throws -> B2UploadUrl {
-        return try await request(.getUploadUrl(bucketId: bucketId))
+        return try await execute(.getUploadUrl(bucketId: bucketId))
     }
 
     func uploadFile(url: B2UploadUrl, file: String, data: Data) async throws -> B2UploadResult {
-        return try await request(.uploadFile(url: url, file: file, data: data))
+        return try await execute(.uploadFile(url: url, file: file, data: data))
     }
 
     func startLargeFile(bucketId: String, file: String) async throws -> B2UploadResult {
-        return try await request(.startLargeFile(bucketId: bucketId, file: file))
+        return try await execute(.startLargeFile(bucketId: bucketId, file: file))
     }
 
     func getUploadPartUrl(fileId: String) async throws -> B2UploadUrl {
-        return try await request(.getUploadPartUrl(fileId: fileId))
+        return try await execute(.getUploadPartUrl(fileId: fileId))
     }
 
     func uploadPart(url: B2UploadUrl, partNumber: Int, data: Data) async throws -> B2UploadResult {
-        return try await request(.uploadPart(url: url, partNumber: partNumber, data: data))
+        return try await execute(.uploadPart(url: url, partNumber: partNumber, data: data))
     }
 
     func finishLargeFile(fileId: String, sha1Array: [String]) async throws -> B2UploadResult {
-        return try await request(.finishLargeFile(fileId: fileId, sha1Array: sha1Array))
+        return try await execute(.finishLargeFile(fileId: fileId, sha1Array: sha1Array))
     }
 
     func uploadFile(_ file: URL, bucketId: String, uploadPath: String) async throws {

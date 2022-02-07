@@ -23,6 +23,8 @@
  SOFTWARE.)
  */
 
+import AsyncHTTPClient
+import NIOHTTP1
 import Foundation
 #if os(Linux)
 import FoundationNetworking
@@ -116,5 +118,47 @@ extension URLRequest {
         if let authorization = request.authorization ?? authorization?.authorizationToken {
             self.addValue(authorization, forHTTPHeaderField: "Authorization")
         }
+    }
+}
+
+extension B2Request.HTTPMethod {
+    var nioMethod: NIOHTTP1.HTTPMethod {
+        switch self {
+        case .get:
+            return .GET
+        case .post:
+            return .POST
+        }
+    }
+}
+
+extension HTTPClient.Request {
+    init?<Response>(request: B2Request<Response>, authorization: B2Authorization?) throws {
+        guard let baseUrl = request.baseUrl(using: authorization) else {
+            return nil
+        }
+        let finalUrl = baseUrl.appendingPathComponent("/b2api/v1/\(request.function)")
+
+        var headers: [(String, String)] = []
+        // Request is allowed to override the default for uploads or initial authentication
+        if let authorization = request.authorization ?? authorization?.authorizationToken {
+            headers.append(("Authorization", authorization))
+        }
+
+        for (key, value) in request.headers ?? [:] {
+            headers.append((key, value))
+        }
+
+        let httpHeaders = HTTPHeaders(headers)
+        let httpBody = try HTTPClient.Request.fetchBody(request: request)
+        try self.init(url: finalUrl, method: request.httpMethod.nioMethod, headers: httpHeaders, body: httpBody)
+    }
+
+    private static func fetchBody<Response>(request: B2Request<Response>) throws -> HTTPClient.Body? {
+        if let data = try request.httpBody() {
+            return HTTPClient.Body.data(data)
+        }
+
+        return nil
     }
 }

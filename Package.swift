@@ -30,6 +30,7 @@ let package = Package(
         .package(url: "https://github.com/jpsim/Yams.git", from: "4.0.0"),
         .package(url: "https://github.com/swift-server/swift-backtrace.git", from: "1.3.1"),
         .package(url: "https://github.com/Kitura/BlueCryptor.git", from: "2.0.1"),
+        .package(url: "https://github.com/swift-server/async-http-client.git", .branch("main")),
         .package(url: "https://github.com/Kaiede/PTYKit.git", .branch("master")),
         //.package(path: "../PTYKit")
     ],
@@ -64,6 +65,7 @@ let package = Package(
         .target(
             name: "B2Kit",
             dependencies: [
+                .product(name: "AsyncHTTPClient", package: "async-http-client"),
                 .product(name: "Cryptor", package: "BlueCryptor")
             ]),
         .testTarget(
