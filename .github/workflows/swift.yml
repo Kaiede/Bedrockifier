@@ -49,4 +49,4 @@ jobs:
       - name: Build
         run: swift build --build-tests
       - name: Test
-        run: swift test
+        run: swift test -Xlinker -rpath -Xlinker "$(xcode-select -p)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx"
