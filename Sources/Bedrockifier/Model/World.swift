@@ -121,7 +121,7 @@ public struct World {
             throw WorldError.invalidLevelArchive
         }
 
-        guard let worldName = URL(fileURLWithPath: levelDat.path).pathComponents.first else {
+        guard let worldName = NSString(string: levelDat.path).pathComponents.first else {
             throw WorldError.missingLevelName
         }
 
