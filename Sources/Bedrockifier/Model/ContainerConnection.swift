@@ -172,6 +172,7 @@ public class ContainerConnection {
         let timestamp = DateFormatter.backupDateFormatter.string(from: Date())
         let fileName = "\(name).extras.\(timestamp).zip"
         let archivePath = destination.appendingPathComponent(fileName)
+        Library.log.trace("Extras destination: \(archivePath.path)")
 
         try FileManager.default.createDirectory(atPath: destination.path,
                                                 withIntermediateDirectories: true,
@@ -188,6 +189,7 @@ public class ContainerConnection {
 
             while let archiveItem = dirEnum?.nextObject() as? String {
                 let fullItemUrl = URL(fileURLWithPath: archiveItem, relativeTo: parentFolder)
+                Library.log.trace("Packing: \(archiveItem) -> \(fullItemUrl.path)")
                 try archive.addEntry(with: archiveItem, fileURL: fullItemUrl)
             }
         }
