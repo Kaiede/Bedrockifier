@@ -109,11 +109,12 @@ public final class BackupCommand: Command {
 
                 // Run optional trim
                 if signature.trim {
-                    try WorldBackup.trimBackups(at: backupUrl,
-                                                dryRun: false,
-                                                trimDays: signature.keepDays,
-                                                keepDays: signature.keepDays,
-                                                minKeep: signature.minKeep)
+                    try Backups.trimBackups(World.self,
+                                            at: backupUrl,
+                                            dryRun: false,
+                                            trimDays: signature.keepDays,
+                                            keepDays: signature.keepDays,
+                                            minKeep: signature.minKeep)
                 }
             } catch let error {
                 Library.log.error("\(error.localizedDescription)")

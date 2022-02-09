@@ -30,58 +30,82 @@ import PTYKit
 private let usePty = false
 private let logger = Logger(label: "BedrockifierCLI:WorldBackup")
 
-public class WorldBackup {
-    enum Action {
-        case keep
-        case trim
-    }
+enum BackupAction {
+    case keep
+    case trim
+}
 
-    var action: Action = .keep
+public protocol BackupItem {
+    var name: String { get }
+    var location: URL { get }
+
+    init(url: URL) throws
+}
+
+protocol BackupProtocol: AnyObject {
+    var action: BackupAction { get set }
+    var modificationDate: Date { get }
+
+    associatedtype Element: BackupItem
+    var item: Element { get }
+}
+
+public class Backup<Element>: BackupProtocol where Element: BackupItem {
+    var action: BackupAction = .keep
     let modificationDate: Date
-    let world: World
+    let item: Element
 
-    init(world: World, date: Date) {
+    init(item: Element, date: Date) {
         self.modificationDate = date
-        self.world = world
+        self.item = item
     }
 }
 
-extension WorldBackup {
+extension World: BackupItem {}
+
+public struct Backups {
     public static func fixOwnership(at folder: URL, config: OwnershipConfig) throws {
         let (uid, gid) = try config.parseOwnerAndGroup()
         let (permissions) = try config.parsePosixPermissions()
-        let backups = try getBackups(at: folder)
+        let backups = try getBackups(World.self, at: folder)
         for backup in backups.flatMap({ $1 }) {
-            try backup.world.applyOwnership(owner: uid, group: gid, permissions: permissions)
+            try backup.item.applyOwnership(owner: uid, group: gid, permissions: permissions)
         }
     }
 
-    public static func trimBackups(at folder: URL, dryRun: Bool, trimDays: Int?, keepDays: Int?, minKeep: Int?) throws {
+    public static func trimBackups<ItemType>(
+        _ type: ItemType.Type,
+        at folder: URL,
+        dryRun: Bool,
+        trimDays: Int?,
+        keepDays: Int?,
+        minKeep: Int?
+    ) throws where ItemType: BackupItem {
         let trimDays = trimDays ?? 3
         let keepDays = keepDays ?? 14
         let minKeep = minKeep ?? 1
 
         let deletingString = dryRun ? "Would Delete" : "Deleting"
 
-        let backups = try WorldBackup.getBackups(at: folder)
+        let backups = try getBackups(type, at: folder)
         for (worldName, worldBackups) in backups {
             Library.log.debug("Processing: \(worldName)")
             let processedBackups = worldBackups.process(trimDays: trimDays, keepDays: keepDays, minKeep: minKeep)
             for processedBackup in processedBackups.filter({ $0.action == .trim }) {
-                Library.log.info("\(deletingString): \(processedBackup.world.location.lastPathComponent)")
+                Library.log.info("\(deletingString): \(processedBackup.item.location.lastPathComponent)")
                 if !dryRun {
                     do {
-                        try FileManager.default.removeItem(at: processedBackup.world.location)
+                        try FileManager.default.removeItem(at: processedBackup.item.location)
                     } catch {
-                        Library.log.error("Unable to delete \(processedBackup.world.location)")
+                        Library.log.error("Unable to delete \(processedBackup.item.location)")
                     }
                 }
             }
         }
     }
 
-    static func getBackups(at folder: URL) throws -> [String: [WorldBackup]] {
-        var results: [String: [WorldBackup]] = [:]
+    static func getBackups<ItemType>(_ type: ItemType.Type, at folder: URL) throws -> [String: [Backup<ItemType>]] {
+        var results: [String: [Backup<ItemType>]] = [:]
 
         let keys: [URLResourceKey] = [.contentModificationDateKey]
 
@@ -92,10 +116,10 @@ extension WorldBackup {
         for possibleWorld in files {
             let resourceValues = try possibleWorld.resourceValues(forKeys: Set(keys))
             let modificationDate = resourceValues.contentModificationDate!
-            if let world = try? World(url: possibleWorld) {
-                var array = results[world.name] ?? []
-                array.append(WorldBackup(world: world, date: modificationDate))
-                results[world.name] = array
+            if let item = try? ItemType(url: possibleWorld) {
+                var array = results[item.name] ?? []
+                array.append(Backup<ItemType>(item: item, date: modificationDate))
+                results[item.name] = array
             }
         }
 
@@ -103,8 +127,8 @@ extension WorldBackup {
     }
 }
 
-extension Array where Element: WorldBackup {
-    func trimBucket(keepLast count: Int = 1) {
+extension Array where Element: BackupProtocol {
+    func trimBucket() {
         var keep: [Int] = []
 
         for (index, item) in self.enumerated() {
@@ -117,16 +141,16 @@ extension Array where Element: WorldBackup {
                 if self[keepItem].modificationDate < item.modificationDate {
                     keep[keepIndex] = index
                     self[keepItem].action = .trim
-                    Library.log.debug("Ejecting \(self[keepItem].world.location.lastPathComponent) from keep list")
+                    Library.log.debug("Ejecting \(self[keepItem].item.location.lastPathComponent) from keep list")
                 } else {
-                    Library.log.debug("Rejecting \(item.world.location.lastPathComponent) from keep list")
+                    Library.log.debug("Rejecting \(item.item.location.lastPathComponent) from keep list")
                     item.action = .trim
                 }
             }
         }
     }
 
-    func process(trimDays: Int, keepDays: Int, minKeep: Int) -> [WorldBackup] {
+    func process(trimDays: Int, keepDays: Int, minKeep: Int) -> [Element] {
         let trimDays = DateComponents(day: -(trimDays - 1))
         let keepDays = DateComponents(day: -(keepDays - 1))
         let today = Calendar.current.date(from: Date().toDayComponents())!
@@ -137,7 +161,7 @@ extension Array where Element: WorldBackup {
         let modifiedBackups = self.sorted(by: { $0.modificationDate > $1.modificationDate })
 
         // Mark very old backups, but also bucket for trimming to dailies
-        var buckets: [DateComponents: [WorldBackup]] = [:]
+        var buckets: [DateComponents: [Element]] = [:]
         for backup in modifiedBackups {
             if backup.modificationDate < keepDay {
                 backup.action = .trim
@@ -187,3 +211,4 @@ extension Array where Element: WorldBackup {
         return "<<UNKNOWN DATE>>"
     }
 }
+

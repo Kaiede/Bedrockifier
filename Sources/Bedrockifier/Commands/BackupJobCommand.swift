@@ -112,16 +112,23 @@ public final class BackupJobCommand: Command {
 
                 if let ownershipConfig = config.ownership {
                     Library.log.info("Performing Ownership Fixup")
-                    try WorldBackup.fixOwnership(at: backupUrl, config: ownershipConfig)
+                    try Backups.fixOwnership(at: backupUrl, config: ownershipConfig)
                 }
 
                 if let trimJob = config.trim {
                     Library.log.info("Performing Trim Jobs")
-                    try WorldBackup.trimBackups(at: backupUrl,
-                                                dryRun: false,
-                                                trimDays: trimJob.trimDays,
-                                                keepDays: trimJob.keepDays,
-                                                minKeep: trimJob.minKeep)
+                    try Backups.trimBackups(World.self,
+                                            at: backupUrl,
+                                            dryRun: false,
+                                            trimDays: trimJob.trimDays,
+                                            keepDays: trimJob.keepDays,
+                                            minKeep: trimJob.minKeep)
+                    try Backups.trimBackups(ServerExtras.self,
+                                            at: backupUrl,
+                                            dryRun: false,
+                                            trimDays: trimJob.trimDays,
+                                            keepDays: trimJob.keepDays,
+                                            minKeep: trimJob.minKeep)
                 }
             } catch let error {
                 Library.log.error("\(error.localizedDescription)")
