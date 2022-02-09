@@ -99,7 +99,8 @@ public final class BackupCommand: Command {
                 let connection = try ContainerConnection(dockerPath: signature.dockerPath,
                                                          containerName: signature.containerName,
                                                          kind: .bedrock,
-                                                         worlds: worldsPaths)
+                                                         worlds: worldsPaths,
+                                                         extras: nil)
 
                 // Run Backup
                 try connection.start()
@@ -108,11 +109,12 @@ public final class BackupCommand: Command {
 
                 // Run optional trim
                 if signature.trim {
-                    try WorldBackup.trimBackups(at: backupUrl,
-                                                dryRun: false,
-                                                trimDays: signature.keepDays,
-                                                keepDays: signature.keepDays,
-                                                minKeep: signature.minKeep)
+                    try Backups.trimBackups(World.self,
+                                            at: backupUrl,
+                                            dryRun: false,
+                                            trimDays: signature.keepDays,
+                                            keepDays: signature.keepDays,
+                                            minKeep: signature.minKeep)
                 }
             } catch let error {
                 Library.log.error("\(error.localizedDescription)")

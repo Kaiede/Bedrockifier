@@ -133,8 +133,8 @@ final class BackupService {
     }
 
     private func validateServerFolders() throws {
-        let bedrockWorlds = config.containers?.bedrock?.flatMap({ $0.worlds }) ?? []
-        let javaWorlds = config.containers?.java?.flatMap({ $0.worlds }) ?? []
+        let bedrockWorlds = config.containers?.bedrock?.flatMap({ $0.worlds + ($0.extras ?? []) }) ?? []
+        let javaWorlds = config.containers?.java?.flatMap({ $0.worlds + ($0.extras ?? []) }) ?? []
         let oldWorlds = config.servers?.values.map({ $0 }) ?? []
 
         let allWorlds: [String] = bedrockWorlds + javaWorlds + oldWorlds
@@ -311,16 +311,23 @@ final class BackupService {
     private func runPostBackupTasks() throws {
         if let ownershipConfig = config.ownership {
             BackupService.logger.info("Performing Ownership Fixup")
-            try WorldBackup.fixOwnership(at: backupUrl, config: ownershipConfig)
+            try Backups.fixOwnership(at: backupUrl, config: ownershipConfig)
         }
 
         if let trimJob = config.trim {
             BackupService.logger.info("Performing Trim Jobs")
-            try WorldBackup.trimBackups(at: backupUrl,
-                                        dryRun: false,
-                                        trimDays: trimJob.trimDays,
-                                        keepDays: trimJob.keepDays,
-                                        minKeep: trimJob.minKeep)
+            try Backups.trimBackups(World.self,
+                                    at: backupUrl,
+                                    dryRun: false,
+                                    trimDays: trimJob.trimDays,
+                                    keepDays: trimJob.keepDays,
+                                    minKeep: trimJob.minKeep)
+            try Backups.trimBackups(ServerExtras.self,
+                                    at: backupUrl,
+                                    dryRun: false,
+                                    trimDays: trimJob.trimDays,
+                                    keepDays: trimJob.keepDays,
+                                    minKeep: trimJob.minKeep)
         }
     }
 
@@ -384,9 +391,9 @@ extension BackupService.ServiceError: LocalizedError {
             return "No valid backup interval was able to be read from configuration or environment"
         case .onlyOneIntervalTypeAllowed:
             return "Only one of `interval` and `daily` are allowed"
-        case .worldFoldersNotFound(let worlds):
-            let worldsString = worlds.joined(separator: ", ")
-            return "One or more worlds weren't found: \(worldsString)"
+        case .worldFoldersNotFound(let folders):
+            let foldersString = folders.joined(separator: ", ")
+            return "One or more folders weren't found: \(foldersString)"
         case .unableToMarkHealthy:
             return "Unable to write to backups folder"
         }

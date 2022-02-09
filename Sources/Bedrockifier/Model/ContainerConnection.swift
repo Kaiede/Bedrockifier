@@ -7,6 +7,7 @@
 
 import Foundation
 import PTYKit
+import ZIPFoundation
 
 private let usePty = false
 
@@ -26,6 +27,7 @@ public class ContainerConnection {
     public let terminal: PseudoTerminal
     var dockerProcess: Process
     let worlds: [URL]
+    let extras: [URL]?
     var playerCount: Int
     public var lastBackup: Date
 
@@ -33,12 +35,14 @@ public class ContainerConnection {
                 dockerPath: String,
                 containerName: String,
                 kind: Kind,
-                worlds: [String]) throws {
+                worlds: [String],
+                extras: [String]?) throws {
         self.dockerPath = dockerPath
         self.name = containerName
         self.kind = kind
         self.terminal = terminal
         self.worlds = worlds.map({ URL(fileURLWithPath: $0) })
+        self.extras = extras?.map({ URL(fileURLWithPath: $0) })
         self.playerCount = 0
         self.lastBackup = .distantPast
 
@@ -47,13 +51,14 @@ public class ContainerConnection {
         self.dockerProcess = try Process(processUrl, arguments: processArgs, terminal: self.terminal)
     }
 
-    public convenience init(dockerPath: String, containerName: String, kind: Kind, worlds: [String]) throws {
+    public convenience init(dockerPath: String, containerName: String, kind: Kind, worlds: [String], extras: [String]?) throws {
         let terminal = try PseudoTerminal()
         try self.init(terminal: terminal,
                       dockerPath: dockerPath,
                       containerName: containerName,
                       kind: kind,
-                      worlds: worlds)
+                      worlds: worlds,
+                      extras: extras)
     }
 
     public func start() throws {
@@ -108,6 +113,19 @@ public class ContainerConnection {
             }
         }
 
+        if let extras = extras {
+            Library.log.info("Backing up extras for \(name)")
+            do {
+                let fileName = try backupExtras(destination: destination, extras: extras)
+
+                Library.log.info("Backed up extras as \(fileName)")
+            } catch let error {
+                Library.log.error("\(error.localizedDescription)")
+                Library.log.error("Backup of \(name) extras failed.")
+                failedBackups.append("\(name) extras")
+            }
+        }
+
         lastBackup = Date()
         if failedBackups.count > 0 {
             Library.log.error("Backups for \(name) had failures...")
@@ -148,6 +166,34 @@ public class ContainerConnection {
     public func decrementPlayerCount() -> Int {
         playerCount = max(0, playerCount - 1)
         return playerCount
+    }
+
+    private func backupExtras(destination: URL, extras: [URL]) throws -> String {
+        let timestamp = DateFormatter.backupDateFormatter.string(from: Date())
+        let fileName = "\(name).extras.\(timestamp).zip"
+        let archivePath = destination.appendingPathComponent(fileName)
+        Library.log.trace("Extras destination: \(archivePath.path)")
+
+        try FileManager.default.createDirectory(atPath: destination.path,
+                                                withIntermediateDirectories: true,
+                                                attributes: nil)
+
+        guard let archive = Archive(url: archivePath, accessMode: .create) else {
+            throw ContainerError.invalidExtrasArchive
+        }
+
+        for extra in extras {
+            Library.log.info("Packing \(extra.lastPathComponent)...")
+            let dirEnum = FileManager.default.enumerator(atPath: extra.path)
+            let folderBase = NSString(string: extra.lastPathComponent)
+            while let archiveItem = dirEnum?.nextObject() as? String {
+                let archivePath = String(folderBase.appendingPathComponent(archiveItem))
+                let fullItemUrl = URL(fileURLWithPath: archiveItem, relativeTo: extra)
+                try archive.addEntry(with: archivePath, fileURL: fullItemUrl)
+            }
+        }
+
+        return fileName
     }
 
     private func pauseSaveOnBedrock() async throws {
@@ -259,7 +305,8 @@ extension ContainerConnection {
             let connection = try ContainerConnection(dockerPath: dockerPath,
                                                      containerName: container.name,
                                                      kind: .bedrock,
-                                                     worlds: container.worlds)
+                                                     worlds: container.worlds,
+                                                     extras: container.extras)
             containers.append(connection)
         }
 
@@ -267,7 +314,8 @@ extension ContainerConnection {
             let connection = try ContainerConnection(dockerPath: dockerPath,
                                                      containerName: container.name,
                                                      kind: .java,
-                                                     worlds: container.worlds)
+                                                     worlds: container.worlds,
+                                                     extras: container.extras)
             containers.append(connection)
         }
 
@@ -280,7 +328,8 @@ extension ContainerConnection {
             let connection = try ContainerConnection(dockerPath: dockerPath,
                                                      containerName: containerName,
                                                      kind: .bedrock,
-                                                     worlds: worldPaths)
+                                                     worlds: worldPaths,
+                                                     extras: nil)
             containers.append(connection)
         }
 
@@ -296,6 +345,7 @@ extension ContainerConnection {
         case saveNotCompleted
         case resumeFailed
         case backupsFailed([String])
+        case invalidExtrasArchive
     }
 }
 
@@ -315,6 +365,8 @@ extension ContainerConnection.ContainerError: LocalizedError {
         case .backupsFailed(let worlds):
             let worldsString = worlds.joined(separator: ", ")
             return "Server container had worlds that failed to backup: \(worldsString)"
+        case .invalidExtrasArchive:
+            return "Could not create ZIP archive for extras"
         }
     }
 }
