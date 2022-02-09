@@ -185,12 +185,13 @@ public class ContainerConnection {
         for extra in extras {
             Library.log.info("Packing \(extra.lastPathComponent)...")
             let dirEnum = FileManager.default.enumerator(atPath: extra.path)
-            let parentFolder = extra.deletingLastPathComponent()
+            let parentFolder = URL(fileURLWithPath: extra.lastPathComponent)
 
             while let archiveItem = dirEnum?.nextObject() as? String {
-                let fullItemUrl = URL(fileURLWithPath: archiveItem, relativeTo: parentFolder)
-                Library.log.trace("Packing: \(archiveItem) -> \(fullItemUrl.path)")
-                try archive.addEntry(with: archiveItem, fileURL: fullItemUrl)
+                let fullItemUrl = URL(fileURLWithPath: archiveItem, relativeTo: extra)
+                let archivePath = URL(fileURLWithPath: archiveItem, relativeTo: parentFolder)
+                Library.log.trace("Packing: \(archiveItem) <- \(fullItemUrl.path)")
+                try archive.addEntry(with: archivePath.path, fileURL: fullItemUrl)
             }
         }
 
