@@ -42,6 +42,7 @@ public struct BackupConfig: Codable {
 
     public struct ContainerConfig: Codable {
         public var name: String
+        public var extras: [String]?
         public var worlds: [String]
     }
 

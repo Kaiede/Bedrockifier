@@ -99,7 +99,8 @@ public final class BackupCommand: Command {
                 let connection = try ContainerConnection(dockerPath: signature.dockerPath,
                                                          containerName: signature.containerName,
                                                          kind: .bedrock,
-                                                         worlds: worldsPaths)
+                                                         worlds: worldsPaths,
+                                                         extras: nil)
 
                 // Run Backup
                 try connection.start()
