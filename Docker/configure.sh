@@ -8,7 +8,7 @@ swift_base="swift"
 swift_version="5.5.3"
 if [ "$arch" == "arm64" ]; then 
     swift_base="swiftarm/${swift_base}"
-    swift_version="${swift_version}-ubuntu-21.04"
+    swift_version="${swift_version}-ubuntu-hirsute"
 fi
 
 GITHUB_ENV=${GITHUB_ENV:-}
