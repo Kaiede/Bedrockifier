@@ -1,7 +1,7 @@
 # Bedrockifier
 
 [![CI Status](https://github.com/Kaiede/Bedrockifier/actions/workflows/swift.yml/badge.svg)](https://github.com/Kaiede/Bedrockifier/actions)
-![Swift](https://img.shields.io/badge/Swift-5.5.2-brightgreen.svg?style=flat)
+![Swift](https://img.shields.io/badge/Swift-5.5.3-brightgreen.svg?style=flat)
 [![MIT license](http://img.shields.io/badge/License-MIT-brightgreen.svg)](http://opensource.org/licenses/MIT)
 
 [![CI Status](https://github.com/Kaiede/Bedrockifier/actions/workflows/docker.yml/badge.svg)](https://github.com/Kaiede/Bedrockifier/actions)
