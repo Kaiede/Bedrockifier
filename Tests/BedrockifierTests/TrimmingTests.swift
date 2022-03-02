@@ -60,7 +60,7 @@ final class TrimmingTests: XCTestCase {
     }
 
     private func createBackupArray(_ testItems: [MockBackupItem]) -> [Backup<MockBackupItem>] {
-        let startDate = Date.now
+        let startDate = Date()
         var result: [Backup<MockBackupItem>] = []
         for index in testItems.indices {
             result.append(Backup(item: testItems[index], date: Date(timeInterval: 1.0 * TimeInterval(index), since: startDate)))
