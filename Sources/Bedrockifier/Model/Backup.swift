@@ -128,11 +128,11 @@ public struct Backups {
 }
 
 extension Array where Element: BackupProtocol {
-    func trimBucket() {
+    func trimBucket(keepLast: Int = 1) {
         var keep: [Int] = []
 
         for (index, item) in self.enumerated() {
-            if keep.count < count {
+            if keep.count < keepLast {
                 keep.append(index)
                 continue
             }
@@ -142,10 +142,13 @@ extension Array where Element: BackupProtocol {
                     keep[keepIndex] = index
                     self[keepItem].action = .trim
                     Library.log.debug("Ejecting \(self[keepItem].item.location.lastPathComponent) from keep list")
-                } else {
-                    Library.log.debug("Rejecting \(item.item.location.lastPathComponent) from keep list")
-                    item.action = .trim
+                    break
                 }
+            }
+
+            if !keep.contains(where: { $0 == index }) {
+                Library.log.debug("Rejecting \(item.item.location.lastPathComponent) from keep list")
+                item.action = .trim
             }
         }
     }
