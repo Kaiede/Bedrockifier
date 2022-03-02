@@ -10,8 +10,8 @@ final class TrimmingTests: XCTestCase {
             MockBackupItem("file:///backups/fourth.zip")
         ]
 
-        let testBackupArray = testBackupItems.map({ Backup(item: $0, date: Date())})
-        guard let newest = testBackupArray.max(by: { $0.modificationDate < $1.modificationDate }) else {
+        let testBackupArray = createBackupArray(testBackupItems)
+        guard let newest = testBackupArray.last else {
             XCTFail("Getting newest item from array failed")
             return
         }
@@ -39,10 +39,7 @@ final class TrimmingTests: XCTestCase {
 
         // Case 1: Keep 3
         do {
-            let testBackupArray = testBackupItems
-                .map({ Backup(item: $0, date: Date())})
-                .sorted(by: { $0.modificationDate < $1.modificationDate })
-
+            let testBackupArray = createBackupArray(testBackupItems)
             testBackupArray.trimBucket(keepLast: 3)
             let keep = testBackupArray.filter({ $0.action == .keep })
             let keepNames = keep.map({ $0.item.name })
@@ -53,16 +50,22 @@ final class TrimmingTests: XCTestCase {
 
         // Case 2: Keep 6
         do {
-            let testBackupArray = testBackupItems
-                .map({ Backup(item: $0, date: Date())})
-                .sorted(by: { $0.modificationDate < $1.modificationDate })
-
+            let testBackupArray = createBackupArray(testBackupItems)
             testBackupArray.trimBucket(keepLast: 6)
             let keep = testBackupArray.filter({ $0.action == .keep })
             let keepNames = keep.map({ $0.item.name })
             XCTAssertEqual(keep.count, 6)
             XCTAssertEqual(keepNames, testBackupArray.suffix(6).map({ $0.item.name }))
         }
+    }
+
+    private func createBackupArray(_ testItems: [MockBackupItem]) -> [Backup<MockBackupItem>] {
+        let startDate = Date.now
+        var result: [Backup<MockBackupItem>] = []
+        for index in testItems.indices {
+            result.append(Backup(item: testItems[index], date: Date(timeInterval: 1.0 * TimeInterval(index), since: startDate)))
+        }
+        return result.sorted(by: { $0.modificationDate < $1.modificationDate})
     }
 }
 
