@@ -31,6 +31,10 @@ public class ContainerConnection {
     var playerCount: Int
     public var lastBackup: Date
 
+    public var isRunning: Bool {
+        dockerProcess.isRunning
+    }
+
     public init(terminal: PseudoTerminal,
                 dockerPath: String,
                 containerName: String,
@@ -89,12 +93,32 @@ public class ContainerConnection {
         self.dockerProcess = try Process(processUrl, arguments: processArgs, terminal: terminal)
     }
 
+    public func cleanupIncompleteBackup(destination: URL) async throws {
+        guard dockerProcess.isRunning else {
+            throw ContainerError.processNotRunning
+        }
+
+        guard isSaveHeld(destination: destination) else {
+            throw ContainerError.resumeFailed
+        }
+
+        try await resumeAutosave()
+        try releaseHold(destination: destination)
+    }
+
     public func runBackup(destination: URL) async throws {
         guard dockerProcess.isRunning else {
             throw ContainerError.processNotRunning
         }
 
-        try await pauseAutosave()
+        try takeHold(destination: destination)
+        do {
+            try await pauseAutosave()
+        } catch let error {
+            // Best effort release the hold if we weren't able to pause saving
+            try? releaseHold(destination: destination)
+            throw error
+        }
 
         var failedBackups: [String] = []
         Library.log.info("Starting Backup of worlds for: \(name)")
@@ -134,6 +158,7 @@ public class ContainerConnection {
         }
 
         try await resumeAutosave()
+        try releaseHold(destination: destination)
 
         if failedBackups.count > 0 {
             throw ContainerError.backupsFailed(failedBackups)
@@ -247,7 +272,11 @@ public class ContainerConnection {
 
     private func resumeSaveOnJava() async throws {
         try terminal.sendLine("save-on")
-        if try await expect(["Automatic saving is now enabled"], timeout: 60.0) == .noMatch {
+        let saveResumeStrings = [
+            "Automatic saving is now enabled",
+            "Saving is already turned on"
+        ]
+        if try await expect(saveResumeStrings, timeout: 60.0) == .noMatch {
             throw ContainerError.resumeFailed
         }
     }
@@ -269,6 +298,31 @@ public class ContainerConnection {
         }
 
         return result
+    }
+
+    public func isSaveHeld(destination: URL) -> Bool {
+        let holdFile = holdFile(destination: destination)
+        return FileManager.default.fileExists(atPath: holdFile.path)
+    }
+
+    private func takeHold(destination: URL) throws {
+        let holdFile = holdFile(destination: destination)
+        if !FileManager.default.fileExists(atPath: holdFile.path) {
+            Library.log.debug("Taking save hold on \(name)")
+            try Data().write(to: holdFile)
+        }
+    }
+
+    private func releaseHold(destination: URL) throws {
+        let holdFile = holdFile(destination: destination)
+        if FileManager.default.fileExists(atPath: holdFile.path) {
+            Library.log.debug("Releasing save hold on \(name)")
+            try FileManager.default.removeItem(at: holdFile)
+        }
+    }
+
+    private func holdFile(destination: URL) -> URL {
+        destination.appendingPathComponent(".\(self.name).hold")
     }
 
     private static func getPtyArguments(dockerPath: String, containerName: String) -> [String] {

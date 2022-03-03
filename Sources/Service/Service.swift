@@ -79,6 +79,7 @@ final class BackupService {
             }
 
             try connectContainers()
+            cleanupContainers()
 
             if schedule.interval != nil || environment.backupInterval != nil {
                 try startIntervalBackups()
@@ -109,6 +110,33 @@ final class BackupService {
         if needsListeners() {
             for container in containers {
                 try container.start()
+            }
+        }
+    }
+
+    private func cleanupContainers() {
+        BackupService.logger.info("Checking for servers that might not be cleaned up")
+        for container in containers {
+            if container.isSaveHeld(destination: backupUrl) {
+                Task {
+                    BackupService.logger.info("\(container.name) is dirty, cleaning up")
+                    do {
+                        let wasRunning = container.isRunning
+                        if !wasRunning {
+                            try container.start()
+                        }
+
+                        BackupService.logger.info("Resuming autosave on \(container.name)")
+                        try await container.cleanupIncompleteBackup(destination: backupUrl)
+
+                        if !wasRunning {
+                            await container.stop()
+                        }
+                    } catch let error {
+                        BackupService.logger.error("\(error.localizedDescription)")
+                        BackupService.logger.error("Failed to clean up container \(container.name)")
+                    }
+                }
             }
         }
     }
