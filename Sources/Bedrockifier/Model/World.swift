@@ -135,45 +135,41 @@ extension World {
             throw WorldError.invalidWorldType
         }
 
-        if isBedrockFolder() {
-            return try packBedrock(to: url, progress: progress)
-        } else {
-            return try packJava(to: url, progress: progress)
-        }
-    }
-
-    private func packBedrock(to url: URL, progress: Progress? = nil) throws -> World {
-        assert(self.type == .folder)
-
         let targetFolder = url.deletingLastPathComponent()
         try FileManager.default.createDirectory(atPath: targetFolder.path,
                                                 withIntermediateDirectories: true,
                                                 attributes: nil)
-        guard let archive = Archive(url: url, accessMode: .create) else {
+
+        // We want to write to a temporary file first.
+        // Write it as: "Foo.mcworld.part" or "Foo.zip.part"
+        let tempUrl = url.appendingPathExtension("part")
+
+        guard let archive = Archive(url: tempUrl, accessMode: .create) else {
             throw WorldError.invalidLevelArchive
         }
 
+        if isBedrockFolder() {
+            try packBedrock(to: archive, progress: progress)
+        } else {
+            try packJava(to: archive, progress: progress)
+        }
+
+        // With it packed successfully, rename it.
+        try FileManager.default.moveItem(at: tempUrl, to: url)
+
+        return try World(url: url)
+    }
+
+    private func packBedrock(to archive: Archive, progress: Progress? = nil) throws {
         let dirEnum = FileManager.default.enumerator(atPath: self.location.path)
 
         while let archiveItem = dirEnum?.nextObject() as? String {
             let fullItemUrl = URL(fileURLWithPath: archiveItem, relativeTo: self.location)
             try archive.addEntry(with: archiveItem, fileURL: fullItemUrl)
         }
-
-        return try World(url: url)
     }
 
-    func packJava(to url: URL, progress: Progress? = nil) throws -> World {
-        assert(self.type == .folder)
-
-        let targetFolder = url.deletingLastPathComponent()
-        try FileManager.default.createDirectory(atPath: targetFolder.path,
-                                                withIntermediateDirectories: true,
-                                                attributes: nil)
-        guard let archive = Archive(url: url, accessMode: .create) else {
-            throw WorldError.invalidLevelArchive
-        }
-
+    func packJava(to archive: Archive, progress: Progress? = nil) throws {
         let dirEnum = FileManager.default.enumerator(atPath: self.location.path)
 
         let folderBase = NSString(string: self.location.lastPathComponent)
@@ -182,8 +178,6 @@ extension World {
             let fullItemUrl = URL(fileURLWithPath: archiveItem, relativeTo: self.location)
             try archive.addEntry(with: archivePath, fileURL: fullItemUrl)
         }
-
-        return try World(url: url)
     }
 
     func unpack(to url: URL, progress: Progress? = nil) throws -> World {
