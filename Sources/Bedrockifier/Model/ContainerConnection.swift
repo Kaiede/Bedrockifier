@@ -31,6 +31,10 @@ public class ContainerConnection {
     var playerCount: Int
     public var lastBackup: Date
 
+    public var isRunning: Bool {
+        dockerProcess.isRunning
+    }
+
     public init(terminal: PseudoTerminal,
                 dockerPath: String,
                 containerName: String,
@@ -89,11 +93,25 @@ public class ContainerConnection {
         self.dockerProcess = try Process(processUrl, arguments: processArgs, terminal: terminal)
     }
 
+    public func cleanupIncompleteBackup(destination: URL) async throws {
+        guard dockerProcess.isRunning else {
+            throw ContainerError.processNotRunning
+        }
+
+        guard isSaveHeld(destination: destination) else {
+            throw ContainerError.resumeFailed
+        }
+
+        try await resumeAutosave()
+        try releaseHold(destination: destination)
+    }
+
     public func runBackup(destination: URL) async throws {
         guard dockerProcess.isRunning else {
             throw ContainerError.processNotRunning
         }
 
+        try takeHold(destination: destination)
         try await pauseAutosave()
 
         var failedBackups: [String] = []
@@ -134,6 +152,7 @@ public class ContainerConnection {
         }
 
         try await resumeAutosave()
+        try releaseHold(destination: destination)
 
         if failedBackups.count > 0 {
             throw ContainerError.backupsFailed(failedBackups)
@@ -269,6 +288,29 @@ public class ContainerConnection {
         }
 
         return result
+    }
+
+    public func isSaveHeld(destination: URL) -> Bool {
+        let holdFile = holdFile(destination: destination)
+        return FileManager.default.fileExists(atPath: holdFile.path)
+    }
+
+    private func takeHold(destination: URL) throws {
+        let holdFile = holdFile(destination: destination)
+        if !FileManager.default.fileExists(atPath: holdFile.path) {
+            try Data().write(to: holdFile)
+        }
+    }
+
+    private func releaseHold(destination: URL) throws {
+        let holdFile = holdFile(destination: destination)
+        if FileManager.default.fileExists(atPath: holdFile.path) {
+            try FileManager.default.removeItem(at: holdFile)
+        }
+    }
+
+    private func holdFile(destination: URL) -> URL {
+        destination.appendingPathComponent(".\(self.name).hold")
     }
 
     private static func getPtyArguments(dockerPath: String, containerName: String) -> [String] {
