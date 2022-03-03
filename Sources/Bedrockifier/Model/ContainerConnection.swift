@@ -266,7 +266,11 @@ public class ContainerConnection {
 
     private func resumeSaveOnJava() async throws {
         try terminal.sendLine("save-on")
-        if try await expect(["Automatic saving is now enabled"], timeout: 60.0) == .noMatch {
+        let saveResumeStrings = [
+            "Automatic saving is now enabled",
+            "Saving is already turned on"
+        ]
+        if try await expect(saveResumeStrings, timeout: 60.0) == .noMatch {
             throw ContainerError.resumeFailed
         }
     }
