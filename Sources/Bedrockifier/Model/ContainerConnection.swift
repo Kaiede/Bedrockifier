@@ -112,7 +112,13 @@ public class ContainerConnection {
         }
 
         try takeHold(destination: destination)
-        try await pauseAutosave()
+        do {
+            try await pauseAutosave()
+        } catch let error {
+            // Best effort release the hold if we weren't able to pause saving
+            try? releaseHold(destination: destination)
+            throw error
+        }
 
         var failedBackups: [String] = []
         Library.log.info("Starting Backup of worlds for: \(name)")
@@ -302,6 +308,7 @@ public class ContainerConnection {
     private func takeHold(destination: URL) throws {
         let holdFile = holdFile(destination: destination)
         if !FileManager.default.fileExists(atPath: holdFile.path) {
+            Library.log.debug("Taking save hold on \(name)")
             try Data().write(to: holdFile)
         }
     }
@@ -309,6 +316,7 @@ public class ContainerConnection {
     private func releaseHold(destination: URL) throws {
         let holdFile = holdFile(destination: destination)
         if FileManager.default.fileExists(atPath: holdFile.path) {
+            Library.log.debug("Releasing save hold on \(name)")
             try FileManager.default.removeItem(at: holdFile)
         }
     }
