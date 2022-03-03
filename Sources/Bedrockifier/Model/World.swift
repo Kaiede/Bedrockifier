@@ -142,16 +142,16 @@ extension World {
 
         // We want to write to a temporary file first.
         // Write it as: "Foo.mcworld.part" or "Foo.zip.part"
-        let tempUrl = url.appendPathExtension("part")
+        let tempUrl = url.appendingPathExtension("part")
 
         guard let archive = Archive(url: tempUrl, accessMode: .create) else {
             throw WorldError.invalidLevelArchive
         }
 
         if isBedrockFolder() {
-            try packBedrock(to: tempUrl, progress: progress)
+            try packBedrock(to: archive, progress: progress)
         } else {
-            try packJava(to: tempUrl, progress: progress)
+            try packJava(to: archive, progress: progress)
         }
 
         // With it packed successfully, rename it.
@@ -160,7 +160,7 @@ extension World {
         return try World(url: url)
     }
 
-    private func packBedrock(to url: URL, progress: Progress? = nil) throws {
+    private func packBedrock(to archive: Archive, progress: Progress? = nil) throws {
         let dirEnum = FileManager.default.enumerator(atPath: self.location.path)
 
         while let archiveItem = dirEnum?.nextObject() as? String {
@@ -169,7 +169,7 @@ extension World {
         }
     }
 
-    func packJava(to url: URL, progress: Progress? = nil) throws {
+    func packJava(to archive: Archive, progress: Progress? = nil) throws {
         let dirEnum = FileManager.default.enumerator(atPath: self.location.path)
 
         let folderBase = NSString(string: self.location.lastPathComponent)
