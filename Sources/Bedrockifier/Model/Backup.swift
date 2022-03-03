@@ -90,7 +90,7 @@ public struct Backups {
         let backups = try getBackups(type, at: folder)
         for (worldName, worldBackups) in backups {
             Library.log.debug("Processing: \(worldName)")
-            let processedBackups = worldBackups.process(trimDays: trimDays, keepDays: keepDays, minKeep: minKeep)
+            let processedBackups = try worldBackups.process(trimDays: trimDays, keepDays: keepDays, minKeep: minKeep)
             for processedBackup in processedBackups.filter({ $0.action == .trim }) {
                 Library.log.info("\(deletingString): \(processedBackup.item.location.lastPathComponent)")
                 if !dryRun {
@@ -114,8 +114,12 @@ public struct Backups {
                                                                 options: [])
 
         for possibleWorld in files {
-            let resourceValues = try possibleWorld.resourceValues(forKeys: Set(keys))
-            let modificationDate = resourceValues.contentModificationDate!
+            let resourceValues = try? possibleWorld.resourceValues(forKeys: Set(keys))
+            guard let modificationDate = resourceValues?.contentModificationDate else {
+                Library.log.error("Unable to get modification date for \(possibleWorld.path)")
+                continue
+            }
+
             if let item = try? ItemType(url: possibleWorld) {
                 var array = results[item.name] ?? []
                 array.append(Backup<ItemType>(item: item, date: modificationDate))
@@ -139,12 +143,20 @@ extension Array where Element: BackupProtocol {
         }
     }
 
-    func process(trimDays: Int, keepDays: Int, minKeep: Int) -> [Element] {
+    func process(trimDays: Int, keepDays: Int, minKeep: Int) throws -> [Element] {
         let trimDays = DateComponents(day: -(trimDays - 1))
         let keepDays = DateComponents(day: -(keepDays - 1))
-        let today = Calendar.current.date(from: Date().toDayComponents())!
-        let trimDay = Calendar.current.date(byAdding: trimDays, to: today)!
-        let keepDay = Calendar.current.date(byAdding: keepDays, to: today)!
+
+        guard let today = Calendar.current.date(from: Date().toDayComponents()) else {
+            throw TrimmingError.failedToCalculateDate("today")
+        }
+        guard let trimDay = Calendar.current.date(byAdding: trimDays, to: today)  else {
+            throw TrimmingError.failedToCalculateDate("trimDay")
+        }
+        guard let keepDay = Calendar.current.date(byAdding: keepDays, to: today)  else {
+            throw TrimmingError.failedToCalculateDate("keepDay")
+        }
+
 
         // Sort from oldest to newest first
         let modifiedBackups = self.sorted(by: { $0.modificationDate > $1.modificationDate })
@@ -201,3 +213,15 @@ extension Array where Element: BackupProtocol {
     }
 }
 
+enum TrimmingError: Error {
+    case failedToCalculateDate(String)
+}
+
+extension TrimmingError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .failedToCalculateDate(let dateType):
+            return "Could not calculate \(dateType) date for trimming"
+        }
+    }
+}
