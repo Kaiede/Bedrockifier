@@ -33,6 +33,7 @@ private let logger = Logger(label: "BedrockifierCLI:WorldBackup")
 enum BackupAction {
     case keep
     case trim
+    case purge
 }
 
 public protocol BackupItem {
@@ -144,7 +145,7 @@ extension Array where Element: BackupProtocol {
         guard keepLast < endIndex else { return }
 
         for item in partialItems {
-            item.action = .trim
+            item.action = .purge
         }
 
         for item in items[keepLast ..< endIndex] {
@@ -194,7 +195,8 @@ extension Array where Element: BackupProtocol {
         var forceKeepCount = Swift.min(modifiedBackups.count, Swift.max(minKeep - keepCount, 0))
         if forceKeepCount > 0 {
             for backup in modifiedBackups {
-                if backup.action != .keep {
+                // Don't try to keep partial backups that need to be purged
+                if backup.action != .keep && backup.action != .purge {
                     backup.action = .keep
                     forceKeepCount -= 1
                 }
