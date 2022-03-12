@@ -41,123 +41,77 @@ final class BackupService {
         static let logoutStrings = [bedrockLogout, javaLogout]
     }
 
-    private static let logger = Logger(label: "bedrockifier")
+    static let logger = Logger(label: "bedrockifier")
     private static let backupPriority = TaskPriority.background
 
     let config: BackupConfig
     let environment: EnvironmentConfig
     let backupUrl: URL
     let dockerPath: String
-
-    let healthFileUrl: URL
+    let backupActor: BackupActor
 
     var intervalTimer: ServiceTimer<String>?
-    var containers: [ContainerConnection]
 
     init(config: BackupConfig, backupUrl: URL, dockerPath: String) {
         self.config = config
         self.environment = EnvironmentConfig()
         self.backupUrl = backupUrl
         self.dockerPath = dockerPath
-        self.containers = []
-
-        self.healthFileUrl = backupUrl.appendingPathComponent(".service_is_healthy")
+        self.backupActor = BackupActor(config: config, destination: backupUrl)
     }
 
     public func run() throws {
-        // Do startup validation
-        try validateServerFolders()
-        if !markHealthy(forceWrite: true) {
-            throw ServiceError.unableToMarkHealthy
-        }
-
-        // Start the backups
-        if let schedule = config.schedule {
-            if schedule.interval != nil && schedule.daily != nil {
-                BackupService.logger.error("Only 'interval' or 'daily' backup types are allowed. Not both.")
-                throw ServiceError.onlyOneIntervalTypeAllowed
+        Task {
+            // Do startup validation
+            try validateServerFolders()
+            if await !backupActor.markHealthy(forceWrite: true) {
+                throw ServiceError.unableToMarkHealthy
             }
 
-            try connectContainers()
-            cleanupContainers()
+            // Start the backups
+            if let schedule = config.schedule {
+                if schedule.interval != nil && schedule.daily != nil {
+                    BackupService.logger.error("Only 'interval' or 'daily' backup types are allowed. Not both.")
+                    throw ServiceError.onlyOneIntervalTypeAllowed
+                }
 
-            if schedule.interval != nil || environment.backupInterval != nil {
+                try await connectContainers()
+                await self.backupActor.cleanupContainers()
+
+                if schedule.interval != nil || environment.backupInterval != nil {
+                    try startIntervalBackups()
+                } else if schedule.daily != nil {
+                    try startDailyBackups()
+                }
+
+                if await backupActor.needsListeners() {
+                    await startListenerBackups()
+                }
+
+                if let minInterval = try schedule.parseMinInterval() {
+                    BackupService.logger.info("Backup Minimum Interval is \(minInterval) seconds")
+                }
+            } else {
+                // Without the schedule, we have to assume the docker container specifies an interval
+                try await connectContainers()
                 try startIntervalBackups()
-            } else if schedule.daily != nil {
-                try startDailyBackups()
             }
-
-            if needsListeners() {
-                startListenerBackups()
-            }
-
-            if let minInterval = try schedule.parseMinInterval() {
-                BackupService.logger.info("Backup Minimum Interval is \(minInterval) seconds")
-            }
-        } else {
-            // Without the schedule, we have to assume the docker container specifies an interval
-            try connectContainers()
-            try startIntervalBackups()
         }
 
         dispatchMain()
     }
 
-    private func connectContainers() throws {
-        containers = try ContainerConnection.loadContainers(from: config, dockerPath: dockerPath)
+    private func connectContainers() async throws {
+        let containers = try ContainerConnection.loadContainers(from: config, dockerPath: dockerPath)
 
         // Attach to the containers
-        if needsListeners() {
+        if await backupActor.needsListeners() {
             for container in containers {
                 try container.start()
             }
         }
-    }
 
-    private func cleanupContainers() {
-        BackupService.logger.info("Checking for servers that might not be cleaned up")
-        for container in containers {
-            if container.isSaveHeld(destination: backupUrl) {
-                Task {
-                    BackupService.logger.info("\(container.name) is dirty, cleaning up")
-                    do {
-                        let wasRunning = container.isRunning
-                        if !wasRunning {
-                            try container.start()
-                        }
-
-                        BackupService.logger.info("Resuming autosave on \(container.name)")
-                        try await container.cleanupIncompleteBackup(destination: backupUrl)
-
-                        if !wasRunning {
-                            await container.stop()
-                        }
-                    } catch let error {
-                        BackupService.logger.error("\(error.localizedDescription)")
-                        BackupService.logger.error("Failed to clean up container \(container.name)")
-                    }
-                }
-            }
-        }
-    }
-
-    private func markHealthy(forceWrite: Bool = false) -> Bool {
-        do {
-            if FileManager.default.fileExists(atPath: healthFileUrl.path) && forceWrite {
-                try FileManager.default.removeItem(at: healthFileUrl)
-            }
-
-            if !FileManager.default.fileExists(atPath: healthFileUrl.path) {
-                try Data().write(to: healthFileUrl)
-            }
-
-            return true
-        } catch let error {
-            BackupService.logger.error("\(error.localizedDescription)")
-            BackupService.logger.error("Unable to mark service as healthy.")
-        }
-
-        return false
+        await self.backupActor.update(containers: containers)
     }
 
     private func validateServerFolders() throws {
@@ -178,12 +132,6 @@ final class BackupService {
         }
     }
 
-    private func needsListeners() -> Bool {
-        return config.schedule?.onPlayerLogin == true
-        || config.schedule?.onPlayerLogout == true
-        || config.schedule?.onLastLogout == true
-    }
-
     private func startIntervalBackups() throws {
         guard let interval = try getBackupInterval() else {
             BackupService.logger.error("Unable to Parse Backup Interval")
@@ -199,7 +147,7 @@ final class BackupService {
         }
         timer.schedule(startingAt: startTime, repeating: .seconds(Int(interval)))
         timer.setHandler(priority: BackupService.backupPriority) {
-            await self.runFullBackup(isDaily: false)
+            await self.backupActor.backupAllContainers(isDaily: false)
         }
 
         self.intervalTimer = timer
@@ -221,11 +169,11 @@ final class BackupService {
         BackupService.logger.info("Next Backup: \(Library.dateFormatter.string(from: firstFiring))")
         timer.schedule(at: firstFiring)
         timer.setHandler {
-            await self.runFullBackup(isDaily: true)
+            await self.backupActor.backupAllContainers(isDaily: true)
 
             guard let nextFiring = dayTime.calcNextDate(after: Date()) else {
                 BackupService.logger.error("Unable to calculate next daily backup date")
-                self.markUnhealthy()
+                await self.backupActor.markUnhealthy()
                 exit(1)
             }
 
@@ -236,9 +184,9 @@ final class BackupService {
         self.intervalTimer = timer
     }
 
-    private func startListenerBackups() {
+    private func startListenerBackups() async {
         BackupService.logger.info("Starting Listeners for Containers")
-        for container in containers {
+        for container in await backupActor.containers {
             container.terminal.listen(for: Strings.listenerStrings) { content in
                 Task(priority: BackupService.backupPriority) {
                     await self.onListenerEvent(container: container, content: content)
@@ -255,7 +203,7 @@ final class BackupService {
             let playerCount = container.incrementPlayerCount()
             BackupService.logger.info("Player Logged In: \(container.name), Players Active: \(playerCount)")
             if config.schedule?.onPlayerLogin == true {
-                await runSingleBackup(container: container)
+                await self.backupActor.backupContainer(container: container)
             }
         }
 
@@ -264,115 +212,11 @@ final class BackupService {
             let playerCount = container.decrementPlayerCount()
             BackupService.logger.info("Player Logged Out: \(container.name), Players Active: \(playerCount)")
             if config.schedule?.onPlayerLogout == true {
-                await runSingleBackup(container: container)
+                await self.backupActor.backupContainer(container: container)
             } else if config.schedule?.onLastLogout == true && playerCount == 0 {
-                await runSingleBackup(container: container)
+                await self.backupActor.backupContainer(container: container)
             }
         }
-    }
-
-    private func runSingleBackup(container: ContainerConnection) async {
-        guard shouldRunBackup(container: container) else {
-            return
-        }
-
-        BackupService.logger.info("Running Single Backup for \(container.name)")
-        do {
-            try await container.runBackup(destination: backupUrl)
-            try runPostBackupTasks()
-            BackupService.logger.info("Single Backup Completed")
-            _ = markHealthy()
-        } catch let error {
-            BackupService.logger.error("Single Backup for \(container.name) failed")
-            BackupService.logger.error("\(error.localizedDescription)")
-            markUnhealthy()
-        }
-    }
-
-    private func runFullBackup(isDaily: Bool) async {
-        BackupService.logger.info("Starting Full Backup")
-        let needsListeners = needsListeners()
-        var failedContainers = 0
-        for container in containers {
-            do {
-                guard shouldRunBackup(container: container) || isDaily else {
-                    continue
-                }
-
-                if !needsListeners {
-                    try container.start()
-                }
-                try await container.runBackup(destination: backupUrl)
-                if !needsListeners {
-                    await container.stop()
-                }
-            } catch let error {
-                failedContainers += 1
-                BackupService.logger.error("\(error.localizedDescription)")
-                BackupService.logger.error("Container \(container.name) failed to backup properly")
-            }
-        }
-
-        do {
-            try runPostBackupTasks()
-
-            BackupService.logger.info("Full Backup Completed")
-
-            if !needsListeners {
-                for container in containers {
-                    try container.reset()
-                }
-            }
-
-            if failedContainers > 0 {
-                markUnhealthy()
-            } else {
-                _ = markHealthy()
-            }
-        } catch let error {
-            BackupService.logger.error("\(error.localizedDescription)")
-            BackupService.logger.error("Full Backup Failed")
-            markUnhealthy()
-        }
-    }
-
-    private func runPostBackupTasks() throws {
-        if let ownershipConfig = config.ownership {
-            BackupService.logger.info("Performing Ownership Fixup")
-            try Backups.fixOwnership(at: backupUrl, config: ownershipConfig)
-        }
-
-        if let trimJob = config.trim {
-            BackupService.logger.info("Performing Trim Jobs")
-            try Backups.trimBackups(World.self,
-                                    at: backupUrl,
-                                    dryRun: false,
-                                    trimDays: trimJob.trimDays,
-                                    keepDays: trimJob.keepDays,
-                                    minKeep: trimJob.minKeep)
-            try Backups.trimBackups(ServerExtras.self,
-                                    at: backupUrl,
-                                    dryRun: false,
-                                    trimDays: trimJob.trimDays,
-                                    keepDays: trimJob.keepDays,
-                                    minKeep: trimJob.minKeep)
-        }
-    }
-
-    private func shouldRunBackup(container: ContainerConnection) -> Bool {
-        if let minInterval = try? config.schedule?.parseMinInterval() {
-            // Allow for some slop of a minute in the timing.
-            let slop = 60.0
-            let intervalWithSlop = max(0.0, minInterval - slop)
-            BackupService.logger.debug("Checking Min Interval of \(minInterval), with slop: \(intervalWithSlop)")
-            let now = Date()
-            if container.lastBackup + intervalWithSlop > now {
-                BackupService.logger.info("Skipping Backup, still within \(minInterval) seconds since last backup")
-                return false
-            }
-        }
-
-        return true
     }
 
     private func getBackupInterval() throws -> TimeInterval? {
@@ -389,17 +233,6 @@ final class BackupService {
 
     private func getStartupDelay() throws -> TimeInterval? {
         return try config.schedule?.parseStartupDelay()
-    }
-
-    private func markUnhealthy() {
-        do {
-            if FileManager.default.fileExists(atPath: healthFileUrl.path) {
-                try FileManager.default.removeItem(at: healthFileUrl)
-            }
-        } catch let error {
-            BackupService.logger.error("\(error.localizedDescription)")
-            BackupService.logger.error("Unable to mark service as unhealthy.")
-        }
     }
 }
 
