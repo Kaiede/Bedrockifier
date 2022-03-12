@@ -1,0 +1,21 @@
+containers:
+  bedrock:
+    # Backup the world "PrivateSMP" on the "bedrock_private" docker container
+    - name: bedrock_private
+      worlds:
+        - /bedrock_private/worlds/PrivateSMP
+    # Backup the world "PublicSMP" on the "bedrock_public" docker container
+    - name: bedrock_public
+      worlds:
+        - /bedrock_public/worlds/PublicSMP
+schedule:
+  # This will perform a backup every 3 hours.
+  # At most this will generate 8 backups a day.
+  interval: 3h
+trim:
+  # Keep all backups for the last two days (today and yesterday)
+  # Keep at least one backup for the last 14 days
+  # Keep at least two backups per world
+  trimDays: 2
+  keepDays: 14
+  minKeep: 2
