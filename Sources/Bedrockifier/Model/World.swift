@@ -130,6 +130,8 @@ public struct World {
 }
 
 extension World {
+    static let partialPackExt = "part"
+
     func pack(to url: URL, progress: Progress? = nil) throws -> World {
         guard self.type == .folder else {
             throw WorldError.invalidWorldType
@@ -142,7 +144,7 @@ extension World {
 
         // We want to write to a temporary file first.
         // Write it as: "Foo.mcworld.part" or "Foo.zip.part"
-        let tempUrl = url.appendingPathExtension("part")
+        let tempUrl = url.appendingPathExtension(World.partialPackExt)
 
         guard let archive = Archive(url: tempUrl, accessMode: .create) else {
             throw WorldError.invalidLevelArchive

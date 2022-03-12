@@ -133,10 +133,19 @@ public struct Backups {
 
 extension Array where Element: BackupProtocol {
     func trimBucket(keepLast: Int = 1) {
+        // Get any partial backups so they can be trimmed. Not worth keeping them around.
+        let partialItems = self
+            .filter({ $0.item.location.pathExtension.lowercased() == World.partialPackExt })
         // Sort in descending order so the keepers are at the front
-        let items = self.sorted(by: { $0.modificationDate > $1.modificationDate })
+        let items = self
+            .filter({ $0.item.location.pathExtension.lowercased() != World.partialPackExt })
+            .sorted(by: { $0.modificationDate > $1.modificationDate })
 
         guard keepLast < endIndex else { return }
+
+        for item in partialItems {
+            item.action = .trim
+        }
 
         for item in items[keepLast ..< endIndex] {
             item.action = .trim
