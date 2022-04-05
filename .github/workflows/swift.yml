@@ -32,8 +32,8 @@ jobs:
           WORKING_DIRECTORY: Sources
 
   macOSBuild:
-    name: macOS - Latest Xcode
-    runs-on: macOS-latest
+    name: macOS 12 - Latest Xcode
+    runs-on: macOS-12
         
     steps:
       - name: Configure Xcode
