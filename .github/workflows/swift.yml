@@ -32,7 +32,7 @@ jobs:
           WORKING_DIRECTORY: Sources
 
   macOSBuild:
-    name: macOS - Latest Stable Xcode
+    name: macOS - Latest Xcode
     runs-on: macOS-latest
         
     steps:
