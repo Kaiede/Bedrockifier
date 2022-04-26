@@ -9,7 +9,7 @@ final class WorldTests: XCTestCase {
         do {
             let _ = try World(url: homeUrl)
             XCTFail("Expected the call to throw")
-        } catch World.WorldError.invalidUrl(let url) {
+        } catch World.WorldError.invalidUrl(let url, _) {
             XCTAssertEqual(url, homeUrl)
         } catch let error {
             XCTFail("\(error.localizedDescription)")
