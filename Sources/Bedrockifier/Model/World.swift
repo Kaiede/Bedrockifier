@@ -52,7 +52,7 @@ public struct World {
                 let values = try url.resourceValues(forKeys: [.isDirectoryKey])
                 return values.isDirectory == true
             } catch {
-                throw WorldError.invalidUrl(url: url)
+                throw WorldError.invalidUrl(url: url, innerError: error)
             }
         }
     }
@@ -329,7 +329,7 @@ extension World {
 extension World {
     enum WorldError: Error {
         case invalidWorldType
-        case invalidUrl(url: URL)
+        case invalidUrl(url: URL, innerError: Error)
         case invalidLevelArchive
         case missingLevelName
         case invalidLevelNameFile
@@ -340,7 +340,7 @@ extension World.WorldError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidWorldType: return "World isn't a zip file, mcworld file, or valid Minecraft world folder"
-        case .invalidUrl(let url): return "Unable to access world path at '\(url.path)'"
+        case .invalidUrl(let url, let innerError): return "Unable to access world path at '\(url.path)': \(innerError)"
         case .invalidLevelArchive: return "World archive is not a valid zip or mcworld file"
         case .missingLevelName: return "Unable to determine name of the world"
         case .invalidLevelNameFile: return "Unable to read contents of levelname.txt"
