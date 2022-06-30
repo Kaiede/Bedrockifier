@@ -1,4 +1,4 @@
-// swift-tools-version:5.5
+// swift-tools-version:5.6
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -22,15 +22,13 @@ let package = Package(
         ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
-        // .package(url: /* package url */, from: "1.0.0"),
         .package(url: "https://github.com/vapor/console-kit.git", .upToNextMinor(from: "4.2.5")),
         .package(url: "https://github.com/weichsel/ZIPFoundation.git", .upToNextMajor(from: "0.9.0")),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
-        .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.0.0"),
-        .package(url: "https://github.com/jpsim/Yams.git", from: "4.0.0"),
-        .package(url: "https://github.com/swift-server/swift-backtrace.git", from: "1.3.1"),
-        .package(url: "https://github.com/Kaiede/PTYKit.git", .branch("master")),
-        //.package(path: "../PTYKit")
+        .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.1.3"),
+        .package(url: "https://github.com/jpsim/Yams.git", from: "5.0.0"),
+        .package(url: "https://github.com/swift-server/swift-backtrace.git", from: "1.3.3"),
+        .package(url: "https://github.com/Kaiede/PTYKit.git", branch: "master")
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
