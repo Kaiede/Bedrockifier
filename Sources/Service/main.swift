@@ -32,7 +32,7 @@ import PTYKit
 import Bedrockifier
 
 struct Server: ParsableCommand {
-    private static let logger = Logger(label: "bedrockifier")
+    fileprivate static let logger = Logger(label: "bedrockifier")
 
     @Option(help: "Path to the config file")
     var configPath: String?
@@ -49,10 +49,9 @@ struct Server: ParsableCommand {
     @Flag(help: "Log trace level information, overriding --debug")
     var trace = false
 
-    mutating func run() throws {
+    mutating func run() {
+        Server.logger.info("Configuring Bedrockifier Daemon")
         let environment = EnvironmentConfig()
-
-        Server.logger.info("Initializing Bedrockifier Daemon")
 
         let configUri = getConfigFileUrl(environment: environment)
         guard FileManager.default.fileExists(atPath: configUri.path) else {
@@ -143,5 +142,6 @@ struct Server: ParsableCommand {
 // Initialize Service
 ConsoleLogger.showDetails = true
 LoggingSystem.bootstrap(ConsoleLogger.init)
+Server.logger.info("Initializing Bedrockifier Daemon")
 Backtrace.install()
 Server.main()

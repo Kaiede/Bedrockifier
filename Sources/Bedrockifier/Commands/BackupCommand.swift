@@ -117,6 +117,7 @@ public final class BackupCommand: Command {
                                             minKeep: signature.minKeep)
                 }
             } catch let error {
+                Library.log.debug("\(error)")
                 Library.log.error("\(error.localizedDescription)")
                 Library.log.error("Backup Job Failed")
                 errorHandler(error)

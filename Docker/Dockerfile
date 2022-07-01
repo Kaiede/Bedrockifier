@@ -1,6 +1,6 @@
 
 ARG swift_base=swift
-ARG swift_version=5.5.3
+ARG swift_version=5.6.2
 ARG swift_image=$swift_base:$swift_version
 
 ###### BUILDER
