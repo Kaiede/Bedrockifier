@@ -31,24 +31,22 @@ jobs:
       env:
           WORKING_DIRECTORY: Sources
 
-# re-enable when macOS 12 is available
-#
-#  macOSBuild:
-#    name: macOS - Latest Stable Xcode
-#    runs-on: macOS-latest
-#        
-#    steps:
-#      - name: Configure Xcode
-#        uses: maxim-lobanov/setup-xcode@v1
-#        with:
-#          xcode-version: 'latest-stable'
-#      - name: Checkout
-#        uses: actions/checkout@v1
-#      - name: Swift Package Information
-#        run: |
-#          swift --version
-#          swift package show-dependencies
-#      - name: Build
-#        run: swift build --build-tests
-#      - name: Test
-#        run: swift test
+  macOSBuild:
+    name: macOS 12 - Latest Xcode
+    runs-on: macOS-12
+        
+    steps:
+      - name: Configure Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: 'latest-stable'
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Swift Package Information
+        run: |
+          swift --version
+          swift package show-dependencies
+      - name: Build
+        run: swift build
+      - name: Test
+        run: swift test -Xlinker -rpath -Xlinker "$(xcode-select -p)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx"
