@@ -80,7 +80,7 @@ struct Server: ParsableCommand {
 
         updateLoggingLevel(config: config, environment: environment)
 
-        Server.logger.info("Configuration Loaded, Entering Event Loop...")
+        Server.logger.info("Configuration Loaded, Running Service...")
         do {
             let service = BackupService(config: config, backupUrl: backupUrl, dockerPath: dockerPath)
 

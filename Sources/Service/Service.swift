@@ -62,39 +62,49 @@ final class BackupService {
 
     public func run() throws {
         Task {
-            // Do startup validation
-            try validateServerFolders()
-            if await !backupActor.markHealthy(forceWrite: true) {
-                throw ServiceError.unableToMarkHealthy
-            }
-
-            // Start the backups
-            if let schedule = config.schedule {
-                if schedule.interval != nil && schedule.daily != nil {
-                    BackupService.logger.error("Only 'interval' or 'daily' backup types are allowed. Not both.")
-                    throw ServiceError.onlyOneIntervalTypeAllowed
+            do {
+                // Do startup validation
+                try validateServerFolders()
+                if await !backupActor.markHealthy(forceWrite: true) {
+                    throw ServiceError.unableToMarkHealthy
                 }
 
-                try await connectContainers()
-                await self.backupActor.cleanupContainers()
+                // Start the backups
+                if let schedule = config.schedule {
+                    if schedule.interval != nil && schedule.daily != nil {
+                        BackupService.logger.error("Only 'interval' or 'daily' backup types are allowed. Not both.")
+                        throw ServiceError.onlyOneIntervalTypeAllowed
+                    }
 
-                if schedule.interval != nil || environment.backupInterval != nil {
+                    try await connectContainers()
+                    await self.backupActor.cleanupContainers()
+
+                    if schedule.interval != nil || environment.backupInterval != nil {
+                        try startIntervalBackups()
+                    } else if schedule.daily != nil {
+                        try startDailyBackups()
+                    }
+
+                    if await backupActor.needsListeners() {
+                        await startListenerBackups()
+                    }
+
+                    if let minInterval = try schedule.parseMinInterval() {
+                        BackupService.logger.info("Backup Minimum Interval is \(minInterval) seconds")
+                    }
+                } else {
+                    // Without the schedule, we have to assume the docker container specifies an interval
+                    try await connectContainers()
                     try startIntervalBackups()
-                } else if schedule.daily != nil {
-                    try startDailyBackups()
                 }
 
-                if await backupActor.needsListeners() {
-                    await startListenerBackups()
+                BackupService.logger.info("Service Started Successfully.")
+            } catch {
+                BackupService.logger.error("Encountered Error During Startup: \(error.localizedDescription)")
+                BackupService.logger.trace("Error Details: \(error)")
+                await MainActor.run {
+                    exit(-1)
                 }
-
-                if let minInterval = try schedule.parseMinInterval() {
-                    BackupService.logger.info("Backup Minimum Interval is \(minInterval) seconds")
-                }
-            } else {
-                // Without the schedule, we have to assume the docker container specifies an interval
-                try await connectContainers()
-                try startIntervalBackups()
             }
         }
 
