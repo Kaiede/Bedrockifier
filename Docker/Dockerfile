@@ -1,7 +1,6 @@
 
-ARG swift_base=swift
 ARG swift_version=5.6.2
-ARG swift_image=$swift_base:$swift_version
+ARG swift_image=swift:$swift_version-focal
 
 ###### BUILDER
 FROM $swift_image as builder
