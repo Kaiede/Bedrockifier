@@ -161,7 +161,12 @@ extension World {
         }
 
         // With it packed successfully, rename it.
-        try FileManager.default.moveItem(at: tempUrl, to: url)
+        do {
+            try FileManager.default.moveItem(at: tempUrl, to: url)
+        } catch let error {
+            Library.log.error("Failed to move \(tempUrl.path) to \(url.path)")
+            throw error
+        }
 
         return try World(url: url)
     }

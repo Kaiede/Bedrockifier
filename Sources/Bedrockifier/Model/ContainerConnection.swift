@@ -131,8 +131,9 @@ public class ContainerConnection {
                 let backupWorld = try world.backup(to: destination)
                 Library.log.info("Backed up as: \(backupWorld.location.lastPathComponent)")
             } catch let error {
-                Library.log.error("\(error.localizedDescription)")
                 Library.log.error("Backup of world at \(worldUrl.path) failed.")
+                Library.log.error("Error: \(error.localizedDescription)")
+                Library.log.debug("Error Details: \(error)")
                 failedBackups.append(worldUrl.path)
             }
         }
