@@ -146,18 +146,27 @@ extension World {
         // Write it as: "Foo.mcworld.part" or "Foo.zip.part"
         let tempUrl = url.appendingPathExtension(World.partialPackExt)
 
-        guard let archive = Archive(url: tempUrl, accessMode: .create) else {
+        do {
+            try with(scopedOptional: Archive(url: tempUrl, accessMode: .create)) { archive in
+                if isBedrockFolder() {
+                    try packBedrock(to: archive, progress: progress)
+                } else {
+                    try packJava(to: archive, progress: progress)
+                }
+            }
+        } catch is NullScopedObjectError {
             throw WorldError.invalidLevelArchive
-        }
-
-        if isBedrockFolder() {
-            try packBedrock(to: archive, progress: progress)
-        } else {
-            try packJava(to: archive, progress: progress)
+        } catch let error {
+            throw error
         }
 
         // With it packed successfully, rename it.
-        try FileManager.default.moveItem(at: tempUrl, to: url)
+        do {
+            try FileManager.default.moveItem(at: tempUrl, to: url)
+        } catch let error {
+            Library.log.error("Failed to move \(tempUrl.path) to \(url.path)")
+            throw error
+        }
 
         return try World(url: url)
     }
