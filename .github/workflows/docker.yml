@@ -25,9 +25,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Set up Variables
-      run: . Docker/configure.sh ${{ matrix.arch }}
-
     - name: Set up QEMU
       uses: docker/setup-qemu-action@master
       if: matrix.arch != 'amd64'
