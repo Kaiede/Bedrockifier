@@ -292,6 +292,12 @@ public class ContainerConnection {
     }
 
     private func pauseSaveOnJava() async throws {
+        if kind == .javaWithRcon {
+            if try await expect([">"], timeout: 30.0) == .noMatch {
+                throw ContainerError.pauseFailed
+            }
+        }
+
         // Need a longer timeout on the flush in case server is still starting up
         try controlTerminal.sendLine("save-all flush")
         if try await expect(["Saved the game"], timeout: 30.0) == .noMatch {
