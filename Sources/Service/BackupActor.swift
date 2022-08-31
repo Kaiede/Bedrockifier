@@ -81,8 +81,10 @@ actor BackupActor {
                             try container.start()
                         }
 
-                        BackupService.logger.info("Resuming autosave on \(container.name)")
+                        BackupService.logger.info("Cleaning up old backups for \(container.name)")
+                        try container.startRcon()
                         try await container.cleanupIncompleteBackup(destination: backupUrl)
+                        await container.stopRcon()
 
                         if !wasRunning {
                             await container.stop()
@@ -173,7 +175,11 @@ actor BackupActor {
                 if !needsListeners {
                     try container.start()
                 }
+
+                try container.startRcon()
                 try await container.runBackup(destination: backupUrl)
+                await container.stopRcon()
+
                 if !needsListeners {
                     await container.stop()
                 }

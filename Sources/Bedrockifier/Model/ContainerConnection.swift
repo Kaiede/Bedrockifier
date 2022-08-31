@@ -19,13 +19,19 @@ public class ContainerConnection {
     public enum Kind {
         case bedrock
         case java
+        case javaWithRcon
     }
 
     private let dockerPath: String
     public let name: String
     let kind: Kind
+
     public let terminal: PseudoTerminal
     var dockerProcess: Process
+
+    private let rconTerminal: PseudoTerminal?
+    private var rconProcess: Process?
+
     let worlds: [URL]
     let extras: [URL]?
     var playerCount: Int
@@ -33,6 +39,16 @@ public class ContainerConnection {
 
     public var isRunning: Bool {
         dockerProcess.isRunning
+    }
+
+    private var controlTerminal: PseudoTerminal {
+        switch kind {
+        case .bedrock: fallthrough
+        case .java:
+            return terminal
+        case .javaWithRcon:
+            return rconTerminal ?? terminal
+        }
     }
 
     public init(terminal: PseudoTerminal,
@@ -49,6 +65,8 @@ public class ContainerConnection {
         self.extras = extras?.map({ URL(fileURLWithPath: $0) })
         self.playerCount = 0
         self.lastBackup = .distantPast
+
+        self.rconTerminal = kind == .javaWithRcon ? try PseudoTerminal() : nil
 
         let processUrl = ContainerConnection.getPtyProcess(dockerPath: dockerPath)
         let processArgs = ContainerConnection.getPtyArguments(dockerPath: dockerPath, containerName: containerName)
@@ -86,8 +104,42 @@ public class ContainerConnection {
         }
     }
 
+    public func startRcon() throws {
+        guard kind == .javaWithRcon else { return }
+        guard let rconTerminal = rconTerminal else {
+            Library.log.error("Rcon Terminal required to start Rcon")
+            return
+        }
+
+        let processUrl = ContainerConnection.getPtyProcess(dockerPath: dockerPath)
+        let processArgs = ContainerConnection.getRconArguments(containerName: name)
+        let process = try Process(processUrl, arguments: processArgs, terminal: rconTerminal)
+        rconProcess = process
+        try process.run()
+    }
+
+    public func stopRcon() async {
+        guard kind == .javaWithRcon else { return }
+        guard let rconTerminal = rconTerminal else {
+            Library.log.error("No Rcon terminal present, unable to stop Rcon")
+            return
+        }
+        guard let rconProcess = rconProcess else {
+            Library.log.error("No Rcon process is running")
+            return
+        }
+
+        Library.log.debug("Terminating Rcon Process")
+        rconProcess.terminate()
+        await rconTerminal.waitForDetach()
+
+        if rconProcess.isRunning {
+            Library.log.error("Rcon Process Still Running")
+        }
+    }
+
     public func reset() throws {
-        Library.log.debug("Reseting Container Process")
+        Library.log.debug("Resetting Container Process")
         let processUrl = ContainerConnection.getPtyProcess(dockerPath: dockerPath)
         let processArgs = ContainerConnection.getPtyArguments(dockerPath: dockerPath, containerName: name)
         self.dockerProcess = try Process(processUrl, arguments: processArgs, terminal: terminal)
@@ -170,7 +222,8 @@ public class ContainerConnection {
         switch kind {
         case .bedrock:
             try await pauseSaveOnBedrock()
-        case .java:
+        case .java: fallthrough
+        case .javaWithRcon:
             try await pauseSaveOnJava()
         }
     }
@@ -179,7 +232,8 @@ public class ContainerConnection {
         switch kind {
         case .bedrock:
             try await resumeSaveOnBedrock()
-        case .java:
+        case .java: fallthrough
+        case .javaWithRcon:
             try await resumeSaveOnJava()
         }
     }
@@ -224,7 +278,7 @@ public class ContainerConnection {
 
     private func pauseSaveOnBedrock() async throws {
         // Start Save Hold
-        try terminal.sendLine("save hold")
+        try controlTerminal.sendLine("save hold")
         if try await expect(["Saving", "The command is already running"], timeout: 10.0) == .noMatch {
             throw ContainerError.pauseFailed
         }
@@ -232,7 +286,7 @@ public class ContainerConnection {
         // Wait for files to be ready
         var attemptLimit = 3
         while attemptLimit > 0 {
-            try terminal.sendLine("save query")
+            try controlTerminal.sendLine("save query")
             if try await expect(["Files are now ready to be copied"], timeout: 10.0) == .noMatch {
                 attemptLimit -= 1
             } else {
@@ -247,12 +301,12 @@ public class ContainerConnection {
 
     private func pauseSaveOnJava() async throws {
         // Need a longer timeout on the flush in case server is still starting up
-        try terminal.sendLine("save-all flush")
+        try controlTerminal.sendLine("save-all flush")
         if try await expect(["Saved the game"], timeout: 30.0) == .noMatch {
             throw ContainerError.pauseFailed
         }
 
-        try terminal.sendLine("save-off")
+        try controlTerminal.sendLine("save-off")
         if try await expect(["Automatic saving is now disabled"], timeout: 10.0) == .noMatch {
             throw ContainerError.pauseFailed
         }
@@ -260,7 +314,7 @@ public class ContainerConnection {
 
     private func resumeSaveOnBedrock() async throws {
         // Release Save Hold
-        try terminal.sendLine("save resume")
+        try controlTerminal.sendLine("save resume")
         let saveResumeStrings = [
             "Changes to the level are resumed", // 1.17 and earlier
             "Changes to the world are resumed", // 1.18 and later
@@ -272,7 +326,7 @@ public class ContainerConnection {
     }
 
     private func resumeSaveOnJava() async throws {
-        try terminal.sendLine("save-on")
+        try controlTerminal.sendLine("save-on")
         let saveResumeStrings = [
             "Automatic saving is now enabled",
             "Saving is already turned on"
@@ -343,6 +397,15 @@ public class ContainerConnection {
         }
     }
 
+    private static func getRconArguments(containerName: String) -> [String] {
+        return [
+            "exec",
+            "-i",
+            containerName,
+            "rcon-cli"
+        ]
+    }
+
     private static func getPtyProcess(dockerPath: String) -> URL {
         if usePty {
             // Use a shell for the tty capability
@@ -368,7 +431,7 @@ extension ContainerConnection {
         for container in config.containers?.java ?? [] {
             let connection = try ContainerConnection(dockerPath: dockerPath,
                                                      containerName: container.name,
-                                                     kind: .java,
+                                                     kind: container.useRcon == true ? .javaWithRcon : .java,
                                                      worlds: container.worlds,
                                                      extras: container.extras)
             containers.append(connection)

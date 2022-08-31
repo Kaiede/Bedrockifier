@@ -106,7 +106,9 @@ public final class BackupJobCommand: Command {
                 Library.log.info("Performing Backups")
                 for container in containers {
                     try container.start()
+                    try container.startRcon()
                     try await container.runBackup(destination: backupUrl)
+                    await container.stopRcon()
                     await container.stop()
                 }
 
