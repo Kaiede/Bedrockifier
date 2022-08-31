@@ -9,8 +9,6 @@ import Foundation
 import PTYKit
 import ZIPFoundation
 
-private let usePty = false
-
 public class ContainerConnection {
     struct Strings {
         static let dockerConnectError = "Got permission denied while trying to connect to the Docker daemon"
@@ -89,15 +87,9 @@ public class ContainerConnection {
     }
 
     public func stop() async {
-        if usePty {
-            Library.log.debug("Detaching Docker Process")
-            try? terminal.send("Q")
-            await terminal.waitForDetach()
-        } else {
-            Library.log.debug("Terminating Docker Process")
-            dockerProcess.terminate()
-            await terminal.waitForDetach()
-        }
+        Library.log.debug("Terminating Docker Process")
+        dockerProcess.terminate()
+        await terminal.waitForDetach()
 
         if dockerProcess.isRunning {
             Library.log.error("Docker Process Still Running")
@@ -381,20 +373,11 @@ public class ContainerConnection {
     }
 
     private static func getPtyArguments(dockerPath: String, containerName: String) -> [String] {
-        if usePty {
-            // Use the detach functionality when a tty is configured
-            return [
-                "-c",
-                "\(dockerPath) attach --detach-keys=Q \(containerName)"
-            ]
-        } else {
-            // Without a tty, use a termination signal instead
-            return [
-                "attach",
-                "--sig-proxy=false",
-                containerName
-            ]
-        }
+        return [
+            "attach",
+            "--sig-proxy=false",
+            containerName
+        ]
     }
 
     private static func getRconArguments(containerName: String) -> [String] {
@@ -407,12 +390,7 @@ public class ContainerConnection {
     }
 
     private static func getPtyProcess(dockerPath: String) -> URL {
-        if usePty {
-            // Use a shell for the tty capability
-            return URL(fileURLWithPath: "/bin/sh")
-        } else {
-            return URL(fileURLWithPath: dockerPath)
-        }
+        return URL(fileURLWithPath: dockerPath)
     }
 }
 
