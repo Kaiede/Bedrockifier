@@ -82,27 +82,28 @@ public class ContainerConnection {
     }
 
     public func start() throws {
-        Library.log.debug("Starting Container Process")
+        Library.log.debug("Starting Container Process. (container: \(name))")
         try dockerProcess.run()
     }
 
     public func stop() async {
-        Library.log.debug("Terminating Docker Process")
+        Library.log.debug("Terminating Docker Process. (container: \(name))")
         dockerProcess.terminate()
         await terminal.waitForDetach()
 
         if dockerProcess.isRunning {
-            Library.log.error("Docker Process Still Running")
+            Library.log.error("Docker Process Still Running. (container: \(name))")
         }
     }
 
     public func startRcon() throws {
         guard kind == .javaWithRcon else { return }
         guard let rconTerminal = rconTerminal else {
-            Library.log.error("Rcon Terminal required to start Rcon")
+            Library.log.error("Rcon Terminal required to start Rcon. (container: \(name))")
             return
         }
 
+        Library.log.info("Starting Rcon Process. (container: \(name))")
         let processUrl = ContainerConnection.getPtyProcess(dockerPath: dockerPath)
         let processArgs = ContainerConnection.getRconArguments(containerName: name)
         let process = try Process(processUrl, arguments: processArgs, terminal: rconTerminal)
@@ -113,25 +114,25 @@ public class ContainerConnection {
     public func stopRcon() async {
         guard kind == .javaWithRcon else { return }
         guard let rconTerminal = rconTerminal else {
-            Library.log.error("No Rcon terminal present, unable to stop Rcon")
+            Library.log.error("No Rcon terminal present, unable to stop Rcon. (container: \(name))")
             return
         }
         guard let rconProcess = rconProcess else {
-            Library.log.error("No Rcon process is running")
+            Library.log.error("No Rcon process is running. (container: \(name))")
             return
         }
 
-        Library.log.debug("Terminating Rcon Process")
+        Library.log.debug("Terminating Rcon Process. (container: \(name))")
         rconProcess.terminate()
         await rconTerminal.waitForDetach()
 
         if rconProcess.isRunning {
-            Library.log.error("Rcon Process Still Running")
+            Library.log.error("Rcon Process Still Running. (container: \(name))")
         }
     }
 
     public func reset() throws {
-        Library.log.debug("Resetting Container Process")
+        Library.log.debug("Resetting Container Process. (container: \(name))")
         let processUrl = ContainerConnection.getPtyProcess(dockerPath: dockerPath)
         let processArgs = ContainerConnection.getPtyArguments(dockerPath: dockerPath, containerName: name)
         self.dockerProcess = try Process(processUrl, arguments: processArgs, terminal: terminal)
@@ -165,7 +166,7 @@ public class ContainerConnection {
         }
 
         var failedBackups: [String] = []
-        Library.log.info("Starting Backup of worlds for: \(name)")
+        Library.log.info("Starting Backup of worlds. (container: \(name))")
 
         for worldUrl in worlds {
             do {
@@ -183,7 +184,7 @@ public class ContainerConnection {
         }
 
         if let extras = extras {
-            Library.log.info("Backing up extras for \(name)")
+            Library.log.info("Backing up extras. (container: \(name))")
             do {
                 let fileName = try backupExtras(destination: destination, extras: extras)
 
@@ -292,12 +293,6 @@ public class ContainerConnection {
     }
 
     private func pauseSaveOnJava() async throws {
-        if kind == .javaWithRcon {
-            if try await expect([">"], timeout: 30.0) == .noMatch {
-                throw ContainerError.pauseFailed
-            }
-        }
-
         // Need a longer timeout on the flush in case server is still starting up
         try controlTerminal.sendLine("save-all flush")
         if try await expect(["Saved the game"], timeout: 30.0) == .noMatch {
