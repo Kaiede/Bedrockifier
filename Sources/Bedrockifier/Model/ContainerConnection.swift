@@ -64,6 +64,7 @@ public class ContainerConnection {
         self.playerCount = 0
         self.lastBackup = .distantPast
 
+        try self.terminal.setWindowSize(columns: 65000, rows: 24)
         self.rconTerminal = kind == .javaWithRcon ? try PseudoTerminal() : nil
 
         let processUrl = ContainerConnection.getPtyProcess(dockerPath: dockerPath)
