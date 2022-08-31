@@ -136,7 +136,9 @@ actor BackupActor {
 
         BackupService.logger.info("Running Single Backup for \(container.name)")
         do {
+            try container.startRcon()
             try await container.runBackup(destination: backupUrl)
+            await container.stopRcon()
             try runPostBackupTasks()
             BackupService.logger.info("Single Backup Completed")
             _ = markHealthy()
