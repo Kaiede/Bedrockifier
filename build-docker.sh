@@ -26,4 +26,3 @@ docker build . -f Docker/Dockerfile \
     -t $dockerTag \
     --build-arg arch=${arch} \
 #    --build-arg swift_base=${swift_base} \
-#    --build-arg swift_version=${swift_version}
