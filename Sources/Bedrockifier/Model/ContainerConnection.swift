@@ -83,8 +83,9 @@ public class ContainerConnection {
     }
 
     public func start() throws {
-        Library.log.debug("Starting Container Process. (container: \(name))")
+        Library.log.debug("Starting Docker Process. (container: \(name))")
         try dockerProcess.run()
+        logTerminalSize()
     }
 
     public func stop() async {
@@ -372,6 +373,15 @@ public class ContainerConnection {
 
     private func holdFile(destination: URL) -> URL {
         destination.appendingPathComponent(".\(self.name).hold")
+    }
+
+    private func logTerminalSize() {
+        do {
+            let windowSize = try terminal.getWindowSize()
+            Library.log.debug("Docker Process Window Size Fetched. (cols = \(windowSize.ws_col), rows = \(windowSize.ws_row)")
+        } catch {
+            Library.log.debug("Failed to get terminal window size")
+        }
     }
 
     private static func getPtyArguments(dockerPath: String, containerName: String) -> [String] {
