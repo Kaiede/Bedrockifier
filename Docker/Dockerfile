@@ -1,4 +1,4 @@
-ARG swift_image=swift:5.6.2-focal
+ARG swift_image=swift:5.9.1-ubuntu-jammy
 
 ###### BUILDER
 FROM $swift_image as builder

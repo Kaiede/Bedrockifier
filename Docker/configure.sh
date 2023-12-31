@@ -5,7 +5,7 @@
 arch=$1
 
 swift_base="swift"
-swift_version="5.6.2"
+swift_version="5.9.1"
 if [ "$arch" == "arm64" ]; then 
     swift_base="swiftarm/${swift_base}"
     swift_version="${swift_version}-ubuntu-jammy"
