@@ -159,7 +159,7 @@ final class BackupService {
 
         BackupService.logger.info("Backup Interval: \(interval) seconds")
         let timer = ServiceTimer(identifier: "interval", queue: DispatchQueue.main)
-        var startTime = Date()
+        let startTime = Date()
         timer.schedule(startingAt: startTime, repeating: .seconds(Int(interval)))
         timer.setHandler(priority: BackupService.backupPriority) {
             await self.backupActor.backupAllContainers(isDaily: false)
