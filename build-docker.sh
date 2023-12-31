@@ -10,12 +10,14 @@ PUSH=${3:-nopush}
 dockerRepo=kaiede/minecraft-bedrock-backup
 dockerBaseTag=$dockerRepo:${tag}
 
-arch=`arch`
+TARGETOS='linux'
+TARGETARCH=`arch`
+TARGETVARIANT=''
 if [ "$arch" == "x86_64" ]; then
-    arch=amd64
+    TARGETARCH=amd64
 fi
 if [ "$arch" == "aarch64" ]; then
-    arch=arm64
+    TARGETARCH=arm64
 fi
 
 #. Docker/configure.sh $arch
@@ -24,5 +26,7 @@ dockerTag=$dockerRepo:${tag}-${arch}
 
 docker build . -f Docker/Dockerfile \
     -t $dockerTag \
-    --build-arg arch=${arch} \
+    --build-arg TARGETOS=${TARGETOS} \
+    --build-arg TARGETARCH=${TARGETARCH} \
+    --build-arg TARGETVARIANT="" \
 #    --build-arg swift_base=${swift_base} \

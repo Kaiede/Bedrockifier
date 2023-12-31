@@ -1,5 +1,9 @@
 ARG swift_image=swift:5.9.2-jammy
 
+ARG TARGETOS
+ARG TARGETARCH
+ARG TARGETVARIANT
+
 ###### BUILDER
 FROM $swift_image as builder
 WORKDIR /project
@@ -10,8 +14,6 @@ RUN swift build -c release -Xswiftc -g
 ###### RUNTIME CONTAINER
 FROM $swift_image-slim
 WORKDIR /opt/bedrock
-
-ARG arch
 
 RUN apt-get update && \
   DEBIAN_FRONTEND=noninteractive apt-get install -y \
@@ -24,7 +26,7 @@ HEALTHCHECK --start-period=1m CMD bash /opt/bedrock/healthcheck.sh
 
 ARG GITHUB_BASEURL=https://github.com
 
-ARG EASY_ADD_VERSION=0.8.2
+ARG EASY_ADD_VERSION=0.8.3
 ADD ${GITHUB_BASEURL}/itzg/easy-add/releases/download/${EASY_ADD_VERSION}/easy-add_${TARGETOS}_${TARGETARCH}${TARGETVARIANT} /usr/bin/easy-add
 RUN chmod +x /usr/bin/easy-add
 
