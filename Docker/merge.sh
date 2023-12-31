@@ -4,9 +4,11 @@
 
 tag=$1
 
+echo Running 'docker buildx imagetools create'
 docker buildx imagetools create \
     -t $tag \
     $tag-amd64 \
     $tag-arm64 \
 
+echo Pushing created tag
 docker push $tag
