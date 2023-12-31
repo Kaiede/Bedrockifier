@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 #
-# Merges the Manifests for 
+# Merges amd64 and arm64 into a single tag
 
 tag=$1
 
-docker manifest $tag
+docker buildx imagetools create \
+    -t $tag \
+    $tag-amd64 \
+    $tag-arm64 \
 
-docker manifest create $tag \
-    --amend $tag-amd64 \
-    --amend $tag-arm64 \
-
-docker manifest push $tag
+docker push $tag
