@@ -71,6 +71,13 @@ final class BackupService {
                     throw ServiceError.unableToMarkHealthy
                 }
 
+                // Do a startup delay if asked before attempting to connect to containers.
+                // Delaying prior to connecting is required for rcon connections.
+                if let startupDelay = try getStartupDelay() {
+                    BackupService.logger.info("Delaying startup by: \(startupDelay) seconds")
+                    try await Task.sleep(nanoseconds: UInt64(startupDelay * 1_000_000_000.0))
+                }
+
                 // Start the backups
                 if let schedule = config.schedule {
                     if schedule.interval != nil && schedule.daily != nil {
@@ -153,10 +160,6 @@ final class BackupService {
         BackupService.logger.info("Backup Interval: \(interval) seconds")
         let timer = ServiceTimer(identifier: "interval", queue: DispatchQueue.main)
         var startTime = Date()
-        if let startupDelay = try getStartupDelay() {
-            BackupService.logger.info("Delaying First Backup: \(startupDelay) seconds")
-            startTime += startupDelay
-        }
         timer.schedule(startingAt: startTime, repeating: .seconds(Int(interval)))
         timer.setHandler(priority: BackupService.backupPriority) {
             await self.backupActor.backupAllContainers(isDaily: false)
