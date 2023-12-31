@@ -74,7 +74,7 @@ public class ContainerConnection {
     }
 
     public convenience init(terminalPath: String, containerName: String, rcon: RconConfig?, kind: Kind, worlds: [String], extras: [String]?) throws {
-        let terminal = try PseudoTerminal()
+        let terminal = try PseudoTerminal(identifier: containerName)
         try self.init(terminal: terminal,
                       terminalPath: terminalPath,
                       containerName: containerName,
@@ -391,6 +391,7 @@ extension ContainerConnection {
     public static func loadContainers(from config: BackupConfig, dockerPath: String, rconPath: String) throws -> [ContainerConnection] {
         var containers: [ContainerConnection] = []
         for container in config.containers?.bedrock ?? [] {
+            Library.log.debug("Creating Bedrock Container Connection. (container: \(container.name))")
             let processPath = container.rconAddr == nil ? dockerPath : rconPath
             let rconConfig = rconConfig(address: container.rconAddr, password: container.rconPassword)
             let connection = try ContainerConnection(terminalPath: processPath,
@@ -403,6 +404,7 @@ extension ContainerConnection {
         }
 
         for container in config.containers?.java ?? [] {
+            Library.log.debug("Creating Java Container Connection. (container: \(container.name)")
             let processPath = container.rconAddr == nil ? dockerPath : rconPath
             let rconConfig = rconConfig(address: container.rconAddr, password: container.rconPassword)
             let connection = try ContainerConnection(terminalPath: processPath,
