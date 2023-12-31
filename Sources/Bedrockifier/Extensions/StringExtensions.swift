@@ -40,6 +40,19 @@ extension String {
 enum ParseError: Error {
     case invalidSyntax
     case outOfBounds
+    case invalidHostname(String)
+}
+
+extension ParseError: CustomStringConvertible {
+    var description: String {
+        switch self {
+        case .invalidSyntax: "Invalid Syntax"
+        case .outOfBounds: "Out of Bounds"
+        case .invalidHostname(let address): "Invalid Format for Address: \(address)"
+        }
+    }
+
+    var localizedDescripion: String { description }
 }
 
 func parse(ownership: String) throws -> (UInt32?, UInt32?) {

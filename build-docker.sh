@@ -13,16 +13,16 @@ dockerBaseTag=$dockerRepo:${tag}
 TARGETOS='linux'
 TARGETARCH=`arch`
 TARGETVARIANT=''
-if [ "$arch" == "x86_64" ]; then
+if [ "$TARGETARCH" == "x86_64" ]; then
     TARGETARCH=amd64
 fi
-if [ "$arch" == "aarch64" ]; then
+if [ "$TARGETARCH" == "aarch64" ]; then
     TARGETARCH=arm64
 fi
 
 #. Docker/configure.sh $arch
 
-dockerTag=$dockerRepo:${tag}-${arch}
+dockerTag=$dockerRepo:${tag}-${TARGETARCH}
 
 docker build . -f Docker/Dockerfile \
     -t $dockerTag \

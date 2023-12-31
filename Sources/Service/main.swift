@@ -40,6 +40,9 @@ struct Server: ParsableCommand {
     @Option(name: .shortAndLong, help: "Path to docker")
     var dockerPath: String?
 
+    @Option(name: .shortAndLong, help: "Path to rcon-cli")
+    var rconPath: String?
+
     @Option(name: .shortAndLong, help: "Folder to write backups to")
     var backupPath: String?
 
@@ -76,13 +79,24 @@ struct Server: ParsableCommand {
             return
         }
 
+        let rconPath = self.rconPath ?? config.rconPath ?? environment.rconPath
+        guard FileManager.default.fileExists(atPath: rconPath) else {
+            Server.logger.error("rcon-cli not found at path \(rconPath)")
+            return
+        }
+
         let backupUrl = URL(fileURLWithPath: backupPath)
 
         updateLoggingLevel(config: config, environment: environment)
 
         Server.logger.info("Configuration Loaded, Running Service...")
         do {
-            let service = BackupService(config: config, backupUrl: backupUrl, dockerPath: dockerPath)
+            let service = BackupService(
+                config: config,
+                backupUrl: backupUrl,
+                dockerPath: dockerPath,
+                rconPath: rconPath
+            )
 
             try service.run()
         } catch let error {

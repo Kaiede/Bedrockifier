@@ -1,9 +1,5 @@
 ARG swift_image=swift:5.9.2-jammy
 
-ARG TARGETOS
-ARG TARGETARCH
-ARG TARGETVARIANT
-
 ###### BUILDER
 FROM $swift_image as builder
 WORKDIR /project
@@ -14,6 +10,10 @@ RUN swift build -c release -Xswiftc -g
 ###### RUNTIME CONTAINER
 FROM $swift_image-slim
 WORKDIR /opt/bedrock
+
+ARG TARGETOS
+ARG TARGETARCH
+ARG TARGETVARIANT
 
 RUN apt-get update && \
   DEBIAN_FRONTEND=noninteractive apt-get install -y \

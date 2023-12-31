@@ -82,9 +82,7 @@ actor BackupActor {
                         }
 
                         BackupService.logger.info("Cleaning up old backups for \(container.name)")
-                        try container.startRcon()
                         try await container.cleanupIncompleteBackup(destination: backupUrl)
-                        await container.stopRcon()
 
                         if !wasRunning {
                             await container.stop()
@@ -136,9 +134,7 @@ actor BackupActor {
 
         BackupService.logger.info("Running Single Backup for \(container.name)")
         do {
-            try container.startRcon()
             try await container.runBackup(destination: backupUrl)
-            await container.stopRcon()
             try runPostBackupTasks()
             BackupService.logger.info("Single Backup Completed")
             _ = markHealthy()
@@ -178,9 +174,7 @@ actor BackupActor {
                     try container.start()
                 }
 
-                try container.startRcon()
                 try await container.runBackup(destination: backupUrl)
-                await container.stopRcon()
 
                 if !needsListeners {
                     await container.stop()
