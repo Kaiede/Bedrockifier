@@ -48,15 +48,17 @@ final class BackupService {
     let environment: EnvironmentConfig
     let backupUrl: URL
     let dockerPath: String
+    let rconPath: String
     let backupActor: BackupActor
 
     var intervalTimer: ServiceTimer<String>?
 
-    init(config: BackupConfig, backupUrl: URL, dockerPath: String) {
+    init(config: BackupConfig, backupUrl: URL, dockerPath: String, rconPath: String) {
         self.config = config
         self.environment = EnvironmentConfig()
         self.backupUrl = backupUrl
         self.dockerPath = dockerPath
+        self.rconPath = rconPath
         self.backupActor = BackupActor(config: config, destination: backupUrl)
     }
 
@@ -67,6 +69,13 @@ final class BackupService {
                 try validateServerFolders()
                 if await !backupActor.markHealthy(forceWrite: true) {
                     throw ServiceError.unableToMarkHealthy
+                }
+
+                // Do a startup delay if asked before attempting to connect to containers.
+                // Delaying prior to connecting is required for rcon connections.
+                if let startupDelay = try getStartupDelay() {
+                    BackupService.logger.info("Delaying startup by: \(startupDelay) seconds")
+                    try await Task.sleep(nanoseconds: UInt64(startupDelay * 1_000_000_000.0))
                 }
 
                 // Start the backups
@@ -112,7 +121,7 @@ final class BackupService {
     }
 
     private func connectContainers() async throws {
-        let containers = try ContainerConnection.loadContainers(from: config, dockerPath: dockerPath)
+        let containers = try ContainerConnection.loadContainers(from: config, dockerPath: dockerPath, rconPath: rconPath)
 
         // Attach to the containers
         if await backupActor.needsListeners() {
@@ -150,11 +159,7 @@ final class BackupService {
 
         BackupService.logger.info("Backup Interval: \(interval) seconds")
         let timer = ServiceTimer(identifier: "interval", queue: DispatchQueue.main)
-        var startTime = Date()
-        if let startupDelay = try getStartupDelay() {
-            BackupService.logger.info("Delaying First Backup: \(startupDelay) seconds")
-            startTime += startupDelay
-        }
+        let startTime = Date()
         timer.schedule(startingAt: startTime, repeating: .seconds(Int(interval)))
         timer.setHandler(priority: BackupService.backupPriority) {
             await self.backupActor.backupAllContainers(isDaily: false)

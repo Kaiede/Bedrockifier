@@ -35,6 +35,9 @@ public final class BackupJobCommand: Command {
         @Option(name: "dockerPath", help: "Path to docker")
         var dockerPath: String?
 
+        @Option(name: "rconPath", help: "Path to rcon-cli")
+        var rconPath: String?
+
         @Option(name: "backupPath", help: "Folder to write backups to")
         var backupPath: String?
 
@@ -72,10 +75,17 @@ public final class BackupJobCommand: Command {
             return
         }
 
+        Library.log.trace("Checking for rcon-cli Path")
+        guard let rconPath = signature.rconPath ?? config.rconPath else {
+            context.console.error("Rcon-cli path needs to be specified on command-line or config file")
+            return
+        }
+
         runBackupTask(group: group,
                       config: config,
                       backupPath: backupPath,
-                      dockerPath: dockerPath,
+                      dockerPath: dockerPath, 
+                      rconPath: rconPath,
                       errorHandler: errorHandler)
 
         Library.log.trace("Waiting on Async Task")
@@ -92,6 +102,7 @@ public final class BackupJobCommand: Command {
                                config: BackupConfig,
                                backupPath: String,
                                dockerPath: String,
+                               rconPath: String,
                                errorHandler: @escaping (Error) -> Void) {
         group.enter()
 
@@ -100,15 +111,16 @@ public final class BackupJobCommand: Command {
                 Library.log.trace("Entered Async Task")
 
                 let backupUrl = URL(fileURLWithPath: backupPath)
-
-                let containers = try ContainerConnection.loadContainers(from: config, dockerPath: dockerPath)
+                let containers = try ContainerConnection.loadContainers(
+                    from: config,
+                    dockerPath: dockerPath,
+                    rconPath: rconPath
+                )
 
                 Library.log.info("Performing Backups")
                 for container in containers {
                     try container.start()
-                    try container.startRcon()
                     try await container.runBackup(destination: backupUrl)
-                    await container.stopRcon()
                     await container.stop()
                 }
 

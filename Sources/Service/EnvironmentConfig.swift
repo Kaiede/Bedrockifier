@@ -33,11 +33,13 @@ struct EnvironmentConfig {
     let dataDirectory: String
     let configFile: String
     let dockerPath: String
+    let rconPath: String
 
     init() {
         self.backupInterval = ProcessInfo.processInfo.environment["BACKUP_INTERVAL"]
         self.dataDirectory = ProcessInfo.processInfo.environment["DATA_DIR"] ?? "/backups"
         self.configFile = ProcessInfo.processInfo.environment["CONFIG_FILE"] ?? "config.yml"
         self.dockerPath = ProcessInfo.processInfo.environment["DOCKER_PATH"] ?? "/usr/bin/docker"
+        self.rconPath = ProcessInfo.processInfo.environment["RCON_PATH"] ?? "/usr/local/bin/rcon-cli"
     }
 }

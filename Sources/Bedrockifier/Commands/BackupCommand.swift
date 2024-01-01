@@ -96,8 +96,9 @@ public final class BackupCommand: Command {
                 let worldsPath = URL(fileURLWithPath: signature.worldsPath)
                 let worlds = try World.getWorlds(at: worldsPath)
                 let worldsPaths = worlds.map({ $0.location.path })
-                let connection = try ContainerConnection(dockerPath: signature.dockerPath,
+                let connection = try ContainerConnection(terminalPath: signature.dockerPath,
                                                          containerName: signature.containerName,
+                                                         rcon: nil,
                                                          kind: .bedrock,
                                                          worlds: worldsPaths,
                                                          extras: nil)
