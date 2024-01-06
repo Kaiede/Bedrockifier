@@ -23,9 +23,6 @@ RUN apt-get update && \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-ENTRYPOINT ["/usr/local/bin/entrypoint-demoter", "--match", "/backups", "--debug", "--stdin-on-term", "stop", "/opt/bedrock/bedrockifierd"]
-HEALTHCHECK --start-period=1m CMD bash /opt/bedrock/healthcheck.sh
-
 ARG GITHUB_BASEURL=https://github.com
 
 ARG EASY_ADD_VERSION=0.8.3
@@ -42,5 +39,8 @@ RUN easy-add --var version=${ENTRYPOINT_DEMOTER_VERSION} --var app=entrypoint-de
 
 COPY --from=builder /project/.build/release/bedrockifier-tool .
 COPY --from=builder /project/.build/release/bedrockifierd .
+COPY ./Docker/entry.sh .
 COPY ./Docker/healthcheck.sh .
 
+ENTRYPOINT [ "/opt/bedrock/entry.sh" ]
+HEALTHCHECK --start-period=1m CMD bash /opt/bedrock/healthcheck.sh
