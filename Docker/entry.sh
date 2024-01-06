@@ -7,7 +7,7 @@
 
 # Configure User for SSH
 uid=$(stat -c %u /backups)
-[ -x /usr/sbin/useradd ] && useradd -m -u ${uid} u1 -s /bin/sh || adduser -D -u ${uid} u1 -s /bin/sh;
+[ -x /usr/sbin/useradd ] && useradd -m -u ${uid} bedrockifier -s /bin/sh || adduser --disabled-login --uid ${uid} bedrockifier --shell /bin/sh;
 
 # Execute
-/usr/local/bin/entrypoint-demoter --match /backups --debug --stdin-on-term stop /opt/bedrockifier/bedrockifierd
+/usr/local/bin/entrypoint-demoter --match /backups --debug --stdin-on-term stop /opt/bedrock/bedrockifierd
