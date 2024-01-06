@@ -99,7 +99,7 @@ public struct RCONConnectionConfig: ContainerConnectionConfig {
     }
 
     public var kind: String { "rcon" }
-    public var newline: TerminalNewline { .default }
+    public var newline: TerminalNewline { .ssh }
     public var processPath: String { rconPath }
 
     public func makeArguments() throws -> [String] {
@@ -151,6 +151,10 @@ public struct SSHConnectionConfig: ContainerConnectionConfig {
         }
 
         return [
+            // sshpass arguments
+            "-e",
+            // ssh arguments
+            sshPath,
             "-p",
             "\(parts[1])",
             "-o",

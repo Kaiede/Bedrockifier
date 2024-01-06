@@ -95,10 +95,13 @@ public class ContainerConnection {
 
     public func start() async throws {
         Library.log.debug("Starting Terminal Process. (container: \(name), kind: \(connectionConfig.kind))")
+
+        // Configure for SSH
+        var environment = terminalProcess.environment ?? [:]
+        environment["SSHPASS"] = connectionConfig.password
+        terminalProcess.environment = environment
+
         try terminalProcess.run()
-        if connectionConfig.kind == "ssh" {
-            try await loginSSH()
-        }
         logTerminalSize()
     }
 
@@ -358,25 +361,6 @@ public class ContainerConnection {
             Library.log.debug("Docker Process Window Size Fetched. (cols = \(windowSize.ws_col), rows = \(windowSize.ws_row)")
         } catch {
             Library.log.debug("Failed to get terminal window size")
-        }
-    }
-
-    private func loginSSH() async throws {
-        do {
-            let result = await terminal.expect("password:", timeout: 60.0)
-            guard result != .noMatch else {
-                Library.log.error("Timed out waiting to enter password to minecraft service.")
-                return
-            }
-
-            Library.log.debug("Sending password: \(connectionConfig.password)")
-            try terminal.send("\(connectionConfig.password)\r")
-
-            // Wait before we attempt to issue commands
-            try await Task.sleep(for: .seconds(2))
-        } catch {
-            Library.log.error("Failed to login to minecraft service.")
-            throw error
         }
     }
 }
