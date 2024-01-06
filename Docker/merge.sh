@@ -9,6 +9,3 @@ docker buildx imagetools create \
     -t $tag \
     $tag-amd64 \
     $tag-arm64 \
-
-echo Pushing created tag
-docker push $tag
