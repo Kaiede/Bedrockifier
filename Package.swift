@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "Bedrockifier",
     platforms: [
-        .macOS(.v12)
+        .macOS(.v13)
     ],
     products: [
             // The external product of our package is an importable

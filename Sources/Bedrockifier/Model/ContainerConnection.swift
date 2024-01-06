@@ -372,7 +372,7 @@ public class ContainerConnection {
             try terminal.sendLine(connectionConfig.password)
 
             // Wait before we attempt to issue commands
-            try await Task.sleep(nanoseconds: 2 * NSEC_PER_SEC)
+            try await Task.sleep(for: .seconds(2))
         } catch {
             Library.log.error("Failed to login to minecraft service.")
             throw error
