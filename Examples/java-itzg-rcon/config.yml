@@ -3,7 +3,7 @@ containers:
     - name: minecraft_public
       # Tells the backup service that this container is accessible
       # using minecraft's RCON server.
-      # passwordFile should point to the .rcon-cli.yaml file
+      # passwordFile should point to the .rcon-cli.yaml file in the container
       rcon: public:25575
       passwordFile: /public/.rcon-cli.yaml
       # Backup the "PublicSMP" world in the "minecraft_public" container

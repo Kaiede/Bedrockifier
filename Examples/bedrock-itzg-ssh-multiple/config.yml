@@ -4,18 +4,18 @@ containers:
     - name: bedrock_private
       # Tells the backup service that this container is accessible
       # using the mc-server-runner SSH functionality.
-      # passwordFile should point to the .rcon-cli.yaml file in the container
+      # passwordFile should point to the .remote-console.yaml file in the container
       ssh: private:2222
-      passwordFile: /bedrock_private/.rcon-cli.yaml
+      passwordFile: /bedrock_private/.remote-console.yaml
       worlds:
         - /bedrock_private/worlds/PrivateSMP
     # Backup the world "PublicSMP" on the "bedrock_public" docker container
     - name: bedrock_public
       # Tells the backup service that this container is accessible
       # using the mc-server-runner SSH functionality.
-      # passwordFile should point to the .rcon-cli.yaml file in the container
+      # passwordFile should point to the .remote-console.yaml file in the container
       ssh: public:2222
-      passwordFile: /bedrock_public/.rcon-cli.yaml
+      passwordFile: /bedrock_public/.remote-console.yaml
       worlds:
         - /bedrock_public/worlds/PublicSMP
 schedule:
