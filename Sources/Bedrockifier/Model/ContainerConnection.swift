@@ -102,6 +102,14 @@ public class ContainerConnection {
         terminalProcess.environment = environment
 
         try terminalProcess.run()
+
+        if connectionConfig.kind == "ssh" {
+            let result = await terminal.expect(["SSHPASS: detected prompt. Sending password.", "SSHPASS: read:"], timeout: 60.0)
+            if result == .noMatch {
+                Library.log.error("SSH connection doesn't seem to have been made properly")
+            }
+        }
+
         logTerminalSize()
     }
 

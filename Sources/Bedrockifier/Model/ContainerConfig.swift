@@ -153,6 +153,7 @@ public struct SSHConnectionConfig: ContainerConnectionConfig {
         return [
             // sshpass arguments
             "-e",
+            "-v",
             // ssh arguments
             sshPath,
             "-p",
