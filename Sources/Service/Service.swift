@@ -124,7 +124,7 @@ final class BackupService {
         // Attach to the containers
         if await backupActor.needsListeners() {
             for container in containers {
-                try container.start()
+                try await container.start()
             }
         }
 

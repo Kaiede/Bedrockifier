@@ -45,6 +45,7 @@ public protocol ContainerConnectionConfig {
     var processPath: String { get }
     var kind: String { get }
     var newline: TerminalNewline { get }
+    var password: String { get }
     func makeArguments() throws -> [String]
 }
 
@@ -55,6 +56,7 @@ extension ContainerConnectionConfig {
 public struct DockerConnectionConfig: ContainerConnectionConfig {
     let dockerPath: String
     let containerName: String
+    public let password: String = ""
 
     init(dockerPath: String, config: BackupConfig.ContainerConfig) {
         self.dockerPath = dockerPath
@@ -82,7 +84,7 @@ public struct DockerConnectionConfig: ContainerConnectionConfig {
 public struct RCONConnectionConfig: ContainerConnectionConfig {
     let rconPath: String
     let address: String
-    let password: String
+    public let password: String
 
     init?(rconPath: String, config: BackupConfig.ContainerConfig) {
         guard let rconAddr = config.rcon else { return nil }
@@ -122,7 +124,7 @@ public struct SSHConnectionConfig: ContainerConnectionConfig {
     let sshpassPath: String
     let sshPath: String
     let address: String
-    let password: String
+    public let password: String
 
     init?(sshpassPath: String, sshPath: String, config: BackupConfig.ContainerConfig) {
         guard let sshAddr = config.ssh else { return nil }
@@ -139,7 +141,7 @@ public struct SSHConnectionConfig: ContainerConnectionConfig {
 
     public var kind: String { "ssh" }
     public var newline: TerminalNewline { .ssh }
-    public var processPath: String { sshpassPath }
+    public var processPath: String { sshPath }
 
     public func makeArguments() throws -> [String] {
         // TODO: Do some checking here...
@@ -149,11 +151,6 @@ public struct SSHConnectionConfig: ContainerConnectionConfig {
         }
 
         return [
-            // sshpass arguments
-            "-p",
-            "\(password)",
-            // ssh arguments
-            sshPath,
             "-p",
             "\(parts[1])",
             "-o",

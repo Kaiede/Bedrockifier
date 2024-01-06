@@ -96,7 +96,7 @@ actor BackupActor {
                     do {
                         let wasRunning = container.isRunning
                         if !wasRunning {
-                            try container.start()
+                            try await container.start()
                         }
 
                         BackupService.logger.info("Cleaning up old backups for \(container.name)")
@@ -189,7 +189,7 @@ actor BackupActor {
                 }
 
                 if !needsListeners {
-                    try container.start()
+                    try await container.start()
                 }
 
                 try await container.runBackup(destination: backupUrl)
