@@ -1,0 +1,41 @@
+version: '3.7'
+
+services:
+  backup:
+    image: kaiede/minecraft-bedrock-backup
+    restart: always
+    # Make sure the minecraft image starts before the backup
+    depends_on:
+      - "public"
+    environment:
+        # Useful for making sure your logs have a proper timestamp
+        TZ: "America/Los_Angeles"
+    volumes:
+      # Map your backups folder info /backups
+      - /opt/minecraft/backups:/backups
+      # Map your server's data folder
+      - /opt/minecraft/public:/public
+
+  public:
+    image: itzg/minecraft-server
+    container_name: minecraft_public
+    # Expose the minecraft server's RCON port just to the backup container
+    expose:
+      - 25575
+    # Make the minecraft server port public
+    ports:
+      - 25565:25565
+    environment:
+      # Sets the password for RCON
+      RCON_PASSWORD: "mywonderfulpassword"
+      # Server Settings
+      TYPE: "FABRIC"
+      EULA: "TRUE"
+      MAX_PLAYERS: 6
+      VIEW_DISTANCE: 20
+      LEVEL: "PublicSMP"
+      MOTD: "Public SMP Server"
+      MEMORY: "2G"
+    volumes:
+      - /opt/minecraft/public:/data
+    restart: unless-stopped

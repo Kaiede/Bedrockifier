@@ -4,21 +4,32 @@ services:
   backup:
     image: kaiede/minecraft-bedrock-backup
     restart: always
+    # Make sure the minecraft image starts before the backup
     depends_on:
       - "public"
     environment:
+        # Useful for making sure your logs have a proper timestamp
         TZ: "America/Los_Angeles"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      # Map your backups folder info /backups
       - /opt/minecraft/backups:/backups
+      # Map your server's data folder
       - /opt/minecraft/public:/public
 
   public:
     image: itzg/minecraft-server
     container_name: minecraft_public
-    ports: 
+    # Expose the mc-server-runner's SSH port to just the backup container
+    expose:
+      - 2222
+    # Make the minecraft server port public
+    ports:
       - 25565:25565
     environment:
+      # Enables the SSH capability, and sets the RCON password
+      ENABLE_SSH: "TRUE"
+      RCON_PASSWORD: "mywonderfulpassword"
+      # Server Settings
       TYPE: "FABRIC"
       EULA: "TRUE"
       MAX_PLAYERS: 6
@@ -28,6 +39,4 @@ services:
       MEMORY: "2G"
     volumes: 
       - /opt/minecraft/public:/data
-    tty: true
-    stdin_open: true
     restart: unless-stopped

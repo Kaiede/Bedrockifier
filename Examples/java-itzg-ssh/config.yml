@@ -1,8 +1,13 @@
 containers:
   java:
-    # Backup the "PublicSMP" world in the "minecraft_public" container
-    # Backup the logs and mods folder into an "extras.zip"
     - name: minecraft_public
+      # Tells the backup service that this container is accessible
+      # using the mc-server-runner SSH functionality.
+      # Password needs to match RCON_PASSWORD for the container.
+      sshAddr: public:2222
+      sshPassword: mywonderfulpassword
+      # Backup the "PublicSMP" world in the "minecraft_public" container
+      # Backup the logs and mods folder into an "extras.zip"
       worlds:
         - /public/PublicSMP
       extras:

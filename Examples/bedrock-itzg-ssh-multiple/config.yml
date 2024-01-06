@@ -2,10 +2,16 @@ containers:
   bedrock:
     # Backup the world "PrivateSMP" on the "bedrock_private" docker container
     - name: bedrock_private
+      # Enables SSH. Password should match RCON_PASSWORD
+      sshAddr: private:2222
+      sshPassword: mygreatpassword
       worlds:
         - /bedrock_private/worlds/PrivateSMP
     # Backup the world "PublicSMP" on the "bedrock_public" docker container
     - name: bedrock_public
+      # Enables SSH. Password should match RCON_PASSWORD
+      sshAddr: public:2222
+      sshPassword: mygreatpassword
       worlds:
         - /bedrock_public/worlds/PublicSMP
 schedule:

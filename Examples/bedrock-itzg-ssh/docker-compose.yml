@@ -1,0 +1,40 @@
+version: '3.7'
+
+services:
+  backup:
+    image: kaiede/minecraft-bedrock-backup
+    restart: always
+    # Make sure the minecraft images start before the backup
+    depends_on:
+      - "public"
+      - "private"
+    environment:
+        # Useful for making sure your logs have a proper timestamp
+        TZ: "America/Los_Angeles"
+    volumes:
+      # Map your backups folder info /backups
+      - /opt/minecraft/backups:/backups
+      # Map the data folders for both servers
+      - /opt/bedrock/private:/bedrock_private
+      - /opt/bedrock/public:/bedrock_public
+
+  public:
+    image: itzg/minecraft-bedrock-server
+    restart: always
+    container_name: bedrock_public
+    # Expose the mc-server-runner's SSH port to just the backup container
+    expose:
+      - 2222
+    # Make the minecraft server port public
+    ports:
+      - 19132:19132/udp
+    environment:
+      # Enable SSH and set the password
+      SSH_ENABLE: "TRUE"
+      RCON_PASSWORD: "mygreatpassword"
+      # Server settings
+      EULA: "TRUE"
+    volumes:
+      - /opt/bedrock/public:/data
+    stdin_open: true
+    tty: true

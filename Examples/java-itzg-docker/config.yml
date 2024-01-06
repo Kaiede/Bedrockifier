@@ -1,0 +1,26 @@
+containers:
+  java:
+    # Backup the "PublicSMP" world in the "minecraft_public" container
+    # Backup the logs and mods folder into an "extras.zip"
+    - name: minecraft_public
+      worlds:
+        - /public/PublicSMP
+      extras:
+        - /public/logs
+        - /public/mods
+schedule:
+  # This will trigger a backup every time the last player logs out.
+  # At most, one backup every 4 hours will be made when the player logs out.
+  # There is also one daily backup made at 1am every day.
+  # This will produce a maximum of 7 backups a day, but will always produce
+  # one daily backup.
+  daily: 01:00
+  onLastLogout: true
+  minInterval: 4h
+trim:
+  # Keep all backups for the last two days (today and yesterday)
+  # Keep at least one backup for the last 14 days
+  # Keep at least two backups per world
+  trimDays: 2
+  keepDays: 14
+  minKeep: 2
