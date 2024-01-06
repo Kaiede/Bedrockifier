@@ -25,6 +25,8 @@
 
 import Foundation
 
+import PTYKit
+
 public struct ToolConfig {
     let dockerPath: String
     let rconPath: String
@@ -42,6 +44,7 @@ public struct ToolConfig {
 public protocol ContainerConnectionConfig {
     var processPath: String { get }
     var kind: String { get }
+    var newline: TerminalNewline { get }
     func makeArguments() throws -> [String]
 }
 
@@ -64,6 +67,7 @@ public struct DockerConnectionConfig: ContainerConnectionConfig {
     }
 
     public var kind: String { "docker" }
+    public var newline: TerminalNewline { .default }
     public var processPath: String { dockerPath }
 
     public func makeArguments() -> [String] {
@@ -93,6 +97,7 @@ public struct RCONConnectionConfig: ContainerConnectionConfig {
     }
 
     public var kind: String { "rcon" }
+    public var newline: TerminalNewline { .default }
     public var processPath: String { rconPath }
 
     public func makeArguments() throws -> [String] {
@@ -133,6 +138,7 @@ public struct SSHConnectionConfig: ContainerConnectionConfig {
     }
 
     public var kind: String { "ssh" }
+    public var newline: TerminalNewline { .ssh }
     public var processPath: String { sshpassPath }
 
     public func makeArguments() throws -> [String] {

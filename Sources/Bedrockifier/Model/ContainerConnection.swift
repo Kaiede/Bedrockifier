@@ -84,7 +84,7 @@ public class ContainerConnection {
     }
 
     public convenience init(containerName: String, config: ContainerConnectionConfig, kind: Kind, worlds: [String], extras: [String]?) throws {
-        let terminal = try PseudoTerminal(identifier: containerName)
+        let terminal = try PseudoTerminal(identifier: containerName, newline: config.newline)
         try self.init(terminal: terminal,
                       containerName: containerName,
                       config: config,
