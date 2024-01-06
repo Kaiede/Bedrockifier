@@ -141,7 +141,7 @@ public struct SSHConnectionConfig: ContainerConnectionConfig {
 
     public var kind: String { "ssh" }
     public var newline: TerminalNewline { .ssh }
-    public var processPath: String { sshPath }
+    public var processPath: String { sshpassPath }
 
     public func makeArguments() throws -> [String] {
         // TODO: Do some checking here...

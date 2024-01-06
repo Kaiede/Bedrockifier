@@ -106,7 +106,9 @@ public class ContainerConnection {
         if connectionConfig.kind == "ssh" {
             let result = await terminal.expect(["SSHPASS: detected prompt. Sending password.", "SSHPASS: read:"], timeout: 60.0)
             if result == .noMatch {
-                Library.log.error("SSH connection doesn't seem to have been made properly")
+                Library.log.error("SSH connection doesn't seem to have been made properly.")
+            } else {
+                Library.log.info("SSH connection ready.")
             }
         }
 
