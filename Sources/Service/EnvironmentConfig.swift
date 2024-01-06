@@ -34,6 +34,8 @@ struct EnvironmentConfig {
     let configFile: String
     let dockerPath: String
     let rconPath: String
+    let sshPath: String
+    let sshpassPath: String
 
     init() {
         self.backupInterval = ProcessInfo.processInfo.environment["BACKUP_INTERVAL"]
@@ -41,5 +43,7 @@ struct EnvironmentConfig {
         self.configFile = ProcessInfo.processInfo.environment["CONFIG_FILE"] ?? "config.yml"
         self.dockerPath = ProcessInfo.processInfo.environment["DOCKER_PATH"] ?? "/usr/bin/docker"
         self.rconPath = ProcessInfo.processInfo.environment["RCON_PATH"] ?? "/usr/local/bin/rcon-cli"
+        self.sshPath = ProcessInfo.processInfo.environment["SSH_PATH"] ?? "/usr/bin/ssh"
+        self.sshpassPath = ProcessInfo.processInfo.environment["SSHPASS_PATH"] ?? "/usr/bin/sshpass"
     }
 }

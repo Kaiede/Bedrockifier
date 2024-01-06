@@ -43,6 +43,12 @@ struct Server: ParsableCommand {
     @Option(name: .shortAndLong, help: "Path to rcon-cli")
     var rconPath: String?
 
+    @Option(name: .shortAndLong, help: "Path to ssh")
+    var sshPath: String?
+
+    @Option(name: .shortAndLong, help: "Path to sshpass")
+    var sshpassPath: String?
+
     @Option(name: .shortAndLong, help: "Folder to write backups to")
     var backupPath: String?
 
@@ -85,6 +91,25 @@ struct Server: ParsableCommand {
             return
         }
 
+        let sshPath = self.sshPath ?? config.sshPath ?? environment.sshPath
+        guard FileManager.default.fileExists(atPath: rconPath) else {
+            Server.logger.error("ssh not found at path \(sshPath)")
+            return
+        }
+
+        let sshpassPath = self.sshpassPath ?? config.sshpassPath ?? environment.sshpassPath
+        guard FileManager.default.fileExists(atPath: rconPath) else {
+            Server.logger.error("sshpass not found at path \(sshpassPath)")
+            return
+        }
+
+        let tools = ToolConfig(
+            dockerPath: dockerPath,
+            rconPath: rconPath,
+            sshPath: sshPath,
+            sshpassPath: sshpassPath
+        )
+
         let backupUrl = URL(fileURLWithPath: backupPath)
 
         updateLoggingLevel(config: config, environment: environment)
@@ -94,8 +119,7 @@ struct Server: ParsableCommand {
             let service = BackupService(
                 config: config,
                 backupUrl: backupUrl,
-                dockerPath: dockerPath,
-                rconPath: rconPath
+                tools: tools
             )
 
             try service.run()
@@ -108,7 +132,7 @@ struct Server: ParsableCommand {
     private func getConfig(from configUri: URL) throws -> BackupConfig {
         do {
             Server.logger.info("Loading Configuration From: \(configUri.path)")
-            return try BackupConfig.getBackupConfig(from: configUri)
+            return try BackupConfig.getYaml(from: configUri)
         } catch let error {
             Server.logger.error("\(error)")
             throw error
@@ -144,7 +168,7 @@ struct Server: ParsableCommand {
 
     private func readBackupConfig(from uri: URL) -> BackupConfig? {
         do {
-            return try BackupConfig.getBackupConfig(from: uri)
+            return try BackupConfig.getYaml(from: uri)
         } catch let error {
             Server.logger.error("\(error.localizedDescription)")
         }

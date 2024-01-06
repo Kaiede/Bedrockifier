@@ -47,18 +47,16 @@ final class BackupService {
     let config: BackupConfig
     let environment: EnvironmentConfig
     let backupUrl: URL
-    let dockerPath: String
-    let rconPath: String
+    let tools: ToolConfig
     let backupActor: BackupActor
 
     var intervalTimer: ServiceTimer<String>?
 
-    init(config: BackupConfig, backupUrl: URL, dockerPath: String, rconPath: String) {
+    init(config: BackupConfig, backupUrl: URL, tools: ToolConfig) {
         self.config = config
         self.environment = EnvironmentConfig()
         self.backupUrl = backupUrl
-        self.dockerPath = dockerPath
-        self.rconPath = rconPath
+        self.tools = tools
         self.backupActor = BackupActor(config: config, destination: backupUrl)
     }
 
@@ -121,12 +119,12 @@ final class BackupService {
     }
 
     private func connectContainers() async throws {
-        let containers = try ContainerConnection.loadContainers(from: config, dockerPath: dockerPath, rconPath: rconPath)
+        let containers = try ContainerConnection.loadContainers(from: config, tools: tools)
 
         // Attach to the containers
         if await backupActor.needsListeners() {
             for container in containers {
-                try container.start()
+                try await container.start()
             }
         }
 

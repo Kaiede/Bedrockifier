@@ -9,6 +9,7 @@ services:
     environment:
         TZ: "America/Los_Angeles"
     volumes:
+      # Docker needs to be made accessible to the backup container in this case
       - /var/run/docker.sock:/var/run/docker.sock
       - /opt/minecraft/backups:/backups
       - /opt/minecraft/public:/public
@@ -16,9 +17,11 @@ services:
   public:
     image: itzg/minecraft-server
     container_name: minecraft_public
-    ports: 
+    # Make the minecraft server port public
+    ports:
       - 25565:25565
     environment:
+      # Server Settings
       TYPE: "FABRIC"
       EULA: "TRUE"
       MAX_PLAYERS: 6
@@ -26,7 +29,7 @@ services:
       LEVEL: "PublicSMP"
       MOTD: "Public SMP Server"
       MEMORY: "2G"
-    volumes: 
+    volumes:
       - /opt/minecraft/public:/data
     tty: true
     stdin_open: true

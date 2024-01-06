@@ -42,8 +42,10 @@ public struct BackupConfig: Codable {
 
     public struct ContainerConfig: Codable {
         public var name: String
-        public var rconAddr: String?
-        public var rconPassword: String?
+        public var rcon: String?
+        public var ssh: String?
+        public var password: String?
+        public var passwordFile: String?
         public var extras: [String]?
         public var worlds: [String]
     }
@@ -55,6 +57,8 @@ public struct BackupConfig: Codable {
 
     public var dockerPath: String?
     public var rconPath: String?
+    public var sshPath: String?
+    public var sshpassPath: String?
     public var backupPath: String?
     public var servers: ServerConfig?
     public var containers: ServerContainersConfig?
@@ -64,15 +68,36 @@ public struct BackupConfig: Codable {
     public var loggingLevel: LoggingConfig?
 }
 
-extension BackupConfig {
-    public static func getBackupConfig(from url: URL) throws -> BackupConfig {
+extension BackupConfig.ContainerConfig {
+    func readPassword() -> String? {
+        if let file = passwordFile {
+            let fileUrl = URL(fileURLWithPath: file)
+            if let config = try? RconCliConfig.getYaml(from: fileUrl), let password = config.password {
+                return password
+            } else {
+                Library.log.error("Unable to read the password from the YAML file at: \(file)")
+            }
+        } else if let password = password {
+            return password
+        }
+
+        return nil
+    }
+}
+
+internal struct RconCliConfig: Codable {
+    public var password: String?
+}
+
+extension Decodable {
+    public static func getYaml(from url: URL) throws -> Self {
         let data = try Data(contentsOf: url)
-        return try BackupConfig.getBackupConfig(from: data)
+        return try Self.getYaml(from: data)
     }
 
-    public static func getBackupConfig(from data: Data) throws -> BackupConfig {
-        let decodey = YAMLDecoder()
-        let config = try decodey.decode(BackupConfig.self, from: data)
+    public static func getYaml(from data: Data) throws -> Self {
+        let decoder = YAMLDecoder()
+        let config = try decoder.decode(Self.self, from: data)
         return config
     }
 }

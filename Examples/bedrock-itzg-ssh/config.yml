@@ -1,11 +1,12 @@
 containers:
   bedrock:
-    # Backup the world "PrivateSMP" on the "bedrock_private" docker container
-    - name: bedrock_private
-      worlds:
-        - /bedrock_private/worlds/PrivateSMP
     # Backup the world "PublicSMP" on the "bedrock_public" docker container
     - name: bedrock_public
+      # Tells the backup service that this container is accessible
+      # using the mc-server-runner SSH functionality.
+      # passwordFile should point to the .remote-console.yaml file in the container
+      ssh: public:2222
+      passwordFile: /bedrock_public/.remote-console.yaml
       worlds:
         - /bedrock_public/worlds/PublicSMP
 schedule:
