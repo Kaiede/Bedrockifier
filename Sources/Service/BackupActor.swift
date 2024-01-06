@@ -193,10 +193,6 @@ actor BackupActor {
                 }
 
                 try await container.runBackup(destination: backupUrl)
-
-                if !needsListeners {
-                    await container.stop()
-                }
             } catch let error {
                 failedContainers += 1
                 BackupService.logger.error("\(error.localizedDescription)")
@@ -205,6 +201,7 @@ actor BackupActor {
 
             do {
                 if !needsListeners {
+                    await container.stop()
                     try container.reset()
                 }
             } catch let error {

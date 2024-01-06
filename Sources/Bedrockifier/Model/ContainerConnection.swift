@@ -94,6 +94,11 @@ public class ContainerConnection {
     }
 
     public func start() async throws {
+        guard !terminalProcess.isRunning else {
+            Library.log.warning("Attemped to start a terminal process that isn't running. (container: \(name), kind: \(connectionConfig.kind))")
+            return
+        }
+
         Library.log.debug("Starting Terminal Process. (container: \(name), kind: \(connectionConfig.kind))")
 
         // Configure for SSH
@@ -116,6 +121,11 @@ public class ContainerConnection {
     }
 
     public func stop() async {
+        guard terminalProcess.isRunning else {
+            Library.log.warning("Attempted to stop a terminal process that isn't running. (container: \(name), kind: \(connectionConfig.kind))")
+            return
+        }
+
         Library.log.debug("Terminating Terminal Process. (container: \(name), kind: \(connectionConfig.kind))")
         terminalProcess.terminate()
         await terminal.waitForDetach()
