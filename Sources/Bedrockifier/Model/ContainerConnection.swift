@@ -369,7 +369,8 @@ public class ContainerConnection {
                 return
             }
 
-            try terminal.sendLine(connectionConfig.password)
+            Library.log.debug("Sending password: \(connectionConfig.password)")
+            try terminal.send("\(connectionConfig.password)\r")
 
             // Wait before we attempt to issue commands
             try await Task.sleep(for: .seconds(2))
