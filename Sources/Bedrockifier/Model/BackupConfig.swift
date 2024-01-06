@@ -44,6 +44,8 @@ public struct BackupConfig: Codable {
         public var name: String
         public var rconAddr: String?
         public var rconPassword: String?
+        public var sshAddr: String?
+        public var sshPassword: String?
         public var extras: [String]?
         public var worlds: [String]
     }
@@ -55,6 +57,8 @@ public struct BackupConfig: Codable {
 
     public var dockerPath: String?
     public var rconPath: String?
+    public var sshPath: String?
+    public var sshpassPath: String?
     public var backupPath: String?
     public var servers: ServerConfig?
     public var containers: ServerContainersConfig?

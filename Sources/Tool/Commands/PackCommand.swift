@@ -26,6 +26,8 @@
 import ConsoleKit
 import Foundation
 
+import Bedrockifier
+
 public final class PackCommand: Command {
     public struct Signature: CommandSignature {
         @Argument(name: "mcworld", help: "Filename to pack into (as .mcworld)")

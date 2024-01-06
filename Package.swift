@@ -37,7 +37,8 @@ let package = Package(
             name: "Tool",
             dependencies: [
                 "Bedrockifier",
-                .product(name: "ArgumentParser", package: "swift-argument-parser")
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "ConsoleKit", package: "console-kit")
             ]
         ),
         .executableTarget(
@@ -51,7 +52,6 @@ let package = Package(
         .target(
             name: "Bedrockifier",
             dependencies: [
-                .product(name: "ConsoleKit", package: "console-kit"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "PTYKit", package: "PTYKit"),
                 .product(name: "Yams", package: "Yams"),

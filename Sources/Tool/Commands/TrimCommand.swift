@@ -26,6 +26,8 @@
 import ConsoleKit
 import Foundation
 
+import Bedrockifier
+
 public final class TrimCommand: Command {
     public struct Signature: CommandSignature {
         @Argument(name: "backupFolderPath", help: "Folder to Trim")

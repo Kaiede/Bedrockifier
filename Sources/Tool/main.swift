@@ -34,8 +34,6 @@ let terminal = Terminal()
 var input = CommandInput(arguments: CommandLine.arguments)
 
 var commands = Commands()
-commands.use(BackupCommand(), as: "backup")
-commands.use(BackupJobCommand(), as: "backupjob")
 commands.use(PackCommand(), as: "pack")
 commands.use(TrimCommand(), as: "trim")
 commands.use(UnpackCommand(), as: "unpack")

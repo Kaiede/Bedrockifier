@@ -1,9 +1,27 @@
-//
-//  File.swift
-//  
-//
-//  Created by Alex Hadden on 12/31/21.
-//
+/*
+ Bedrockifier
+
+ Copyright (c) 2021 Adam Thayer
+ Licensed under the MIT license, as follows:
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.)
+ */
 
 import Foundation
 import PTYKit
@@ -14,23 +32,17 @@ public class ContainerConnection {
         static let dockerConnectError = "Got permission denied while trying to connect to the Docker daemon"
     }
 
-    public struct RconConfig {
-        let address: String
-        let password: String
-    }
-
     public enum Kind {
         case bedrock
         case java
     }
 
-    private let terminalPath: String
     public let name: String
     let kind: Kind
 
     public let terminal: PseudoTerminal
     var terminalProcess: Process
-    let rconConfig: RconConfig?
+    let connectionConfig: ContainerConnectionConfig
 
     let worlds: [URL]
     let extras: [URL]?
@@ -50,15 +62,13 @@ public class ContainerConnection {
     }
 
     public init(terminal: PseudoTerminal,
-                terminalPath: String,
                 containerName: String,
-                rcon: RconConfig?,
+                config: ContainerConnectionConfig,
                 kind: Kind,
                 worlds: [String],
                 extras: [String]?) throws {
-        self.terminalPath = terminalPath
         self.name = containerName
-        self.rconConfig = rcon
+        self.connectionConfig = config
         self.kind = kind
         self.terminal = terminal
         self.worlds = worlds.map({ URL(fileURLWithPath: $0) })
@@ -68,42 +78,41 @@ public class ContainerConnection {
 
         try self.terminal.setWindowSize(columns: 65000, rows: 24)
 
-        let processUrl = ContainerConnection.getPtyProcess(terminalPath: terminalPath)
-        let processArgs = try ContainerConnection.getPtyArguments(containerName: containerName, rconConfig: rconConfig)
+        let processUrl = config.processUrl
+        let processArgs = try config.makeArguments()
         self.terminalProcess = try Process(processUrl, arguments: processArgs, terminal: self.terminal)
     }
 
-    public convenience init(terminalPath: String, containerName: String, rcon: RconConfig?, kind: Kind, worlds: [String], extras: [String]?) throws {
+    public convenience init(containerName: String, config: ContainerConnectionConfig, kind: Kind, worlds: [String], extras: [String]?) throws {
         let terminal = try PseudoTerminal(identifier: containerName)
         try self.init(terminal: terminal,
-                      terminalPath: terminalPath,
                       containerName: containerName,
-                      rcon: rcon,
+                      config: config,
                       kind: kind,
                       worlds: worlds,
                       extras: extras)
     }
 
     public func start() throws {
-        Library.log.debug("Starting Terminal Process. (container: \(name), isRcon: \(rconConfig != nil))")
+        Library.log.debug("Starting Terminal Process. (container: \(name), kind: \(connectionConfig.kind))")
         try terminalProcess.run()
         logTerminalSize()
     }
 
     public func stop() async {
-        Library.log.debug("Terminating Terminal Process. (container: \(name), isRcon: \(rconConfig != nil))")
+        Library.log.debug("Terminating Terminal Process. (container: \(name), kind: \(connectionConfig.kind))")
         terminalProcess.terminate()
         await terminal.waitForDetach()
 
         if terminalProcess.isRunning {
-            Library.log.error("Terminal Process Still Running. (container: \(name), isRcon: \(rconConfig != nil))")
+            Library.log.error("Terminal Process Still Running. (container: \(name), kind: \(connectionConfig.kind))")
         }
     }
 
     public func reset() throws {
-        Library.log.debug("Resetting Container Process. (container: \(name), isRcon: \(rconConfig != nil))")
-        let processUrl = ContainerConnection.getPtyProcess(terminalPath: terminalPath)
-        let processArgs = try ContainerConnection.getPtyArguments(containerName: name, rconConfig: rconConfig)
+        Library.log.debug("Resetting Container Process. (container: \(name), kind: \(connectionConfig.kind))")
+        let processUrl = connectionConfig.processUrl
+        let processArgs = try connectionConfig.makeArguments()
         self.terminalProcess = try Process(processUrl, arguments: processArgs, terminal: terminal)
     }
 
@@ -348,55 +357,16 @@ public class ContainerConnection {
             Library.log.debug("Failed to get terminal window size")
         }
     }
-
-    private static func getPtyArguments(containerName: String, rconConfig: RconConfig?) throws -> [String] {
-        if let rconConfig = rconConfig {
-            return try getRconArguments(rconConfig: rconConfig)
-        } else {
-            return getDockerArguments(containerName: containerName)
-        }
-    }
-
-    private static func getDockerArguments(containerName: String) -> [String] {
-        return [
-            "attach",
-            "--sig-proxy=false",
-            containerName
-        ]
-    }
-
-    private static func getRconArguments(rconConfig: RconConfig) throws -> [String] {
-        // TODO: Do some checking here...
-        let parts = rconConfig.address.split(whereSeparator: { $0 == ":" })
-        guard parts.count == 2 else {
-            throw ParseError.invalidHostname(rconConfig.address)
-        }
-
-        return [
-            "--host",
-            "\(parts[0])",
-            "--port",
-            "\(parts[1])",
-            "--password",
-            "\(rconConfig.password)"
-        ]
-    }
-
-    private static func getPtyProcess(terminalPath: String) -> URL {
-        return URL(fileURLWithPath: terminalPath)
-    }
 }
 
 extension ContainerConnection {
-    public static func loadContainers(from config: BackupConfig, dockerPath: String, rconPath: String) throws -> [ContainerConnection] {
+    public static func loadContainers(from config: BackupConfig, tools: ToolConfig) throws -> [ContainerConnection] {
         var containers: [ContainerConnection] = []
         for container in config.containers?.bedrock ?? [] {
             Library.log.debug("Creating Bedrock Container Connection. (container: \(container.name))")
-            let processPath = container.rconAddr == nil ? dockerPath : rconPath
-            let rconConfig = rconConfig(address: container.rconAddr, password: container.rconPassword)
-            let connection = try ContainerConnection(terminalPath: processPath,
-                                                     containerName: container.name,
-                                                     rcon: rconConfig,
+            let config = containerConfig(container: container, tools: tools)
+            let connection = try ContainerConnection(containerName: container.name,
+                                                     config: config,
                                                      kind: .bedrock,
                                                      worlds: container.worlds,
                                                      extras: container.extras)
@@ -405,11 +375,9 @@ extension ContainerConnection {
 
         for container in config.containers?.java ?? [] {
             Library.log.debug("Creating Java Container Connection. (container: \(container.name)")
-            let processPath = container.rconAddr == nil ? dockerPath : rconPath
-            let rconConfig = rconConfig(address: container.rconAddr, password: container.rconPassword)
-            let connection = try ContainerConnection(terminalPath: processPath,
-                                                     containerName: container.name,
-                                                     rcon: rconConfig,
+            let config = containerConfig(container: container, tools: tools)
+            let connection = try ContainerConnection(containerName: container.name,
+                                                     config: config,
                                                      kind: .java,
                                                      worlds: container.worlds,
                                                      extras: container.extras)
@@ -422,9 +390,9 @@ extension ContainerConnection {
             let worldsFolder = URL(fileURLWithPath: container.value)
             let worlds = try World.getWorlds(at: worldsFolder)
             let worldPaths = worlds.map({ $0.location.path })
-            let connection = try ContainerConnection(terminalPath: dockerPath,
-                                                     containerName: containerName,
-                                                     rcon: nil,
+            let config = DockerConnectionConfig(dockerPath: tools.dockerPath, containerName: containerName)
+            let connection = try ContainerConnection(containerName: containerName,
+                                                     config: config,
                                                      kind: .bedrock,
                                                      worlds: worldPaths,
                                                      extras: nil)
@@ -434,12 +402,14 @@ extension ContainerConnection {
         return containers
     }
 
-    private static func rconConfig(address: String?, password: String?) -> RconConfig? {
-        if let address = address, let password = password {
-            return RconConfig(address: address, password: password)
+    private static func containerConfig(container: BackupConfig.ContainerConfig, tools: ToolConfig) -> ContainerConnectionConfig {
+        if let sshConfig = SSHConnectionConfig(sshpassPath: tools.sshpassPath, sshPath: tools.sshPath, config: container) {
+            return sshConfig
+        } else if let rconConfig = RCONConnectionConfig(rconPath: tools.rconPath, config: container) {
+            return rconConfig
+        } else {
+            return DockerConnectionConfig(dockerPath: tools.dockerPath, config: container)
         }
-
-        return nil
     }
 }
 

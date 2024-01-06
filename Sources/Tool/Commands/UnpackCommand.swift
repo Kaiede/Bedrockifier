@@ -26,6 +26,8 @@
 import ConsoleKit
 import Foundation
 
+import Bedrockifier
+
 public final class UnpackCommand: Command {
     public struct Signature: CommandSignature {
         @Argument(name: "mcworld", help: "World to unpack (as .mcworld)")

@@ -132,7 +132,7 @@ public struct World {
 extension World {
     static let partialPackExt = "part"
 
-    func pack(to url: URL, progress: Progress? = nil) throws -> World {
+    public func pack(to url: URL, progress: Progress? = nil) throws -> World {
         guard self.type == .folder else {
             throw WorldError.invalidWorldType
         }
@@ -191,7 +191,7 @@ extension World {
         }
     }
 
-    func unpack(to url: URL, progress: Progress? = nil) throws -> World {
+    public func unpack(to url: URL, progress: Progress? = nil) throws -> World {
         switch self.type {
         case .mcworld:
             return try unpackBedrock(to: url, progress: progress)
