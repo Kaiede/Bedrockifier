@@ -9,7 +9,7 @@ final class BackupConfigYamlTests: XCTestCase {
         }
 
         do {
-            let config = try BackupConfig.getBackupConfig(from: yamlData)
+            let config = try BackupConfig.getYaml(from: yamlData)
             XCTAssertNil(config.backupPath)
             XCTAssertNil(config.dockerPath)
             XCTAssertEqual(config.servers?.count, 2)
@@ -27,7 +27,7 @@ final class BackupConfigYamlTests: XCTestCase {
         }
 
         do {
-            let config = try BackupConfig.getBackupConfig(from: yamlData)
+            let config = try BackupConfig.getYaml(from: yamlData)
             XCTAssertNil(config.backupPath)
             XCTAssertNil(config.dockerPath)
             XCTAssertEqual(config.servers?.count, 2)
@@ -47,7 +47,7 @@ final class BackupConfigYamlTests: XCTestCase {
         }
 
         do {
-            let config = try BackupConfig.getBackupConfig(from: yamlData)
+            let config = try BackupConfig.getYaml(from: yamlData)
             XCTAssertNil(config.backupPath)
             XCTAssertNil(config.dockerPath)
             XCTAssertEqual(config.servers?.count, 2)
@@ -64,7 +64,7 @@ final class BackupConfigYamlTests: XCTestCase {
         }
 
         do {
-            let config = try BackupConfig.getBackupConfig(from: yamlData)
+            let config = try BackupConfig.getYaml(from: yamlData)
             XCTAssertNotNil(config.backupPath)
             XCTAssertNotNil(config.dockerPath)
             XCTAssertEqual(config.servers?.count, 2)
@@ -82,7 +82,7 @@ final class BackupConfigYamlTests: XCTestCase {
         }
 
         do {
-            let config = try BackupConfig.getBackupConfig(from: yamlData)
+            let config = try BackupConfig.getYaml(from: yamlData)
             guard let ownershipConfig = config.ownership else {
                 XCTFail("Ownership config missing.")
                 return
@@ -105,7 +105,7 @@ final class BackupConfigYamlTests: XCTestCase {
         }
 
         do {
-            let config = try BackupConfig.getBackupConfig(from: yamlData)
+            let config = try BackupConfig.getYaml(from: yamlData)
             guard let scheduleConfig = config.schedule else {
                 XCTFail("Schedule config missing.")
                 return
@@ -126,7 +126,7 @@ final class BackupConfigYamlTests: XCTestCase {
         }
 
         do {
-            let config = try BackupConfig.getBackupConfig(from: data)
+            let config = try BackupConfig.getYaml(from: data)
 
             XCTAssertNil(config.servers)
             XCTAssertNil(config.containers?.java)
@@ -152,7 +152,7 @@ final class BackupConfigYamlTests: XCTestCase {
         }
 
         do {
-            let config = try BackupConfig.getBackupConfig(from: data)
+            let config = try BackupConfig.getYaml(from: data)
 
             XCTAssertNil(config.servers)
             guard let javaContainers = config.containers?.java else {
@@ -186,7 +186,7 @@ final class BackupConfigYamlTests: XCTestCase {
         }
 
         do {
-            let config = try BackupConfig.getBackupConfig(from: data)
+            let config = try BackupConfig.getYaml(from: data)
 
             XCTAssertNil(config.servers)
             guard let bedrockContainers = config.containers?.bedrock else {

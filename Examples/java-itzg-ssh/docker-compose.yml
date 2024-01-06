@@ -26,9 +26,8 @@ services:
     ports:
       - 25565:25565
     environment:
-      # Enables the SSH capability, and sets the RCON password
+      # Enables the SSH capability
       ENABLE_SSH: "TRUE"
-      RCON_PASSWORD: "mywonderfulpassword"
       # Server Settings
       TYPE: "FABRIC"
       EULA: "TRUE"

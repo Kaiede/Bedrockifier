@@ -9,7 +9,7 @@ final class BackupConfigJsonTests: XCTestCase {
         }
 
         do {
-            let config = try BackupConfig.getBackupConfig(from: jsonData)
+            let config = try BackupConfig.getYaml(from: jsonData)
             XCTAssertNil(config.backupPath)
             XCTAssertNil(config.dockerPath)
             XCTAssertEqual(config.servers?.count, 2)
@@ -27,7 +27,7 @@ final class BackupConfigJsonTests: XCTestCase {
         }
 
         do {
-            let config = try BackupConfig.getBackupConfig(from: jsonData)
+            let config = try BackupConfig.getYaml(from: jsonData)
             XCTAssertNil(config.backupPath)
             XCTAssertNil(config.dockerPath)
             XCTAssertEqual(config.servers?.count, 2)
@@ -44,7 +44,7 @@ final class BackupConfigJsonTests: XCTestCase {
         }
 
         do {
-            let config = try BackupConfig.getBackupConfig(from: jsonData)
+            let config = try BackupConfig.getYaml(from: jsonData)
             XCTAssertNotNil(config.backupPath)
             XCTAssertNotNil(config.dockerPath)
             XCTAssertEqual(config.servers?.count, 2)
@@ -62,7 +62,7 @@ final class BackupConfigJsonTests: XCTestCase {
         }
 
         do {
-            let config = try BackupConfig.getBackupConfig(from: jsonData)
+            let config = try BackupConfig.getYaml(from: jsonData)
             guard let ownershipConfig = config.ownership else {
                 XCTFail("Ownership config missing.")
                 return
@@ -85,7 +85,7 @@ final class BackupConfigJsonTests: XCTestCase {
         }
 
         do {
-            let config = try BackupConfig.getBackupConfig(from: jsonData)
+            let config = try BackupConfig.getYaml(from: jsonData)
             guard let scheduleConfig = config.schedule else {
                 XCTFail("Schedule config missing.")
                 return
@@ -106,7 +106,7 @@ final class BackupConfigJsonTests: XCTestCase {
         }
 
         do {
-            let config = try BackupConfig.getBackupConfig(from: data)
+            let config = try BackupConfig.getYaml(from: data)
 
             XCTAssertNil(config.servers)
             guard let javaContainers = config.containers?.java else {

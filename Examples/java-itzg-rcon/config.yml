@@ -3,9 +3,9 @@ containers:
     - name: minecraft_public
       # Tells the backup service that this container is accessible
       # using minecraft's RCON server.
-      # Password needs to match RCON_PASSWORD for the container.
-      rconAddr: public:2222
-      rconPassword: mywonderfulpassword
+      # passwordFile should point to the .rcon-cli.yaml file
+      rcon: public:25575
+      passwordFile: /public/.rcon-cli.yaml
       # Backup the "PublicSMP" world in the "minecraft_public" container
       # Backup the logs and mods folder into an "extras.zip"
       worlds:

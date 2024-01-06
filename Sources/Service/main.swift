@@ -132,7 +132,7 @@ struct Server: ParsableCommand {
     private func getConfig(from configUri: URL) throws -> BackupConfig {
         do {
             Server.logger.info("Loading Configuration From: \(configUri.path)")
-            return try BackupConfig.getBackupConfig(from: configUri)
+            return try BackupConfig.getYaml(from: configUri)
         } catch let error {
             Server.logger.error("\(error)")
             throw error
@@ -168,7 +168,7 @@ struct Server: ParsableCommand {
 
     private func readBackupConfig(from uri: URL) -> BackupConfig? {
         do {
-            return try BackupConfig.getBackupConfig(from: uri)
+            return try BackupConfig.getYaml(from: uri)
         } catch let error {
             Server.logger.error("\(error.localizedDescription)")
         }

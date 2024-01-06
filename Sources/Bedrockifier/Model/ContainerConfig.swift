@@ -81,7 +81,9 @@ public struct RCONConnectionConfig: ContainerConnectionConfig {
     let password: String
 
     init?(rconPath: String, config: BackupConfig.ContainerConfig) {
-        guard let rconAddr = config.rconAddr, let rconPassword = config.rconPassword else {
+        guard let rconAddr = config.rcon else { return nil }
+        guard let rconPassword = config.readPassword() else {
+            Library.log.error("Container is configured for RCON, but was unable to get a password to use. \(config.name)")
             return nil
         }
 
@@ -118,7 +120,9 @@ public struct SSHConnectionConfig: ContainerConnectionConfig {
     let password: String
 
     init?(sshpassPath: String, sshPath: String, config: BackupConfig.ContainerConfig) {
-        guard let sshAddr = config.sshAddr, let sshPassword = config.sshPassword else {
+        guard let sshAddr = config.ssh else { return nil }
+        guard let sshPassword = config.readPassword() else {
+            Library.log.error("Container is configured for SSH, but was unable to get a password to use. \(config.name)")
             return nil
         }
 

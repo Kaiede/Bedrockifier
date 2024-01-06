@@ -2,9 +2,11 @@ containers:
   bedrock:
     # Backup the world "PublicSMP" on the "bedrock_public" docker container
     - name: bedrock_public
-      # Enables SSH. Password should match RCON_PASSWORD
-      sshAddr: public:2222
-      sshPassword: mygreatpassword
+      # Tells the backup service that this container is accessible
+      # using the mc-server-runner SSH functionality.
+      # passwordFile should point to the .rcon-cli.yaml file in the container
+      ssh: public:2222
+      passwordFile: /bedrock_public/.rcon-cli.yaml
       worlds:
         - /bedrock_public/worlds/PublicSMP
 schedule:

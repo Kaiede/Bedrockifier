@@ -29,9 +29,8 @@ services:
     ports:
       - 19132:19132/udp
     environment:
-      # Enable SSH and set the password
+      # Enable SSH
       SSH_ENABLE: "TRUE"
-      RCON_PASSWORD: "mygreatpassword"
       # Server settings
       EULA: "TRUE"
     volumes:
