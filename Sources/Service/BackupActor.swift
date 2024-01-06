@@ -202,18 +202,22 @@ actor BackupActor {
                 BackupService.logger.error("\(error.localizedDescription)")
                 BackupService.logger.error("Container \(container.name) failed to backup properly")
             }
+
+            do {
+                if !needsListeners {
+                    try container.reset()
+                }
+            } catch let error {
+                failedContainers += 1
+                BackupService.logger.error("\(error.localizedDescription)")
+                BackupService.logger.error("Container \(container.name) failed to reset after backup")
+            }
         }
 
         do {
             try runPostBackupTasks()
 
             BackupService.logger.info("Full Backup Completed")
-
-            if !needsListeners {
-                for container in containers {
-                    try container.reset()
-                }
-            }
 
             if failedContainers > 0 {
                 markUnhealthy()
