@@ -42,7 +42,7 @@ services:
       - 60601:19132/udp
     environment:
       # Enable SSH
-      SSH_ENABLE: "TRUE"
+      ENABLE_SSH: "TRUE"
       # Server settings
       EULA: "TRUE"
     volumes:
@@ -64,7 +64,7 @@ services:
       - 60602:19132/udp
     environment:
       # Enable SSH
-      SSH_ENABLE: "TRUE"
+      ENABLE_SSH: "TRUE"
       # Server settings
       EULA: "TRUE"
     volumes:
