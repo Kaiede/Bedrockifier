@@ -42,5 +42,7 @@ COPY --from=builder /project/.build/release/bedrockifierd .
 COPY ./Docker/entry.sh .
 COPY ./Docker/healthcheck.sh .
 
+RUN adduser bedrockifier
+
 ENTRYPOINT [ "/opt/bedrock/entry.sh" ]
 HEALTHCHECK --start-period=1m CMD bash /opt/bedrock/healthcheck.sh
