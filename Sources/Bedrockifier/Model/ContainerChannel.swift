@@ -39,7 +39,7 @@ struct ProcessChannel: ContainerChannel {
     private let terminal: PseudoTerminal
     private let processUrl: URL
     private let processArgs: [String]
-    private var process: Process!
+    private var process: Process
 
     init(terminal: PseudoTerminal, processUrl: URL, processArgs: [String]) throws {
         self.terminal = terminal
@@ -51,11 +51,11 @@ struct ProcessChannel: ContainerChannel {
     var isConnected: Bool { process.isRunning }
 
     func close() {
-        process?.terminate()
+        process.terminate()
     }
 
     func start() throws {
-        try self.process?.run()
+        try self.process.run()
     }
 
     mutating func reset() throws {
