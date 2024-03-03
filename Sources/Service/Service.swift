@@ -200,7 +200,7 @@ final class BackupService {
     private func startListenerBackups() async {
         BackupService.logger.info("Starting Listeners for Containers")
         for container in await backupActor.containers {
-            container.terminal.listen(for: Strings.listenerStrings) { content in
+            container.listen(for: Strings.listenerStrings) { content in
                 Task(priority: BackupService.backupPriority) {
                     await self.onListenerEvent(container: container, content: content)
                 }

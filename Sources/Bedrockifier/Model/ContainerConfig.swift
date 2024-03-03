@@ -41,9 +41,15 @@ public struct ToolConfig {
     }
 }
 
+public enum ContainerConnectionConfigKind {
+    case docker
+    case rcon
+    case ssh
+}
+
 public protocol ContainerConnectionConfig {
     var processPath: String { get }
-    var kind: String { get }
+    var kind: ContainerConnectionConfigKind { get }
     var newline: TerminalNewline { get }
     var password: String { get }
     func makeArguments() throws -> [String]
@@ -68,7 +74,7 @@ public struct DockerConnectionConfig: ContainerConnectionConfig {
         self.containerName = containerName
     }
 
-    public var kind: String { "docker" }
+    public var kind: ContainerConnectionConfigKind { .docker }
     public var newline: TerminalNewline { .default }
     public var processPath: String { dockerPath }
 
@@ -98,7 +104,7 @@ public struct RCONConnectionConfig: ContainerConnectionConfig {
         self.password = rconPassword
     }
 
-    public var kind: String { "rcon" }
+    public var kind: ContainerConnectionConfigKind { .rcon }
     public var newline: TerminalNewline { .ssh }
     public var processPath: String { rconPath }
 
@@ -139,7 +145,7 @@ public struct SSHConnectionConfig: ContainerConnectionConfig {
         self.password = sshPassword
     }
 
-    public var kind: String { "ssh" }
+    public var kind: ContainerConnectionConfigKind { .ssh }
     public var newline: TerminalNewline { .ssh }
     public var processPath: String { sshpassPath }
 
@@ -151,16 +157,8 @@ public struct SSHConnectionConfig: ContainerConnectionConfig {
         }
 
         return [
-            // sshpass arguments
-            "-e",
-            "-v",
-            // ssh arguments
-            sshPath,
-            "-p",
-            "\(parts[1])",
-            "-o",
-            "StrictHostKeyChecking=accept-new",
-            "bedrockifier@\(parts[0])"
+            String(parts[0]),
+            String(parts[1])
         ]
     }
 }
