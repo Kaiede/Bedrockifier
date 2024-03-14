@@ -60,12 +60,14 @@ final class SSHPipeHandler: ChannelDuplexHandler {
             fatalError("Unexpected typing...")
         }
 
+        Library.log.trace("reading data")
         context.fireChannelRead(self.wrapInboundOut(bytes))
     }
 
     func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
         let bytes = self.unwrapOutboundIn(data)
 
+        Library.log.trace("writing data")
         let channelData = SSHChannelData(type: .channel, data: .byteBuffer(bytes))
         context.write(self.wrapOutboundOut(channelData), promise: promise)
     }

@@ -53,6 +53,7 @@ final class TerminalHandler: ChannelDuplexHandler {
         do {
             let channel = try terminal.connect()
             channel.fileHandle.readabilityHandler = { handle in
+                Library.log.trace("read data from terminal")
                 let buffer = ByteBuffer(data: handle.availableData)
                 context.write(self.wrapOutboundOut(buffer), promise: nil)
             }
@@ -77,9 +78,11 @@ final class TerminalHandler: ChannelDuplexHandler {
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         let bytes = unwrapInboundIn(data)
         let writableData = Data(buffer: bytes, byteTransferStrategy: .noCopy)
+        Library.log.trace("writing data to terminal")
         if let terminalChannel = self.terminalChannel {
             do {
                 try terminalChannel.fileHandle.write(contentsOf: writableData)
+                Library.log.trace("written data to terminal")
             } catch {
                 Library.log.error("Failed to write data to terminal fileHandle.")
             }
