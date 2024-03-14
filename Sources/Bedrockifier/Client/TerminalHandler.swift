@@ -54,7 +54,7 @@ final class TerminalHandler: ChannelDuplexHandler {
             let channel = try terminal.connect()
             channel.fileHandle.readabilityHandler = { handle in
                 let buffer = ByteBuffer(data: handle.availableData)
-                Library.log.trace("read data from terminal \(String(buffer: buffer))")
+                Library.log.trace("read data from terminal \(String(buffer: buffer).withEscapedInvisibles())")
                 context.write(self.wrapOutboundOut(buffer), promise: nil)
             }
 
