@@ -44,6 +44,7 @@ final class TerminalHandler: ChannelDuplexHandler {
     deinit {
         do {
             try terminalChannel?.disconnect()
+            Library.log.info("SSH Terminal disconnected from deinit.")
         } catch {
             Library.log.error("Failed to disconnect from Terminal during deinit. (\(error.localizedDescription)")
         }
