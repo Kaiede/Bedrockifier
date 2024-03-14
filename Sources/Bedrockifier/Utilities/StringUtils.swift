@@ -31,4 +31,8 @@ extension String {
             .replacingOccurrences(of: "\n", with: "\\n")
             .replacingOccurrences(of: "\r", with: "\\r")
     }
+
+    func convertNewlinesForSSH() -> String {
+        self.replacingOccurrences(of: "\n", with: "\r")
+    }
 }

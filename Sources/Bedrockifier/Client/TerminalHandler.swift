@@ -54,8 +54,13 @@ final class TerminalHandler: ChannelDuplexHandler {
         do {
             let channel = try terminal.connect()
             channel.fileHandle.readabilityHandler = { handle in
-                let buffer = ByteBuffer(data: handle.availableData)
-                Library.log.trace("read data from terminal \(String(buffer: buffer).withEscapedInvisibles())")
+                guard var string = String(data: handle.availableData, encoding: .utf8) else {
+                    Library.log.error("Failed to read terminal data as UTF8 for SSH.")
+                    return
+                }
+
+                Library.log.trace("Read data from terminal: '\(string.withEscapedInvisibles())'")
+                let buffer = ByteBuffer(string: string)
                 context.write(self.wrapOutboundOut(buffer), promise: nil)
             }
 
