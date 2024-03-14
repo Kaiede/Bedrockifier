@@ -78,11 +78,20 @@ struct SecureShellChannel: ContainerChannel {
     var isConnected: Bool { client.isConnected }
 
     func start() async throws {
-        try await client.connect(host: host, port: port)
+        do {
+            try await client.connect(host: host, port: port)
+        } catch {
+            Library.log.error("Failed to connect SSH channel to host. (\(error.localizedDescription))")
+        }
     }
 
     func close() async throws {
-        try await client.close()
+        do {
+            try await client.close()
+        } catch {
+            Library.log.error("Failed to close SSH channel. (\(error.localizedDescription))")
+            throw error
+        }
     }
 
     func reset() {}

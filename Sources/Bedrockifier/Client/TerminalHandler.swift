@@ -42,29 +42,45 @@ final class TerminalHandler: ChannelDuplexHandler {
     }
 
     deinit {
-        try? terminalChannel?.disconnect()
+        do {
+            try terminalChannel?.disconnect()
+        } catch {
+            Library.log.error("Failed to disconnect from Terminal during deinit. (\(error.localizedDescription)")
+        }
     }
 
     func handlerAdded(context: ChannelHandlerContext) {
-        if let channel = try? terminal.connect() {
+        do {
+            let channel = try terminal.connect()
             channel.fileHandle.readabilityHandler = { handle in
                 let buffer = ByteBuffer(data: handle.availableData)
                 context.write(self.wrapOutboundOut(buffer), promise: nil)
             }
+
+            self.terminalChannel = channel
+        } catch {
+            Library.log.error("Failed to connect to terminal. (\(error.localizedDescription))")
         }
-        self.terminalChannel = try? terminal.connect()
     }
 
     func handlerRemoved(context: ChannelHandlerContext) {
         self.terminalChannel?.fileHandle.readabilityHandler = nil
-        try? self.terminalChannel?.disconnect()
+        do {
+            try self.terminalChannel?.disconnect()
+        } catch {
+            Library.log.error("Failed to disconnect from Terminal. (\(error.localizedDescription)")
+        }
     }
 
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         let bytes = unwrapInboundIn(data)
         let writableData = Data(buffer: bytes, byteTransferStrategy: .noCopy)
         if let terminalChannel = self.terminalChannel {
-            try? terminalChannel.fileHandle.write(contentsOf: writableData)
+            do {
+                try terminalChannel.fileHandle.write(contentsOf: writableData)
+            } catch {
+                Library.log.error("Failed to write data to terminal fileHandle.")
+            }
         }
     }
 }

@@ -104,6 +104,7 @@ final class SSHClient {
 final class SSHAcceptKnownHostKeysDelegate: NIOSSHClientServerAuthenticationDelegate {
     func validateHostKey(hostKey: NIOSSHPublicKey, validationCompletePromise: EventLoopPromise<Void>) {
         // TODO: We should record keys and throw errors if those keys change.
+        Library.log.trace("Accepting host key (always).")
         validationCompletePromise.succeed()
     }
 }
@@ -122,6 +123,7 @@ final class SSHBasicAuthDelegate: NIOSSHClientUserAuthenticationDelegate {
         nextChallengePromise: NIOCore.EventLoopPromise<NIOSSH.NIOSSHUserAuthenticationOffer?>
     ) {
         guard availableMethods.contains(.password) else {
+            Library.log.error("SSH authentication failure. Password not supported by server.")
             nextChallengePromise.fail(SSHClientError.passwordAuthenticationNotSupported)
             return
         }

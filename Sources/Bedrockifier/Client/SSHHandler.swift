@@ -75,7 +75,7 @@ final class SSHErrorHandler: ChannelInboundHandler {
     typealias InboundIn = Any
 
     func errorCaught(context: ChannelHandlerContext, error: Error) {
-        Library.log.error("Error from SSH pipeline: \(error)")
+        Library.log.error("Error from SSH pipeline: \(error.localizedDescription)")
         context.close(promise: nil)
     }
 }
