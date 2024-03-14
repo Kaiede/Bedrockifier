@@ -33,6 +33,6 @@ extension String {
     }
 
     func convertNewlinesForSSH() -> String {
-        self.replacingOccurrences(of: "\n", with: "\r")
+        self.replacingOccurrences(of: "\n", with: "\r\n")
     }
 }
