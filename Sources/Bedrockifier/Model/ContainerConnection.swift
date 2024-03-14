@@ -94,6 +94,7 @@ public class ContainerConnection {
     }
 
     public convenience init(containerName: String, config: ContainerConnectionConfig, kind: Kind, worlds: [String], extras: [String]?) throws {
+        Library.log.info("Starting Container Connection. newline = \(config.newline)")
         let terminal = try PseudoTerminal(identifier: containerName, newline: config.newline)
         try self.init(terminal: terminal,
                       containerName: containerName,
