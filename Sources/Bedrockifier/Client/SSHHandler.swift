@@ -46,6 +46,7 @@ final class SSHPipeHandler: ChannelDuplexHandler {
         context.triggerUserOutboundEvent(shellRequest).whenComplete { result in
             switch result {
             case .success(_):
+                Library.log.trace("Shell Request Accepted")
                 return
             case .failure(let error):
                 context.fireErrorCaught(error)
