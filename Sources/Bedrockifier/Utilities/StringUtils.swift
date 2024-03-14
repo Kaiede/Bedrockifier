@@ -28,8 +28,8 @@ import Foundation
 extension String {
     func withEscapedInvisibles() -> String {
         self
-            .replacingOccurrences(of: "\n", with: "\\n")
             .replacingOccurrences(of: "\r", with: "\\r")
+            .replacingOccurrences(of: "\n", with: "\\n")
     }
 
     func convertNewlinesForSSH() -> String {

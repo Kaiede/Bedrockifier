@@ -59,6 +59,7 @@ final class TerminalHandler: ChannelDuplexHandler {
                     return
                 }
 
+                string = string.convertNewlinesForSSH()
                 Library.log.trace("Read data from terminal: '\(string.withEscapedInvisibles())'")
                 let buffer = ByteBuffer(string: string)
                 context.write(self.wrapOutboundOut(buffer), promise: nil)
