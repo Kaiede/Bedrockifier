@@ -58,6 +58,7 @@ final class TerminalHandler: ChannelDuplexHandler {
             }
 
             self.terminalChannel = channel
+            Library.log.info("SSH Terminal fully connected.")
         } catch {
             Library.log.error("Failed to connect to terminal. (\(error.localizedDescription))")
         }
@@ -67,6 +68,7 @@ final class TerminalHandler: ChannelDuplexHandler {
         self.terminalChannel?.fileHandle.readabilityHandler = nil
         do {
             try self.terminalChannel?.disconnect()
+            Library.log.info("SSH Terminal disconnected.")
         } catch {
             Library.log.error("Failed to disconnect from Terminal. (\(error.localizedDescription)")
         }

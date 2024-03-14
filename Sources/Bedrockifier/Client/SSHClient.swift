@@ -47,6 +47,7 @@ final class SSHClient {
     }
 
     func connect(host: String, port: Int) async throws {
+        Library.log.info("Connecting to \(host):\(port)")
         let bootstrap = makeBootstrap()
         let channel = try await bootstrap.connect(host: host, port: port).get()
 
@@ -60,6 +61,7 @@ final class SSHClient {
     }
 
     func close() async throws {
+        Library.log.trace("Closing SSH connection.")
         try await connectedChannel?.close()
     }
 
