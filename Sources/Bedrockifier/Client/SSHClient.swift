@@ -63,6 +63,7 @@ final class SSHClient {
     func close() async throws {
         Library.log.trace("Closing SSH connection.")
         try await connectedChannel?.close()
+        self.connectedChannel = nil
     }
 
     private func makeBootstrap() -> ClientBootstrap {
