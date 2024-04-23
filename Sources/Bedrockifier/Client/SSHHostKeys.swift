@@ -85,7 +85,7 @@ public actor SSHHostKeyValidator {
 
     private func writeKeys(_ keys: [String:String]) throws {
         var lines: [String] = []
-        for (hostIdentifier, keyValue) in keys.enumerated() {
+        for (hostIdentifier, keyValue) in keys {
             lines.append("\(hostIdentifier) \(keyValue)")
         }
 
