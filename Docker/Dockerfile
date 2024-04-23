@@ -18,8 +18,6 @@ ARG TARGETVARIANT
 RUN apt-get update && \
   DEBIAN_FRONTEND=noninteractive apt-get install -y \
     docker.io \
-    openssh-client \
-    sshpass \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
