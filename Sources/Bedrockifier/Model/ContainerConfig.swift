@@ -61,7 +61,7 @@ extension ContainerPassword {
             if let config = try? RconCliConfig.getYaml(from: fileUrl), let password = config.password {
                 return password
             } else {
-                Library.log.error("Unable to read the password from the YAML file at: \(fileUrl.path())")
+                Library.log.error("Unable to read the password from the YAML file at: \(fileUrl.path)")
                 throw ReadPasswordError.failedToReadFile
             }
         }
