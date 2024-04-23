@@ -30,14 +30,41 @@ import PTYKit
 public struct ToolConfig {
     let dockerPath: String
     let rconPath: String
-    let sshPath: String
-    let sshpassPath: String
+    let hostKeyValidator: SSHHostKeyValidator
 
-    public init(dockerPath: String, rconPath: String, sshPath: String, sshpassPath: String) {
+    public init(dockerPath: String, rconPath: String, hostKeyValidator: SSHHostKeyValidator) {
         self.dockerPath = dockerPath
         self.rconPath = rconPath
-        self.sshPath = sshPath
-        self.sshpassPath = sshpassPath
+        self.hostKeyValidator = hostKeyValidator
+    }
+}
+
+public enum ContainerPassword: Equatable {
+    case password(String)
+    case passwordFile(URL)
+    case none
+}
+
+extension ContainerPassword {
+    enum ReadPasswordError: Error {
+        case noPasswordProvided
+        case failedToReadFile
+    }
+
+    func readPassword() throws -> String {
+        switch self {
+        case .none:
+            throw ReadPasswordError.noPasswordProvided
+        case .password(let string):
+            return string
+        case .passwordFile(let fileUrl):
+            if let config = try? RconCliConfig.getYaml(from: fileUrl), let password = config.password {
+                return password
+            } else {
+                Library.log.error("Unable to read the password from the YAML file at: \(fileUrl.path())")
+                throw ReadPasswordError.failedToReadFile
+            }
+        }
     }
 }
 
@@ -51,7 +78,8 @@ public protocol ContainerConnectionConfig {
     var processPath: String { get }
     var kind: ContainerConnectionConfigKind { get }
     var newline: TerminalNewline { get }
-    var password: String { get }
+    var password: ContainerPassword { get }
+    var validator: SSHHostKeyValidator? { get }
     func makeArguments() throws -> [String]
 }
 
@@ -62,7 +90,8 @@ extension ContainerConnectionConfig {
 public struct DockerConnectionConfig: ContainerConnectionConfig {
     let dockerPath: String
     let containerName: String
-    public let password: String = ""
+    public let password: ContainerPassword = .none
+    public let validator: SSHHostKeyValidator? = nil
 
     init(dockerPath: String, config: BackupConfig.ContainerConfig) {
         self.dockerPath = dockerPath
@@ -90,18 +119,20 @@ public struct DockerConnectionConfig: ContainerConnectionConfig {
 public struct RCONConnectionConfig: ContainerConnectionConfig {
     let rconPath: String
     let address: String
-    public let password: String
+    public let password: ContainerPassword
+    public let validator: SSHHostKeyValidator? = nil
 
     init?(rconPath: String, config: BackupConfig.ContainerConfig) {
         guard let rconAddr = config.rcon else { return nil }
-        guard let rconPassword = config.readPassword() else {
-            Library.log.error("Container is configured for RCON, but was unable to get a password to use. \(config.name)")
+        let password = config.containerPassword()
+        guard password != .none else {
+            Library.log.error("Container is configured for RCON, but was no password or password file was set. \(config.name)")
             return nil
         }
 
         self.rconPath = rconPath
         self.address = rconAddr
-        self.password = rconPassword
+        self.password = password
     }
 
     public var kind: ContainerConnectionConfigKind { .rcon }
@@ -127,27 +158,26 @@ public struct RCONConnectionConfig: ContainerConnectionConfig {
 }
 
 public struct SSHConnectionConfig: ContainerConnectionConfig {
-    let sshpassPath: String
-    let sshPath: String
     let address: String
-    public let password: String
+    public let password: ContainerPassword
+    public let validator: SSHHostKeyValidator?
 
-    init?(sshpassPath: String, sshPath: String, config: BackupConfig.ContainerConfig) {
+    init?(validator: SSHHostKeyValidator, config: BackupConfig.ContainerConfig) {
         guard let sshAddr = config.ssh else { return nil }
-        guard let sshPassword = config.readPassword() else {
-            Library.log.error("Container is configured for SSH, but was unable to get a password to use. \(config.name)")
+        let password = config.containerPassword()
+        guard password != .none else {
+            Library.log.error("Container is configured for SSH, but was no password or password file was set. \(config.name)")
             return nil
         }
 
-        self.sshpassPath = sshpassPath
-        self.sshPath = sshPath
         self.address = sshAddr
-        self.password = sshPassword
+        self.password = password
+        self.validator = validator
     }
 
     public var kind: ContainerConnectionConfigKind { .ssh }
     public var newline: TerminalNewline { .ssh }
-    public var processPath: String { sshpassPath }
+    public var processPath: String { "" }
 
     public func makeArguments() throws -> [String] {
         // TODO: Do some checking here...

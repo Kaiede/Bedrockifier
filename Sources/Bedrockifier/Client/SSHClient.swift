@@ -35,19 +35,20 @@ final class SSHClient {
     private let group: EventLoopGroup
     private let terminal: PseudoTerminal
     private let userAuthDelegate: NIOSSHClientUserAuthenticationDelegate
-    private let serverAuthDelegate: NIOSSHClientServerAuthenticationDelegate
+    private let serverAuthDelegate: SSHAcceptKnownHostKeysDelegate
 
     private var connectedChannel: Channel?
 
-    init(group: EventLoopGroup, terminal: PseudoTerminal, password: String) {
+    init(group: EventLoopGroup, terminal: PseudoTerminal, validator: SSHHostKeyValidator, password: ContainerPassword) {
         self.group = group
         self.terminal = terminal
         self.userAuthDelegate = SSHBasicAuthDelegate(password: password)
-        self.serverAuthDelegate = SSHAcceptKnownHostKeysDelegate()
+        self.serverAuthDelegate = SSHAcceptKnownHostKeysDelegate(validator: validator)
     }
 
     func connect(host: String, port: Int) async throws {
         Library.log.info("Connecting to \(host):\(port)")
+        self.serverAuthDelegate.updateHost(host: host, port: port)
         let bootstrap = makeBootstrap()
         let channel = try await bootstrap.connect(host: host, port: port).get()
 
@@ -62,6 +63,7 @@ final class SSHClient {
 
     func close() async throws {
         Library.log.trace("Closing SSH connection.")
+        self.serverAuthDelegate.disconnected()
         try await connectedChannel?.close()
         self.connectedChannel = nil
     }
@@ -105,19 +107,68 @@ final class SSHClient {
 }
 
 final class SSHAcceptKnownHostKeysDelegate: NIOSSHClientServerAuthenticationDelegate {
+    private let validator: SSHHostKeyValidator
+    private var currentHostIdentifier: String?
+
+    enum HostKeyError: Error {
+        case unknownHost
+        case mismatchedKey
+    }
+
+    init(validator: SSHHostKeyValidator) {
+        self.validator = validator
+    }
+
+    func updateHost(host: String, port: Int) {
+        self.currentHostIdentifier = identifierString(host: host, port: port)
+    }
+
+    func disconnected() {
+        self.currentHostIdentifier = nil
+    }
+
     func validateHostKey(hostKey: NIOSSHPublicKey, validationCompletePromise: EventLoopPromise<Void>) {
-        // TODO: We should record keys and throw errors if those keys change.
-        Library.log.trace("Accepting host key (always).")
-        validationCompletePromise.succeed()
+        Task {
+            guard let hostIdent = self.currentHostIdentifier else {
+                Library.log.error("Cannot validate host key, host hasn't been identified.")
+                validationCompletePromise.fail(HostKeyError.unknownHost)
+                return
+            }
+
+            do {
+                let result = try await validator.validate(hostIdent: hostIdent, publicKey: hostKey)
+                switch result {
+                case .ok:
+                    Library.log.debug("Accepting host key, matches existing host key.")
+                    validationCompletePromise.succeed()
+                    return
+                case .notFound:
+                    Library.log.info("Existing host key not found. Accepting and recording.")
+                    try await validator.recordKey(hostIdent: hostIdent, publicKey: hostKey)
+                    validationCompletePromise.succeed()
+                    return
+                case .changed:
+                    Library.log.error("Host key does not match existing key. If this is a mistake, ")
+                    validationCompletePromise.fail(HostKeyError.mismatchedKey)
+                }
+            } catch {
+                Library.log.error("Host key validation failed due to thrown error.")
+                validationCompletePromise.fail(error)
+            }
+        }
+    }
+
+    private func identifierString(host: String, port: Int) -> String {
+        "\(host):\(port)"
     }
 }
 
 
 final class SSHBasicAuthDelegate: NIOSSHClientUserAuthenticationDelegate {
     private let username = "bedrockifier"
-    private let password: String
+    private let password: ContainerPassword
 
-    init(password: String) {
+    init(password: ContainerPassword) {
         self.password = password
     }
 
@@ -131,13 +182,25 @@ final class SSHBasicAuthDelegate: NIOSSHClientUserAuthenticationDelegate {
             return
         }
 
-        nextChallengePromise.succeed(
-            NIOSSHUserAuthenticationOffer(
-                username: self.username,
-                serviceName: "",
-                offer: .password(.init(password: self.password)))
-        )
+        do {
+            let passwordString = try password.readPassword()
 
+            nextChallengePromise.succeed(
+                NIOSSHUserAuthenticationOffer(
+                    username: self.username,
+                    serviceName: "",
+                    offer: .password(.init(password: passwordString)))
+            )
+        } catch ContainerPassword.ReadPasswordError.noPasswordProvided {
+            Library.log.error("SSH authentication failure. No password was configured.")
+            nextChallengePromise.fail(ContainerPassword.ReadPasswordError.noPasswordProvided)
+        } catch ContainerPassword.ReadPasswordError.failedToReadFile {
+            Library.log.error("SSH authentication failure. Failed to read password file.")
+            nextChallengePromise.fail(ContainerPassword.ReadPasswordError.failedToReadFile)
+        } catch {
+            Library.log.error("SSH authentication failure. Unknown error.")
+            nextChallengePromise.fail(error)
+        }
     }
 }
 

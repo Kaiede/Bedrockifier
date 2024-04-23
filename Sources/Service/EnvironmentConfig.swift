@@ -32,18 +32,20 @@ struct EnvironmentConfig {
     let backupInterval: String?
     let dataDirectory: String
     let configFile: String
+    let hostKeysFile: String
+
     let dockerPath: String
     let rconPath: String
-    let sshPath: String
-    let sshpassPath: String
 
     init() {
         self.backupInterval = ProcessInfo.processInfo.environment["BACKUP_INTERVAL"]
         self.dataDirectory = ProcessInfo.processInfo.environment["DATA_DIR"] ?? "/backups"
         self.configFile = ProcessInfo.processInfo.environment["CONFIG_FILE"] ?? "config.yml"
+        self.hostKeysFile = ProcessInfo.processInfo.environment["HOST_KEYS_FILE"] ?? ".authorizedKeys"
+
+        // External Tools
         self.dockerPath = ProcessInfo.processInfo.environment["DOCKER_PATH"] ?? "/usr/bin/docker"
         self.rconPath = ProcessInfo.processInfo.environment["RCON_PATH"] ?? "/usr/local/bin/rcon-cli"
-        self.sshPath = ProcessInfo.processInfo.environment["SSH_PATH"] ?? "/usr/bin/ssh"
-        self.sshpassPath = ProcessInfo.processInfo.environment["SSHPASS_PATH"] ?? "/usr/bin/sshpass"
+
     }
 }

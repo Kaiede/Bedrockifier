@@ -27,9 +27,9 @@ import Foundation
 
 struct NullScopedObjectError: Error {}
 
-func with<T>(scopedObject factory: @autoclosure () -> T, perform: (inout T) -> ()) {
-    var scopedObject = factory()
-    perform(&scopedObject)
+func with<T>(scopedObject factory: @autoclosure () throws -> T, perform: (inout T) throws -> ()) rethrows {
+    var scopedObject = try factory()
+    try perform(&scopedObject)
 }
 
 func with<T>(scopedOptional factory: @autoclosure () -> T?, perform: (inout T) -> ()) throws {

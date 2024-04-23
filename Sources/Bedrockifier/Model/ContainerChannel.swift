@@ -68,9 +68,9 @@ struct SecureShellChannel: ContainerChannel {
     private let port: Int
     private var client: SSHClient
 
-    init(terminal: PseudoTerminal, host: String, port: Int, password: String) {
+    init(terminal: PseudoTerminal, host: String, port: Int, validator: SSHHostKeyValidator, password: ContainerPassword) {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-        self.client = SSHClient(group: group, terminal: terminal, password: password)
+        self.client = SSHClient(group: group, terminal: terminal, validator: validator, password: password)
         self.host = host
         self.port = port
     }

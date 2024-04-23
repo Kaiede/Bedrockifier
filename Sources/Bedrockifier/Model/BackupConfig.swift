@@ -69,19 +69,14 @@ public struct BackupConfig: Codable {
 }
 
 extension BackupConfig.ContainerConfig {
-    func readPassword() -> String? {
+    func containerPassword() -> ContainerPassword {
         if let file = passwordFile {
-            let fileUrl = URL(fileURLWithPath: file)
-            if let config = try? RconCliConfig.getYaml(from: fileUrl), let password = config.password {
-                return password
-            } else {
-                Library.log.error("Unable to read the password from the YAML file at: \(file)")
-            }
+            return .passwordFile(URL(fileURLWithPath: file))
         } else if let password = password {
-            return password
+            return .password(password)
         }
 
-        return nil
+        return .none
     }
 }
 

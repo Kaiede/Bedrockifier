@@ -80,7 +80,10 @@ public class ContainerConnection {
             guard let port = Int(address[1]) else {
                 throw ParseError.invalidSyntax
             }
-            self.channel = SecureShellChannel(terminal: terminal, host: address[0], port: port, password: connectionConfig.password)
+            guard let validator = config.validator else {
+                throw ParseError.invalidSyntax
+            }
+            self.channel = SecureShellChannel(terminal: terminal, host: address[0], port: port, validator: validator, password: connectionConfig.password)
         case .rcon:
             fallthrough
         case .docker:
@@ -236,10 +239,7 @@ public class ContainerConnection {
                                                 withIntermediateDirectories: true,
                                                 attributes: nil)
 
-        guard let archive = Archive(url: archivePath, accessMode: .create) else {
-            throw ContainerError.invalidExtrasArchive
-        }
-
+        let archive = try Archive(url: archivePath, accessMode: .create)
         for extra in extras {
             Library.log.info("Packing \(extra.lastPathComponent)...")
             let dirEnum = FileManager.default.enumerator(atPath: extra.path)
@@ -333,7 +333,7 @@ extension ContainerConnection {
     }
 
     private static func containerConfig(container: BackupConfig.ContainerConfig, tools: ToolConfig) -> ContainerConnectionConfig {
-        if let sshConfig = SSHConnectionConfig(sshpassPath: tools.sshpassPath, sshPath: tools.sshPath, config: container) {
+        if let sshConfig = SSHConnectionConfig(validator: tools.hostKeyValidator, config: container) {
             return sshConfig
         } else if let rconConfig = RCONConnectionConfig(rconPath: tools.rconPath, config: container) {
             return rconConfig

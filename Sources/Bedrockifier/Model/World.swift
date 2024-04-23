@@ -94,10 +94,7 @@ public struct World {
     }
 
     private static func fetchBedrockBackupName(location: URL) throws -> String {
-        guard let archive = Archive(url: location, accessMode: .read) else {
-            throw WorldError.invalidLevelArchive
-        }
-
+        let archive = try Archive(url: location, accessMode: .read)
         guard let levelnameEntry = archive["levelname.txt"] else {
             throw WorldError.missingLevelName
         }
@@ -113,10 +110,7 @@ public struct World {
     }
 
     private static func fetchJavaBackupName(location: URL) throws -> String {
-        guard let archive = Archive(url: location, accessMode: .read) else {
-            throw WorldError.invalidLevelArchive
-        }
-
+        let archive = try Archive(url: location, accessMode: .read)
         guard let levelDat = archive.first(where: { $0.path.hasSuffix("level.dat") }) else {
             throw WorldError.invalidLevelArchive
         }
@@ -147,7 +141,7 @@ extension World {
         let tempUrl = url.appendingPathExtension(World.partialPackExt)
 
         do {
-            try with(scopedOptional: Archive(url: tempUrl, accessMode: .create)) { archive in
+            try with(scopedObject: try Archive(url: tempUrl, accessMode: .create)) { archive in
                 if isBedrockFolder() {
                     try packBedrock(to: archive, progress: progress)
                 } else {
@@ -213,7 +207,7 @@ extension World {
                                           to: targetFolder,
                                           skipCRC32: false,
                                           progress: progress,
-                                          preferredEncoding: .utf8)
+                                          pathEncoding: .utf8)
         return try World(url: targetFolder)
     }
 
@@ -227,7 +221,7 @@ extension World {
                                           to: url,
                                           skipCRC32: false,
                                           progress: progress,
-                                          preferredEncoding: .utf8)
+                                          pathEncoding: .utf8)
 
         let finalFolder = url.appendingPathComponent(self.name)
         return try World(url: finalFolder)
