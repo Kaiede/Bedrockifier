@@ -89,7 +89,7 @@ public actor SSHHostKeyValidator {
             lines.append("\(hostIdentifier) \(keyValue)")
         }
 
-        let fileContentStr = lines.joined(separator: "\n")
+        let fileContentStr = lines.joined(separator: "\n").appending("\n")
         guard let fileContentData = fileContentStr.data(using: .utf8) else {
             throw ValidatorError.dataCannotBeConverted
         }
