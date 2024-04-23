@@ -82,6 +82,7 @@ struct SecureShellChannel: ContainerChannel {
             try await client.connect(host: host, port: port)
         } catch {
             Library.log.error("Failed to connect SSH channel to host. (\(error.localizedDescription))")
+            Library.log.error("Check to ensure the SSH configuration is correct, and check the minecraft server logs for further errors.")
         }
     }
 
