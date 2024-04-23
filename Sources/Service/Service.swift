@@ -138,10 +138,8 @@ final class BackupService {
 
         let allWorlds: [String] = bedrockWorlds + javaWorlds + oldWorlds
         var failedWorlds: [String] = []
-        for world in allWorlds {
-            if !FileManager.default.fileExists(atPath: world) {
-                failedWorlds.append(world)
-            }
+        for world in allWorlds where !FileManager.default.fileExists(atPath: world) {
+            failedWorlds.append(world)
         }
 
         if failedWorlds.count > 0 {

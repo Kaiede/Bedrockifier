@@ -23,11 +23,9 @@
  SOFTWARE.)
  */
 
-
 import Foundation
 import NIOCore
 import NIOSSH
-
 
 final class SSHPipeHandler: ChannelDuplexHandler {
     typealias InboundIn = SSHChannelData
@@ -45,7 +43,7 @@ final class SSHPipeHandler: ChannelDuplexHandler {
         let shellRequest = SSHChannelRequestEvent.ShellRequest(wantReply: false)
         context.triggerUserOutboundEvent(shellRequest).whenComplete { result in
             switch result {
-            case .success(_):
+            case .success:
                 Library.log.trace("Shell Request Accepted")
                 return
             case .failure(let error):

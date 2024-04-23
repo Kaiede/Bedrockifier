@@ -28,7 +28,7 @@ import NIOSSH
 
 public actor SSHHostKeyValidator {
     enum Result {
-        case ok
+        case keyOk
         case notFound
         case changed
     }
@@ -52,7 +52,7 @@ public actor SSHHostKeyValidator {
             return .changed
         }
 
-        return .ok
+        return .keyOk
     }
 
     func recordKey(hostIdent: String, publicKey: NIOSSHPublicKey) throws {
@@ -62,14 +62,14 @@ public actor SSHHostKeyValidator {
         try writeKeys(keys)
     }
 
-    private func loadKeys() -> [String:String] {
+    private func loadKeys() -> [String: String] {
         do {
             let keyData = try Data(contentsOf: self.keysFile)
             guard let keyString = String(data: keyData, encoding: .utf8) else {
                 return [:]
             }
 
-            var result: [String:String] = [:]
+            var result: [String: String] = [:]
             let lines = keyString.components(separatedBy: .newlines)
             for line in lines {
                 let parts = line.split(maxSplits: 1, whereSeparator: { $0.isWhitespace })
@@ -83,7 +83,7 @@ public actor SSHHostKeyValidator {
         }
     }
 
-    private func writeKeys(_ keys: [String:String]) throws {
+    private func writeKeys(_ keys: [String: String]) throws {
         var lines: [String] = []
         for (hostIdentifier, keyValue) in keys {
             lines.append("\(hostIdentifier) \(keyValue)")

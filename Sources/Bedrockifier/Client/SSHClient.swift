@@ -23,7 +23,6 @@
  SOFTWARE.)
  */
 
-
 import Foundation
 
 import NIOCore
@@ -138,7 +137,7 @@ final class SSHAcceptKnownHostKeysDelegate: NIOSSHClientServerAuthenticationDele
             do {
                 let result = try await validator.validate(hostIdent: hostIdent, publicKey: hostKey)
                 switch result {
-                case .ok:
+                case .keyOk:
                     Library.log.debug("Accepting host key, matches existing host key.")
                     validationCompletePromise.succeed()
                     return
@@ -162,7 +161,6 @@ final class SSHAcceptKnownHostKeysDelegate: NIOSSHClientServerAuthenticationDele
         "\(host):\(port)"
     }
 }
-
 
 final class SSHBasicAuthDelegate: NIOSSHClientUserAuthenticationDelegate {
     private let username = "bedrockifier"

@@ -126,7 +126,9 @@ public struct RCONConnectionConfig: ContainerConnectionConfig {
         guard let rconAddr = config.rcon else { return nil }
         let password = config.containerPassword()
         guard password != .none else {
-            Library.log.error("Container is configured for RCON, but was no password or password file was set. \(config.name)")
+            Library.log.error(
+                "Container is configured for RCON, but was no password or password file was set. \(config.name)"
+            )
             return nil
         }
 
@@ -140,7 +142,6 @@ public struct RCONConnectionConfig: ContainerConnectionConfig {
     public var processPath: String { rconPath }
 
     public func makeArguments() throws -> [String] {
-        // TODO: Do some checking here...
         let parts = address.split(whereSeparator: { $0 == ":" })
         guard parts.count == 2 else {
             throw ParseError.invalidHostname(address)
@@ -166,7 +167,9 @@ public struct SSHConnectionConfig: ContainerConnectionConfig {
         guard let sshAddr = config.ssh else { return nil }
         let password = config.containerPassword()
         guard password != .none else {
-            Library.log.error("Container is configured for SSH, but was no password or password file was set. \(config.name)")
+            Library.log.error(
+                "Container is configured for SSH, but was no password or password file was set. \(config.name)"
+            )
             return nil
         }
 
@@ -180,7 +183,6 @@ public struct SSHConnectionConfig: ContainerConnectionConfig {
     public var processPath: String { "" }
 
     public func makeArguments() throws -> [String] {
-        // TODO: Do some checking here...
         let parts = address.split(whereSeparator: { $0 == ":" })
         guard parts.count == 2 else {
             throw ParseError.invalidHostname(address)

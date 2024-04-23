@@ -27,10 +27,8 @@ import Foundation
 
 extension String {
     public func contains(oneOf others: [String]) -> Bool {
-        for other in others {
-            if self.contains(other) {
-                return true
-            }
+        for other in others where self.contains(other) {
+            return true
         }
 
         return false

@@ -40,12 +40,11 @@ public struct ServerExtras: BackupItem {
         guard let nameRange = Range(match.range(at: 1), in: fileName) else {
             throw ServerExtrasError.invalidFilename
         }
-        
+
         self.name = String(fileName[nameRange])
         self.location = url
     }
 }
-
 
 extension ServerExtras {
     enum ServerExtrasError: Error {

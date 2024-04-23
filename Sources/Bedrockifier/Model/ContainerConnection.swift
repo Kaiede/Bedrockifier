@@ -83,20 +83,33 @@ public class ContainerConnection {
             guard let validator = config.validator else {
                 throw ParseError.invalidSyntax
             }
-            self.channel = SecureShellChannel(terminal: terminal, host: address[0], port: port, validator: validator, password: connectionConfig.password)
+            self.channel = SecureShellChannel(
+                terminal: terminal,
+                host: address[0],
+                port: port,
+                validator: validator,
+                password: connectionConfig.password
+            )
         case .rcon:
-            fallthrough
+            let processUrl = config.processUrl
+            let processArgs = try config.makeArguments()
+            self.channel = try ProcessChannel(terminal: terminal, processUrl: processUrl, processArgs: processArgs)
         case .docker:
             let processUrl = config.processUrl
             let processArgs = try config.makeArguments()
             self.channel = try ProcessChannel(terminal: terminal, processUrl: processUrl, processArgs: processArgs)
-
         }
 
         try self.terminal.setWindowSize(columns: 65000, rows: 24)
     }
 
-    public convenience init(containerName: String, config: ContainerConnectionConfig, kind: Kind, worlds: [String], extras: [String]?) throws {
+    public convenience init(
+        containerName: String,
+        config: ContainerConnectionConfig,
+        kind: Kind,
+        worlds: [String],
+        extras: [String]?
+    ) throws {
         Library.log.info("Starting Container Connection. newline = \(config.newline)")
         let terminal = try PseudoTerminal(identifier: containerName, newline: config.newline)
         try self.init(terminal: terminal,
@@ -120,7 +133,9 @@ public class ContainerConnection {
 
     public func stop() async throws {
         guard self.isRunning else {
-            Library.log.warning("Attempted to stop a terminal process that isn't running. (container: \(name), kind: \(connectionConfig.kind))")
+            Library.log.warning(
+                "Terminal Process is already stopped. (container: \(name), kind: \(connectionConfig.kind))"
+            )
             return
         }
 
@@ -282,7 +297,9 @@ public class ContainerConnection {
     private func logTerminalSize() {
         do {
             let windowSize = try terminal.terminal.getWindowSize()
-            Library.log.debug("Docker Process Window Size Fetched. (cols = \(windowSize.ws_col), rows = \(windowSize.ws_row)")
+            Library.log.debug(
+                "Docker Process Window Size Fetched. (cols = \(windowSize.ws_col), rows = \(windowSize.ws_row)"
+            )
         } catch {
             Library.log.debug("Failed to get terminal window size")
         }
@@ -332,7 +349,10 @@ extension ContainerConnection {
         return containers
     }
 
-    private static func containerConfig(container: BackupConfig.ContainerConfig, tools: ToolConfig) -> ContainerConnectionConfig {
+    private static func containerConfig(
+        container: BackupConfig.ContainerConfig,
+        tools: ToolConfig
+    ) -> ContainerConnectionConfig {
         if let sshConfig = SSHConnectionConfig(validator: tools.hostKeyValidator, config: container) {
             return sshConfig
         } else if let rconConfig = RCONConnectionConfig(rconPath: tools.rconPath, config: container) {

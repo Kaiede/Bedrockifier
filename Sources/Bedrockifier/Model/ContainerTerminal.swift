@@ -34,7 +34,7 @@ protocol ContainerTerminal {
     func resumeAutosave() async throws
 }
 
-fileprivate struct ErrorStrings {
+private struct ErrorStrings {
     static let dockerConnectError = "Got permission denied while trying to connect to the Docker daemon"
 
     static let possibleErrors = [
@@ -48,7 +48,7 @@ internal extension ContainerTerminal {
     }
 }
 
-fileprivate extension ContainerTerminal {
+private extension ContainerTerminal {
     func expect(_ expressions: [String], timeout: TimeInterval) async throws -> PseudoTerminal.ExpectResult {
         let allExpectations = expressions + ErrorStrings.possibleErrors.keys
 
@@ -57,10 +57,8 @@ fileprivate extension ContainerTerminal {
         case .noMatch:
             break
         case .match(let matchString):
-            for (errorKey, errorType) in ErrorStrings.possibleErrors {
-                if matchString.contains(errorKey) {
-                    throw errorType
-                }
+            for (errorKey, errorType) in ErrorStrings.possibleErrors where matchString.contains(errorKey) {
+                throw errorType
             }
         }
 
@@ -70,10 +68,6 @@ fileprivate extension ContainerTerminal {
 
 struct BedrockTerminal: ContainerTerminal {
     internal let terminal: PseudoTerminal
-
-    init(terminal: PseudoTerminal) {
-        self.terminal = terminal
-    }
 
     func resumeAutosave() async throws {
         // Release Save Hold
@@ -114,10 +108,6 @@ struct BedrockTerminal: ContainerTerminal {
 
 struct JavaTerminal: ContainerTerminal {
     internal let terminal: PseudoTerminal
-
-    init(terminal: PseudoTerminal) {
-        self.terminal = terminal
-    }
 
     func pauseAutosave() async throws {
         // Need a longer timeout on the flush in case server is still starting up

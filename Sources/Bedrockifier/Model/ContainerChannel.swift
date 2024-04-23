@@ -68,7 +68,13 @@ struct SecureShellChannel: ContainerChannel {
     private let port: Int
     private var client: SSHClient
 
-    init(terminal: PseudoTerminal, host: String, port: Int, validator: SSHHostKeyValidator, password: ContainerPassword) {
+    init(
+        terminal: PseudoTerminal,
+        host: String,
+        port: Int,
+        validator: SSHHostKeyValidator,
+        password: ContainerPassword
+    ) {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         self.client = SSHClient(group: group, terminal: terminal, validator: validator, password: password)
         self.host = host
@@ -82,7 +88,9 @@ struct SecureShellChannel: ContainerChannel {
             try await client.connect(host: host, port: port)
         } catch {
             Library.log.error("Failed to connect SSH channel to host. (\(error.localizedDescription))")
-            Library.log.error("Check to ensure the SSH configuration is correct, and check the minecraft server logs for further errors.")
+            Library.log.error(
+                "Check that the SSH configuration is correct, and check the minecraft server logs for further errors."
+            )
         }
     }
 

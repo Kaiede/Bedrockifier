@@ -27,12 +27,12 @@ import Foundation
 
 struct NullScopedObjectError: Error {}
 
-func with<T>(scopedObject factory: @autoclosure () throws -> T, perform: (inout T) throws -> ()) rethrows {
+func with<T>(scopedObject factory: @autoclosure () throws -> T, perform: (inout T) throws -> Void) rethrows {
     var scopedObject = try factory()
     try perform(&scopedObject)
 }
 
-func with<T>(scopedOptional factory: @autoclosure () -> T?, perform: (inout T) -> ()) throws {
+func with<T>(scopedOptional factory: @autoclosure () -> T?, perform: (inout T) -> Void) throws {
     guard var scopedObject = factory() else {
         throw NullScopedObjectError()
     }
@@ -40,7 +40,7 @@ func with<T>(scopedOptional factory: @autoclosure () -> T?, perform: (inout T) -
     perform(&scopedObject)
 }
 
-func with<T>(scopedOptional factory: @autoclosure () -> T?, perform: (inout T) throws -> ()) throws {
+func with<T>(scopedOptional factory: @autoclosure () -> T?, perform: (inout T) throws -> Void) throws {
     guard var scopedObject = factory() else {
         throw NullScopedObjectError()
     }
