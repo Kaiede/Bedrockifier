@@ -18,7 +18,7 @@ jobs:
     name: Docker - ${{ matrix.os }}
     if: github.repository == 'Kaiede/Bedrockifier'
     env:
-      ARCH: ${{ matrix.os == 'ubuntu-latest' && 'linux/amd64' || 'linux/arm64' }}
+      arch: ${{ matrix.os == 'ubuntu-latest' && 'amd64' || 'arm64' }}
     strategy:
       matrix:
         os: ['ubuntu-latest', 'buildjet-2vcpu-ubuntu-2204-arm']
@@ -38,18 +38,18 @@ jobs:
         username: ${{ secrets.DOCKER_USER }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Build ${{ env.ARCH }}
+    - name: Build ${{ env.arch }}
       uses: docker/build-push-action@v5
       with:
         builder: ${{ steps.buildx.outputs.name }}
         context: .
         file: ./Docker/Dockerfile
-        platforms: ${{ env.ARCH }}
+        platforms: linux/${{ env.arch }}
         push: ${{ github.event_name != 'pull_request' }}
-        tags: kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}-${{ env.ARCH }}
+        tags: kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}-${{ env.arch }}
         build-args: |
           QEMU_CPU=max
-          arch=${{ env.ARCH }}
+          arch=${{ env.arch }}
           swift_base=${{ env.swift_base }}
           swift_version=${{ env.swift_version }}
 
