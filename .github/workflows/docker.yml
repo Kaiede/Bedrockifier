@@ -38,7 +38,7 @@ jobs:
         username: ${{ secrets.DOCKER_USER }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Build ${{ matrix.arch }}
+    - name: Build ${{ env.ARCH }}
       uses: docker/build-push-action@v5
       with:
         builder: ${{ steps.buildx.outputs.name }}
@@ -46,10 +46,10 @@ jobs:
         file: ./Docker/Dockerfile
         platforms: ${{ env.ARCH }}
         push: ${{ github.event_name != 'pull_request' }}
-        tags: kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}-${{ matrix.arch }}
+        tags: kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}-${{ env.ARCH }}
         build-args: |
           QEMU_CPU=max
-          arch=${{ matrix.arch }}
+          arch=${{ env.ARCH }}
           swift_base=${{ env.swift_base }}
           swift_version=${{ env.swift_version }}
 
