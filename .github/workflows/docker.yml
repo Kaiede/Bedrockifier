@@ -73,6 +73,10 @@ jobs:
         username: ${{ secrets.DOCKER_USER }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Merge Manifests
+    - name: Make Manifest - ${{ env.docker_tag }}
       if: github.event_name != 'pull_request'
-      run: bash Docker/merge.sh kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}
+      run: bash Docker/merge.sh kaiede/minecraft-bedrock-backup:${{ env.docker_tag }} kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}
+
+    - name: Make Manifest - ${{ github.event.release.name }}
+      if: github.event_name == 'release'
+      run: bash Docker/merge.sh kaiede/minecraft-bedrock-backup:${{ github.event.release.name }} kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}
