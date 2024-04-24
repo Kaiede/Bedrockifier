@@ -10,9 +10,9 @@ if [ "${DEBUG:-false}" == "true" ]; then
   set -x
 fi
 
-: "${DATA_DIR:=/backups}"
+: "${CONFIG_DIR:=/config}"
 
-if [ ! -e "${DATA_DIR}/.service_is_healthy" ]; then
+if [ ! -e "${CONFIG_DIR}/.service_is_healthy" ]; then
   exit 1
 fi
 
