@@ -35,7 +35,6 @@ struct EnvironmentConfig {
     static let defaultDataPath = "/data"
     static let defaultOldDataPath = "/backups"
 
-
     // External Tools in Container
     let dockerPath: String
     let rconPath: String
