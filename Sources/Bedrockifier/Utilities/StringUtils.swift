@@ -1,7 +1,7 @@
 /*
  Bedrockifier
 
- Copyright (c) 2021 Adam Thayer
+ Copyright (c) 2021-2022 Adam Thayer
  Licensed under the MIT license, as follows:
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -25,27 +25,14 @@
 
 import Foundation
 
-// Get configuration settings from environment for things that are supported
-struct EnvironmentConfig {
-    static let fallbackConfigFile = "config.json"
+extension String {
+    func withEscapedInvisibles() -> String {
+        self
+            .replacingOccurrences(of: "\r", with: "\\r")
+            .replacingOccurrences(of: "\n", with: "\\n")
+    }
 
-    let backupInterval: String?
-    let dataDirectory: String
-    let configFile: String
-    let hostKeysFile: String
-
-    let dockerPath: String
-    let rconPath: String
-
-    init() {
-        self.backupInterval = ProcessInfo.processInfo.environment["BACKUP_INTERVAL"]
-        self.dataDirectory = ProcessInfo.processInfo.environment["DATA_DIR"] ?? "/backups"
-        self.configFile = ProcessInfo.processInfo.environment["CONFIG_FILE"] ?? "config.yml"
-        self.hostKeysFile = ProcessInfo.processInfo.environment["HOST_KEYS_FILE"] ?? ".authorizedKeys"
-
-        // External Tools
-        self.dockerPath = ProcessInfo.processInfo.environment["DOCKER_PATH"] ?? "/usr/bin/docker"
-        self.rconPath = ProcessInfo.processInfo.environment["RCON_PATH"] ?? "/usr/local/bin/rcon-cli"
-
+    func convertNewlinesForSSH() -> String {
+        self.replacingOccurrences(of: "\n", with: "\r\n")
     }
 }

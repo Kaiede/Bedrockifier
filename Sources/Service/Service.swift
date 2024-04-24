@@ -138,10 +138,8 @@ final class BackupService {
 
         let allWorlds: [String] = bedrockWorlds + javaWorlds + oldWorlds
         var failedWorlds: [String] = []
-        for world in allWorlds {
-            if !FileManager.default.fileExists(atPath: world) {
-                failedWorlds.append(world)
-            }
+        for world in allWorlds where !FileManager.default.fileExists(atPath: world) {
+            failedWorlds.append(world)
         }
 
         if failedWorlds.count > 0 {
@@ -200,7 +198,7 @@ final class BackupService {
     private func startListenerBackups() async {
         BackupService.logger.info("Starting Listeners for Containers")
         for container in await backupActor.containers {
-            container.terminal.listen(for: Strings.listenerStrings) { content in
+            container.listen(for: Strings.listenerStrings) { content in
                 Task(priority: BackupService.backupPriority) {
                     await self.onListenerEvent(container: container, content: content)
                 }

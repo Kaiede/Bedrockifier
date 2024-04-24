@@ -2,9 +2,9 @@ import XCTest
 @testable import Bedrockifier
 
 final class MockScopedObject {
-    private let deinitHandler: () -> ()
+    private let deinitHandler: () -> Void
 
-    init(deinitHandler: @escaping () -> ()) {
+    init(deinitHandler: @escaping () -> Void) {
         self.deinitHandler = deinitHandler
     }
 

@@ -67,7 +67,7 @@ actor BackupActor {
             return container
         }
 
-        let _ = await currentBackup?.value
+        _ = await currentBackup?.value
         currentBackup = nil
     }
 
@@ -89,26 +89,24 @@ actor BackupActor {
 
     public func cleanupContainers() async {
         BackupService.logger.info("Checking for servers that might not be cleaned up")
-        for container in containers {
-            if container.isSaveHeld(destination: backupUrl) {
-                Task {
-                    BackupService.logger.info("\(container.name) is dirty, cleaning up")
-                    do {
-                        let wasRunning = container.isRunning
-                        if !wasRunning {
-                            try await container.start()
-                        }
-
-                        BackupService.logger.info("Cleaning up old backups for \(container.name)")
-                        try await container.cleanupIncompleteBackup(destination: backupUrl)
-
-                        if !wasRunning {
-                            await container.stop()
-                        }
-                    } catch let error {
-                        BackupService.logger.error("\(error.localizedDescription)")
-                        BackupService.logger.error("Failed to clean up container \(container.name)")
+        for container in containers where container.isSaveHeld(destination: backupUrl) {
+            Task {
+                BackupService.logger.info("\(container.name) is dirty, cleaning up")
+                do {
+                    let wasRunning = container.isRunning
+                    if !wasRunning {
+                        try await container.start()
                     }
+
+                    BackupService.logger.info("Cleaning up old backups for \(container.name)")
+                    try await container.cleanupIncompleteBackup(destination: backupUrl)
+
+                    if !wasRunning {
+                        try await container.stop()
+                    }
+                } catch let error {
+                    BackupService.logger.error("\(error.localizedDescription)")
+                    BackupService.logger.error("Failed to clean up container \(container.name)")
                 }
             }
         }
@@ -144,7 +142,6 @@ actor BackupActor {
         }
     }
 
-
     private func runSingleBackup(container: ContainerConnection) async {
         guard shouldRunBackup(container: container) else {
             return
@@ -162,7 +159,7 @@ actor BackupActor {
             markUnhealthy()
         }
     }
-    
+
     public func needsListeners() -> Bool {
         return config.schedule?.onPlayerLogin == true
         || config.schedule?.onPlayerLogout == true
@@ -201,7 +198,7 @@ actor BackupActor {
 
             do {
                 if !needsListeners {
-                    await container.stop()
+                    try await container.stop()
                     try container.reset()
                 }
             } catch let error {
@@ -235,19 +232,25 @@ actor BackupActor {
         }
 
         if let trimJob = config.trim {
+            let trimAsk = Backups.Trim(
+                trimDays: trimJob.trimDays,
+                keepDays: trimJob.keepDays,
+                minKeep: trimJob.minKeep
+            )
+
             BackupService.logger.info("Performing Trim Jobs")
-            try Backups.trimBackups(World.self,
-                                    at: backupUrl,
-                                    dryRun: false,
-                                    trimDays: trimJob.trimDays,
-                                    keepDays: trimJob.keepDays,
-                                    minKeep: trimJob.minKeep)
-            try Backups.trimBackups(ServerExtras.self,
-                                    at: backupUrl,
-                                    dryRun: false,
-                                    trimDays: trimJob.trimDays,
-                                    keepDays: trimJob.keepDays,
-                                    minKeep: trimJob.minKeep)
+            try Backups.trimBackups(
+                World.self,
+                at: backupUrl,
+                dryRun: false,
+                trim: trimAsk
+            )
+            try Backups.trimBackups(
+                ServerExtras.self,
+                at: backupUrl,
+                dryRun: false,
+                trim: trimAsk
+            )
         }
     }
 

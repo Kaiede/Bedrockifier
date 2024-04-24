@@ -15,21 +15,17 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: Docker - linux/${{ matrix.arch }}
+    name: Docker - ${{ matrix.os }}
     if: github.repository == 'Kaiede/Bedrockifier'
+    env:
+      ARCH: ${{ matrix.os == 'ubuntu-latest' && 'linux/amd64' || 'linux/arm64' }}
     strategy:
       matrix:
-        arch: [amd64, arm64]
-    
+        os: ['ubuntu-latest', 'buildjet-2vcpu-ubuntu-2204-arm']
+
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
-
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@master
-      if: matrix.arch != 'amd64'
-      with:
-        platforms: arm64
+      uses: actions/checkout@v4
 
     - name: Set up Docker Buildx
       id: buildx
@@ -37,18 +33,18 @@ jobs:
 
     - name: Login to DockerHub
       if: github.event_name != 'pull_request'
-      uses: docker/login-action@v1
+      uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKER_USER }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Build ${{ matrix.arch }}
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v5
       with:
         builder: ${{ steps.buildx.outputs.name }}
         context: .
         file: ./Docker/Dockerfile
-        platforms: linux/${{ matrix.arch }}
+        platforms: ${{ env.ARCH }}
         push: ${{ github.event_name != 'pull_request' }}
         tags: kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}-${{ matrix.arch }}
         build-args: |
@@ -64,7 +60,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: Set up Docker Buildx
       id: buildx
@@ -72,7 +68,7 @@ jobs:
 
     - name: Login to DockerHub
       if: github.event_name != 'pull_request'
-      uses: docker/login-action@v1
+      uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKER_USER }}
         password: ${{ secrets.DOCKER_PASSWORD }}

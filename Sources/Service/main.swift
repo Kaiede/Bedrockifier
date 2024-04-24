@@ -37,17 +37,14 @@ struct Server: ParsableCommand {
     @Option(help: "Path to the config file")
     var configPath: String?
 
+    @Option(help: "Path to known host keys")
+    var hostKeysPath: String?
+
     @Option(name: .shortAndLong, help: "Path to docker")
     var dockerPath: String?
 
     @Option(name: .shortAndLong, help: "Path to rcon-cli")
     var rconPath: String?
-
-    @Option(name: .shortAndLong, help: "Path to ssh")
-    var sshPath: String?
-
-    @Option(name: .shortAndLong, help: "Path to sshpass")
-    var sshpassPath: String?
 
     @Option(name: .shortAndLong, help: "Folder to write backups to")
     var backupPath: String?
@@ -91,23 +88,11 @@ struct Server: ParsableCommand {
             return
         }
 
-        let sshPath = self.sshPath ?? config.sshPath ?? environment.sshPath
-        guard FileManager.default.fileExists(atPath: rconPath) else {
-            Server.logger.error("ssh not found at path \(sshPath)")
-            return
-        }
-
-        let sshpassPath = self.sshpassPath ?? config.sshpassPath ?? environment.sshpassPath
-        guard FileManager.default.fileExists(atPath: rconPath) else {
-            Server.logger.error("sshpass not found at path \(sshpassPath)")
-            return
-        }
-
+        let hostKeysUri = getHostKeyFileUrl(environment: environment)
         let tools = ToolConfig(
             dockerPath: dockerPath,
             rconPath: rconPath,
-            sshPath: sshPath,
-            sshpassPath: sshpassPath
+            hostKeyValidator: SSHHostKeyValidator(keysFile: hostKeysUri)
         )
 
         let backupUrl = URL(fileURLWithPath: backupPath)
@@ -156,6 +141,16 @@ struct Server: ParsableCommand {
         return dataDirectory.appendingPathComponent(EnvironmentConfig.fallbackConfigFile)
     }
 
+    private func getHostKeyFileUrl(environment: EnvironmentConfig) -> URL {
+        if let hostKeysPath = self.hostKeysPath {
+            return URL(fileURLWithPath: hostKeysPath)
+        }
+
+        let dataDirectory = URL(fileURLWithPath: environment.dataDirectory)
+        let defaultPath = dataDirectory.appendingPathComponent(environment.hostKeysFile).path
+        return URL(fileURLWithPath: defaultPath)
+    }
+
     private func updateLoggingLevel(config: BackupConfig, environment: EnvironmentConfig) {
         if trace || config.loggingLevel == .trace {
             ConsoleLogger.logLevelOverride = .trace
@@ -181,5 +176,4 @@ struct Server: ParsableCommand {
 ConsoleLogger.showDetails = true
 LoggingSystem.bootstrap(ConsoleLogger.init)
 Server.logger.info("Initializing Bedrockifier Daemon")
-Backtrace.install()
 Server.main()

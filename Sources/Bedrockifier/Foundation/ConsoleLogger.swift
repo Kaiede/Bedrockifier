@@ -96,6 +96,8 @@ public final class ConsoleLogger: LogHandler {
     }
 }
 
+// swiftlint:enable function_parameter_count
+
 private struct LoggingOutputStream: TextOutputStream {
     public static let stdOut = LoggingOutputStream(stdout)
     public static let stdErr = LoggingOutputStream(stderr)

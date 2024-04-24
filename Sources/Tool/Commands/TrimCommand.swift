@@ -57,17 +57,23 @@ public final class TrimCommand: Command {
     public func run(using context: CommandContext, signature: Signature) throws {
         let backupFolderUrl = URL(fileURLWithPath: signature.backupFolderPath, isDirectory: true)
 
-        try Backups.trimBackups(World.self,
-                                at: backupFolderUrl,
-                                dryRun: signature.dryRun,
-                                trimDays: signature.trimDays,
-                                keepDays: signature.keepDays,
-                                minKeep: signature.minKeep)
-        try Backups.trimBackups(ServerExtras.self,
-                                at: backupFolderUrl,
-                                dryRun: signature.dryRun,
-                                trimDays: signature.trimDays,
-                                keepDays: signature.keepDays,
-                                minKeep: signature.minKeep)
+        let trimAsk = Backups.Trim(
+            trimDays: signature.trimDays,
+            keepDays: signature.keepDays,
+            minKeep: signature.minKeep
+        )
+
+        try Backups.trimBackups(
+            World.self,
+            at: backupFolderUrl,
+            dryRun: signature.dryRun,
+            trim: trimAsk
+        )
+        try Backups.trimBackups(
+            ServerExtras.self,
+            at: backupFolderUrl,
+            dryRun: signature.dryRun,
+            trim: trimAsk
+        )
     }
 }

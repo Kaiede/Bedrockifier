@@ -24,14 +24,12 @@
  */
 
 import Foundation
+import NIOCore
+import NIOPosix
 import PTYKit
 import ZIPFoundation
 
 public class ContainerConnection {
-    struct Strings {
-        static let dockerConnectError = "Got permission denied while trying to connect to the Docker daemon"
-    }
-
     public enum Kind {
         case bedrock
         case java
@@ -40,8 +38,8 @@ public class ContainerConnection {
     public let name: String
     let kind: Kind
 
-    public let terminal: PseudoTerminal
-    var terminalProcess: Process
+    private let terminal: ContainerTerminal
+    private var channel: ContainerChannel
     let connectionConfig: ContainerConnectionConfig
 
     let worlds: [URL]
@@ -49,16 +47,10 @@ public class ContainerConnection {
     var playerCount: Int
     public var lastBackup: Date
 
-    public var isRunning: Bool {
-        terminalProcess.isRunning
-    }
+    public var isRunning: Bool { channel.isConnected }
 
     private var controlTerminal: PseudoTerminal {
-        switch kind {
-        case .bedrock: fallthrough
-        case .java:
-            return terminal
-        }
+        terminal.terminal
     }
 
     public init(terminal: PseudoTerminal,
@@ -70,20 +62,55 @@ public class ContainerConnection {
         self.name = containerName
         self.connectionConfig = config
         self.kind = kind
-        self.terminal = terminal
         self.worlds = worlds.map({ URL(fileURLWithPath: $0) })
         self.extras = extras?.map({ URL(fileURLWithPath: $0) })
         self.playerCount = 0
         self.lastBackup = .distantPast
 
-        try self.terminal.setWindowSize(columns: 65000, rows: 24)
+        switch kind {
+        case .bedrock:
+            self.terminal = BedrockTerminal(terminal: terminal)
+        case .java:
+            self.terminal = JavaTerminal(terminal: terminal)
+        }
 
-        let processUrl = config.processUrl
-        let processArgs = try config.makeArguments()
-        self.terminalProcess = try Process(processUrl, arguments: processArgs, terminal: self.terminal)
+        switch connectionConfig.kind {
+        case .ssh:
+            let address = try connectionConfig.makeArguments()
+            guard let port = Int(address[1]) else {
+                throw ParseError.invalidSyntax
+            }
+            guard let validator = config.validator else {
+                throw ParseError.invalidSyntax
+            }
+            self.channel = SecureShellChannel(
+                terminal: terminal,
+                host: address[0],
+                port: port,
+                validator: validator,
+                password: connectionConfig.password
+            )
+        case .rcon:
+            let processUrl = config.processUrl
+            let processArgs = try config.makeArguments()
+            self.channel = try ProcessChannel(terminal: terminal, processUrl: processUrl, processArgs: processArgs)
+        case .docker:
+            let processUrl = config.processUrl
+            let processArgs = try config.makeArguments()
+            self.channel = try ProcessChannel(terminal: terminal, processUrl: processUrl, processArgs: processArgs)
+        }
+
+        try self.terminal.setWindowSize(columns: 65000, rows: 24)
     }
 
-    public convenience init(containerName: String, config: ContainerConnectionConfig, kind: Kind, worlds: [String], extras: [String]?) throws {
+    public convenience init(
+        containerName: String,
+        config: ContainerConnectionConfig,
+        kind: Kind,
+        worlds: [String],
+        extras: [String]?
+    ) throws {
+        Library.log.info("Starting Container Connection. newline = \(config.newline)")
         let terminal = try PseudoTerminal(identifier: containerName, newline: config.newline)
         try self.init(terminal: terminal,
                       containerName: containerName,
@@ -93,52 +120,41 @@ public class ContainerConnection {
                       extras: extras)
     }
 
+    public func listen(for strings: [String], handler: @escaping TerminalListener) {
+        terminal.terminal.listen(for: strings, handler: handler)
+    }
+
     public func start() async throws {
         Library.log.debug("Starting Terminal Process. (container: \(name), kind: \(connectionConfig.kind))")
 
-        // Configure for SSH
-        var environment = terminalProcess.environment ?? [:]
-        environment["SSHPASS"] = connectionConfig.password
-        terminalProcess.environment = environment
-
-        try terminalProcess.run()
-
-        if connectionConfig.kind == "ssh" {
-            let result = await terminal.expect(["SSHPASS: detected prompt. Sending password.", "SSHPASS: read:"], timeout: 60.0)
-            if result == .noMatch {
-                Library.log.error("SSH connection doesn't seem to have been made properly.")
-            } else {
-                Library.log.info("SSH connection ready.")
-            }
-        }
-
+        try await channel.start()
         logTerminalSize()
     }
 
-    public func stop() async {
-        guard terminalProcess.isRunning else {
-            Library.log.warning("Attempted to stop a terminal process that isn't running. (container: \(name), kind: \(connectionConfig.kind))")
+    public func stop() async throws {
+        guard self.isRunning else {
+            Library.log.warning(
+                "Terminal Process is already stopped. (container: \(name), kind: \(connectionConfig.kind))"
+            )
             return
         }
 
         Library.log.debug("Terminating Terminal Process. (container: \(name), kind: \(connectionConfig.kind))")
-        terminalProcess.terminate()
-        await terminal.waitForDetach()
+        try await channel.close()
+        await terminal.terminal.waitForDetach()
 
-        if terminalProcess.isRunning {
+        if self.isRunning {
             Library.log.error("Terminal Process Still Running. (container: \(name), kind: \(connectionConfig.kind))")
         }
     }
 
     public func reset() throws {
         Library.log.debug("Resetting Container Process. (container: \(name), kind: \(connectionConfig.kind))")
-        let processUrl = connectionConfig.processUrl
-        let processArgs = try connectionConfig.makeArguments()
-        self.terminalProcess = try Process(processUrl, arguments: processArgs, terminal: terminal)
+        try channel.reset()
     }
 
     public func cleanupIncompleteBackup(destination: URL) async throws {
-        guard terminalProcess.isRunning else {
+        guard self.isRunning else {
             throw ContainerError.processNotRunning
         }
 
@@ -151,7 +167,7 @@ public class ContainerConnection {
     }
 
     public func runBackup(destination: URL) async throws {
-        guard terminalProcess.isRunning else {
+        guard self.isRunning else {
             throw ContainerError.processNotRunning
         }
 
@@ -211,21 +227,11 @@ public class ContainerConnection {
     }
 
     public func pauseAutosave() async throws {
-        switch kind {
-        case .bedrock:
-            try await pauseSaveOnBedrock()
-        case .java:
-            try await pauseSaveOnJava()
-        }
+        try await terminal.pauseAutosave()
     }
 
     public func resumeAutosave() async throws {
-        switch kind {
-        case .bedrock:
-            try await resumeSaveOnBedrock()
-        case .java:
-            try await resumeSaveOnJava()
-        }
+        try await terminal.resumeAutosave()
     }
 
     public func incrementPlayerCount() -> Int {
@@ -248,10 +254,7 @@ public class ContainerConnection {
                                                 withIntermediateDirectories: true,
                                                 attributes: nil)
 
-        guard let archive = Archive(url: archivePath, accessMode: .create) else {
-            throw ContainerError.invalidExtrasArchive
-        }
-
+        let archive = try Archive(url: archivePath, accessMode: .create)
         for extra in extras {
             Library.log.info("Packing \(extra.lastPathComponent)...")
             let dirEnum = FileManager.default.enumerator(atPath: extra.path)
@@ -264,85 +267,6 @@ public class ContainerConnection {
         }
 
         return fileName
-    }
-
-    private func pauseSaveOnBedrock() async throws {
-        // Start Save Hold
-        try controlTerminal.sendLine("save hold")
-        if try await expect(["Saving", "The command is already running"], timeout: 10.0) == .noMatch {
-            throw ContainerError.pauseFailed
-        }
-
-        // Wait for files to be ready
-        var attemptLimit = 3
-        while attemptLimit > 0 {
-            try controlTerminal.sendLine("save query")
-            if try await expect(["Files are now ready to be copied"], timeout: 10.0) == .noMatch {
-                attemptLimit -= 1
-            } else {
-                break
-            }
-        }
-
-        if attemptLimit < 0 {
-            throw ContainerError.saveNotCompleted
-        }
-    }
-
-    private func pauseSaveOnJava() async throws {
-        // Need a longer timeout on the flush in case server is still starting up
-        try controlTerminal.sendLine("save-all flush")
-        if try await expect(["Saved the game"], timeout: 30.0) == .noMatch {
-            throw ContainerError.pauseFailed
-        }
-
-        try controlTerminal.sendLine("save-off")
-        if try await expect(["Automatic saving is now disabled"], timeout: 10.0) == .noMatch {
-            throw ContainerError.pauseFailed
-        }
-    }
-
-    private func resumeSaveOnBedrock() async throws {
-        // Release Save Hold
-        try controlTerminal.sendLine("save resume")
-        let saveResumeStrings = [
-            "Changes to the level are resumed", // 1.17 and earlier
-            "Changes to the world are resumed", // 1.18 and later
-            "A previous save has not been completed"
-        ]
-        if try await expect(saveResumeStrings, timeout: 60.0) == .noMatch {
-            throw ContainerError.resumeFailed
-        }
-    }
-
-    private func resumeSaveOnJava() async throws {
-        try controlTerminal.sendLine("save-on")
-        let saveResumeStrings = [
-            "Automatic saving is now enabled",
-            "Saving is already turned on"
-        ]
-        if try await expect(saveResumeStrings, timeout: 60.0) == .noMatch {
-            throw ContainerError.resumeFailed
-        }
-    }
-
-    private func expect(_ expressions: [String], timeout: TimeInterval) async throws -> PseudoTerminal.ExpectResult {
-        let possibleErrors = [Strings.dockerConnectError: ContainerError.dockerConnectPermissionError]
-        let allExpectations = expressions + possibleErrors.keys
-
-        let result = await terminal.expect(allExpectations, timeout: timeout)
-        switch result {
-        case .noMatch:
-            break
-        case .match(let matchString):
-            for (errorKey, errorType) in possibleErrors {
-                if matchString.contains(errorKey) {
-                    throw errorType
-                }
-            }
-        }
-
-        return result
     }
 
     public func isSaveHeld(destination: URL) -> Bool {
@@ -372,8 +296,10 @@ public class ContainerConnection {
 
     private func logTerminalSize() {
         do {
-            let windowSize = try terminal.getWindowSize()
-            Library.log.debug("Docker Process Window Size Fetched. (cols = \(windowSize.ws_col), rows = \(windowSize.ws_row)")
+            let windowSize = try terminal.terminal.getWindowSize()
+            Library.log.debug(
+                "Docker Process Window Size Fetched. (cols = \(windowSize.ws_col), rows = \(windowSize.ws_row)"
+            )
         } catch {
             Library.log.debug("Failed to get terminal window size")
         }
@@ -423,8 +349,11 @@ extension ContainerConnection {
         return containers
     }
 
-    private static func containerConfig(container: BackupConfig.ContainerConfig, tools: ToolConfig) -> ContainerConnectionConfig {
-        if let sshConfig = SSHConnectionConfig(sshpassPath: tools.sshpassPath, sshPath: tools.sshPath, config: container) {
+    private static func containerConfig(
+        container: BackupConfig.ContainerConfig,
+        tools: ToolConfig
+    ) -> ContainerConnectionConfig {
+        if let sshConfig = SSHConnectionConfig(validator: tools.hostKeyValidator, config: container) {
             return sshConfig
         } else if let rconConfig = RCONConnectionConfig(rconPath: tools.rconPath, config: container) {
             return rconConfig

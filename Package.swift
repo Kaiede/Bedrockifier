@@ -22,13 +22,14 @@ let package = Package(
         ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
-        .package(url: "https://github.com/vapor/console-kit.git", .upToNextMinor(from: "4.2.5")),
-        .package(url: "https://github.com/weichsel/ZIPFoundation.git", .upToNextMajor(from: "0.9.0")),
-        .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.1.3"),
+        .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
+        .package(url: "https://github.com/apple/swift-nio-ssh.git", from: "0.8.0"),
         .package(url: "https://github.com/jpsim/Yams.git", from: "5.0.0"),
+        .package(url: "https://github.com/Kaiede/PTYKit.git", branch: "master"),
         .package(url: "https://github.com/swift-server/swift-backtrace.git", from: "1.3.3"),
-        .package(url: "https://github.com/Kaiede/PTYKit.git", branch: "master")
+        .package(url: "https://github.com/vapor/console-kit.git", .upToNextMinor(from: "4.2.5")),
+        .package(url: "https://github.com/weichsel/ZIPFoundation.git", .upToNextMajor(from: "0.9.0"))
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
@@ -53,6 +54,7 @@ let package = Package(
             name: "Bedrockifier",
             dependencies: [
                 .product(name: "Logging", package: "swift-log"),
+                .product(name: "NIOSSH", package: "swift-nio-ssh"),
                 .product(name: "PTYKit", package: "PTYKit"),
                 .product(name: "Yams", package: "Yams"),
                 .product(name: "ZIPFoundation", package: "ZIPFoundation")

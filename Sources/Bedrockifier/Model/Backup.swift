@@ -65,6 +65,18 @@ public class Backup<Element>: BackupProtocol where Element: BackupItem {
 extension World: BackupItem {}
 
 public struct Backups {
+    public struct Trim {
+        let trimDays: Int
+        let keepDays: Int
+        let minKeep: Int
+
+        public init(trimDays: Int?, keepDays: Int?, minKeep: Int?) {
+            self.trimDays = trimDays ?? 3
+            self.keepDays = keepDays ?? 14
+            self.minKeep = minKeep ?? 1
+        }
+    }
+
     public static func fixOwnership(at folder: URL, config: OwnershipConfig) throws {
         let (uid, gid) = try config.parseOwnerAndGroup()
         let (permissions) = try config.parsePosixPermissions()
@@ -78,20 +90,14 @@ public struct Backups {
         _ type: ItemType.Type,
         at folder: URL,
         dryRun: Bool,
-        trimDays: Int?,
-        keepDays: Int?,
-        minKeep: Int?
+        trim: Trim
     ) throws where ItemType: BackupItem {
-        let trimDays = trimDays ?? 3
-        let keepDays = keepDays ?? 14
-        let minKeep = minKeep ?? 1
-
         let deletingString = dryRun ? "Would Delete" : "Deleting"
 
         let backups = try getBackups(type, at: folder)
         for (worldName, worldBackups) in backups {
             Library.log.debug("Processing: \(worldName)")
-            let processedBackups = try worldBackups.process(trimDays: trimDays, keepDays: keepDays, minKeep: minKeep)
+            let processedBackups = try worldBackups.process(trim: trim)
             for processedBackup in processedBackups.filter({ $0.action == .trim }) {
                 Library.log.info("\(deletingString): \(processedBackup.item.location.lastPathComponent)")
                 if !dryRun {
@@ -153,9 +159,9 @@ extension Array where Element: BackupProtocol {
         }
     }
 
-    func process(trimDays: Int, keepDays: Int, minKeep: Int) throws -> [Element] {
-        let trimDays = DateComponents(day: -(trimDays - 1))
-        let keepDays = DateComponents(day: -(keepDays - 1))
+    func process(trim: Backups.Trim) throws -> [Element] {
+        let trimDays = DateComponents(day: -(trim.trimDays - 1))
+        let keepDays = DateComponents(day: -(trim.keepDays - 1))
 
         guard let today = Calendar.current.date(from: Date().toDayComponents()) else {
             throw TrimmingError.failedToCalculateDate("today")
@@ -167,22 +173,9 @@ extension Array where Element: BackupProtocol {
             throw TrimmingError.failedToCalculateDate("keepDay")
         }
 
-
-        // Sort from oldest to newest first
+        // Sort from oldest to newest first, then mark them into buckets
         let modifiedBackups = self.sorted(by: { $0.modificationDate > $1.modificationDate })
-
-        // Mark very old backups, but also bucket for trimming to dailies
-        var buckets: [DateComponents: [Element]] = [:]
-        for backup in modifiedBackups {
-            if backup.modificationDate < keepDay {
-                backup.action = .trim
-            } else if backup.modificationDate < trimDay {
-                let modificationDay = backup.modificationDate.toDayComponents()
-                var bucket = buckets[modificationDay] ?? []
-                bucket.append(backup)
-                buckets[modificationDay] = bucket
-            }
-        }
+        let buckets = markOldBackups(backups: modifiedBackups, trimDay: trimDay, keepDay: keepDay)
 
         // Process Buckets
         for (bucketComponents, bucket) in buckets {
@@ -192,7 +185,7 @@ extension Array where Element: BackupProtocol {
 
         // Go back and force any backups to be retained if required
         let keepCount = modifiedBackups.reduce(0, { $0 + ($1.action == .keep ? 1 : 0)})
-        var forceKeepCount = Swift.min(modifiedBackups.count, Swift.max(minKeep - keepCount, 0))
+        var forceKeepCount = Swift.min(modifiedBackups.count, Swift.max(trim.minKeep - keepCount, 0))
         if forceKeepCount > 0 {
             for backup in modifiedBackups {
                 // Don't try to keep partial backups that need to be purged
@@ -207,6 +200,22 @@ extension Array where Element: BackupProtocol {
         }
 
         return modifiedBackups
+    }
+
+    private func markOldBackups(backups: [Element], trimDay: Date, keepDay: Date) -> [DateComponents: [Element]] {
+        var buckets: [DateComponents: [Element]] = [:]
+        for backup in backups {
+            if backup.modificationDate < keepDay {
+                backup.action = .trim
+            } else if backup.modificationDate < trimDay {
+                let modificationDay = backup.modificationDate.toDayComponents()
+                var bucket = buckets[modificationDay] ?? []
+                bucket.append(backup)
+                buckets[modificationDay] = bucket
+            }
+        }
+
+        return buckets
     }
 
     private func bucketDateString(_ dateComponents: DateComponents) -> String {
