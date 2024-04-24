@@ -29,23 +29,74 @@ import Foundation
 struct EnvironmentConfig {
     static let fallbackConfigFile = "config.json"
 
-    let backupInterval: String?
-    let dataDirectory: String
-    let configFile: String
-    let hostKeysFile: String
+    static let dataDirVariable = "DATA_DIR"
 
+    static let defaultConfigPath = "/config"
+    static let defaultDataPath = "/data"
+    static let defaultOldDataPath = "/backups"
+
+
+    // External Tools in Container
     let dockerPath: String
     let rconPath: String
 
-    init() {
-        self.backupInterval = ProcessInfo.processInfo.environment["BACKUP_INTERVAL"]
-        self.dataDirectory = ProcessInfo.processInfo.environment["DATA_DIR"] ?? "/backups"
-        self.configFile = ProcessInfo.processInfo.environment["CONFIG_FILE"] ?? "config.yml"
-        self.hostKeysFile = ProcessInfo.processInfo.environment["HOST_KEYS_FILE"] ?? ".authorizedKeys"
+    // Config Folder Settings
+    let configDirectory: String
+    let configFile: String
+    let hostKeysFile: String
 
-        // External Tools
+    // Data Folder Settings
+    let dataDirectory: String
+
+    // Deprecated Settings
+    let backupInterval: String?
+
+    init() {
+        // External Tools in Container
         self.dockerPath = ProcessInfo.processInfo.environment["DOCKER_PATH"] ?? "/usr/bin/docker"
         self.rconPath = ProcessInfo.processInfo.environment["RCON_PATH"] ?? "/usr/local/bin/rcon-cli"
 
+        // Config Folder Settings
+        self.configDirectory = EnvironmentConfig.configDirectory()
+        self.configFile = ProcessInfo.processInfo.environment["CONFIG_FILE"] ?? "config.yml"
+        self.hostKeysFile = ProcessInfo.processInfo.environment["HOST_KEYS_FILE"] ?? ".authorizedKeys"
+
+        // Data Folder Settings
+        self.dataDirectory = EnvironmentConfig.dataDirectory()
+
+        // Deprecated Settings
+        self.backupInterval = ProcessInfo.processInfo.environment["BACKUP_INTERVAL"]
+    }
+
+    private static func configDirectory() -> String {
+        if let envPath = ProcessInfo.processInfo.environment["CONFIG_DIR"] {
+            return envPath
+        }
+
+        if FileManager.default.fileExists(atPath: defaultConfigPath) {
+            return defaultConfigPath
+        }
+
+        if let dataEnvPath = ProcessInfo.processInfo.environment[dataDirVariable] {
+            return dataEnvPath
+        }
+
+        if FileManager.default.fileExists(atPath: defaultDataPath) {
+            return defaultDataPath
+        }
+
+        return defaultOldDataPath
+    }
+
+    private static func dataDirectory() -> String {
+        if let dataEnvPath = ProcessInfo.processInfo.environment[dataDirVariable] {
+            return dataEnvPath
+        }
+
+        if FileManager.default.fileExists(atPath: defaultDataPath) {
+            return defaultDataPath
+        }
+
+        return defaultOldDataPath
     }
 }

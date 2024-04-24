@@ -46,6 +46,9 @@ struct Server: ParsableCommand {
     @Option(name: .shortAndLong, help: "Path to rcon-cli")
     var rconPath: String?
 
+    @Option(name: .shortAndLong, help: "Folder to read config from")
+    var configFolder: String?
+
     @Option(name: .shortAndLong, help: "Folder to write backups to")
     var backupPath: String?
 
@@ -103,7 +106,8 @@ struct Server: ParsableCommand {
         do {
             let service = BackupService(
                 config: config,
-                backupUrl: backupUrl,
+                configUrl: URL(fileURLWithPath: environment.configDirectory),
+                dataUrl: backupUrl,
                 tools: tools
             )
 
@@ -129,8 +133,8 @@ struct Server: ParsableCommand {
             return URL(fileURLWithPath: configPath)
         }
 
-        let dataDirectory = URL(fileURLWithPath: environment.dataDirectory)
-        let defaultPath = dataDirectory.appendingPathComponent(environment.configFile).path
+        let configDirectory = URL(fileURLWithPath: self.configFolder ?? environment.configDirectory)
+        let defaultPath = configDirectory.appendingPathComponent(environment.configFile).path
         if FileManager.default.fileExists(atPath: defaultPath) {
             return URL(fileURLWithPath: defaultPath)
         }
@@ -138,7 +142,7 @@ struct Server: ParsableCommand {
         Server.logger.warning(
             "\(environment.configFile) not found, using older default: \(EnvironmentConfig.fallbackConfigFile)"
         )
-        return dataDirectory.appendingPathComponent(EnvironmentConfig.fallbackConfigFile)
+        return configDirectory.appendingPathComponent(EnvironmentConfig.fallbackConfigFile)
     }
 
     private func getHostKeyFileUrl(environment: EnvironmentConfig) -> URL {
@@ -146,8 +150,8 @@ struct Server: ParsableCommand {
             return URL(fileURLWithPath: hostKeysPath)
         }
 
-        let dataDirectory = URL(fileURLWithPath: environment.dataDirectory)
-        let defaultPath = dataDirectory.appendingPathComponent(environment.hostKeysFile).path
+        let configDirectory = URL(fileURLWithPath: environment.configDirectory)
+        let defaultPath = configDirectory.appendingPathComponent(environment.hostKeysFile).path
         return URL(fileURLWithPath: defaultPath)
     }
 

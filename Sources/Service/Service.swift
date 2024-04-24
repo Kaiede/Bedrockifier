@@ -46,18 +46,18 @@ final class BackupService {
 
     let config: BackupConfig
     let environment: EnvironmentConfig
-    let backupUrl: URL
+    let dataUrl: URL
     let tools: ToolConfig
     let backupActor: BackupActor
 
     var intervalTimer: ServiceTimer<String>?
 
-    init(config: BackupConfig, backupUrl: URL, tools: ToolConfig) {
+    init(config: BackupConfig, configUrl: URL, dataUrl: URL, tools: ToolConfig) {
         self.config = config
         self.environment = EnvironmentConfig()
-        self.backupUrl = backupUrl
+        self.dataUrl = dataUrl
         self.tools = tools
-        self.backupActor = BackupActor(config: config, destination: backupUrl)
+        self.backupActor = BackupActor(config: config, configDir: configUrl, dataDir: dataUrl)
     }
 
     public func run() throws {

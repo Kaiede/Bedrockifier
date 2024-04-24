@@ -36,10 +36,10 @@ actor BackupActor {
     private var currentBackup: Task<ContainerConnection, Never>?
     private var currentFullBackup: Task<Void, Never>?
 
-    init(config: BackupConfig, destination: URL) {
+    init(config: BackupConfig, configDir: URL, dataDir: URL) {
         self.config = config
-        self.backupUrl = destination
-        self.healthFileUrl = destination.appendingPathComponent(".service_is_healthy")
+        self.backupUrl = dataDir
+        self.healthFileUrl = configDir.appendingPathComponent(".service_is_healthy")
         self.containers = []
     }
 
