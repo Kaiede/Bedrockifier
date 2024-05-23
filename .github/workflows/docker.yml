@@ -77,6 +77,11 @@ jobs:
       if: github.event_name != 'pull_request'
       run: bash Docker/merge.sh kaiede/minecraft-bedrock-backup:${{ env.docker_tag }} kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}
 
-    - name: Make Manifest - ${{ github.event.release.name }}
+    - name: Get Release Tag
+      id: tag
       if: github.event_name == 'release'
-      run: bash Docker/merge.sh kaiede/minecraft-bedrock-backup:${{ github.event.release.name }} kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}
+      uses: dawidd6/action-get-tag@v1
+
+    - name: Make Manifest - ${{ steps.tag.outputs.tag }}
+      if: github.event_name == 'release'
+      run: bash Docker/merge.sh kaiede/minecraft-bedrock-backup:${{ steps.tag.outputs.tag }} kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}
