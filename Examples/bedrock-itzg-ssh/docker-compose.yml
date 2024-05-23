@@ -12,8 +12,10 @@ services:
         # Useful for making sure your logs have a proper timestamp
         TZ: "America/Los_Angeles"
     volumes:
-      # Map your backups folder info /backups
-      - /opt/minecraft/backups:/backups
+      # (Optional) Map a configuration folder separately from the backups.
+      # - /opt/minecraft/backup-config:/config
+      # Map your backups folder into /data
+      - /opt/minecraft/backups:/data
       # Map the data folders for both servers
       - /opt/bedrock/private:/bedrock_private
       - /opt/bedrock/public:/bedrock_public
