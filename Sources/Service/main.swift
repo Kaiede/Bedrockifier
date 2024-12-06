@@ -106,7 +106,7 @@ struct Server: ParsableCommand {
         do {
             let service = BackupService(
                 config: config,
-                configUrl: URL(fileURLWithPath: environment.configDirectory),
+                configDir: URL(fileURLWithPath: environment.configDirectory),
                 dataUrl: backupUrl,
                 tools: tools
             )
