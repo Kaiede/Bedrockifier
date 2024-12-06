@@ -227,10 +227,9 @@ extension World {
         return try World(url: finalFolder)
     }
 
-    func backup(to folder: URL) throws -> World {
-        let timestamp = DateFormatter.backupDateFormatter.string(from: Date())
-        let backupExtension = fetchBackupExtension()
-        let fileName = "\(self.name).\(timestamp).\(backupExtension)"
+    func backup(to folder: URL, prefixContainerName: String?) throws -> World {
+        let timestamp = Date()
+        let fileName = makeFilename(timestamp: timestamp, prefixContainerName: prefixContainerName)
         let targetFile = folder.appendingPathComponent(fileName)
 
         try FileManager.default.createDirectory(atPath: folder.path, withIntermediateDirectories: true, attributes: nil)
@@ -244,6 +243,18 @@ extension World {
         case .javaBackup:
             try FileManager.default.copyItem(at: self.location, to: targetFile)
             return try World(url: targetFile)
+        }
+    }
+
+    private func makeFilename(timestamp: Date, prefixContainerName: String?) -> String {
+        let timestampString = DateFormatter.backupDateFormatter.string(from: timestamp)
+        let backupExtension = fetchBackupExtension()
+        let filename = "\(self.name).\(timestampString).\(backupExtension)"
+
+        if let prefix = prefixContainerName {
+            return "\(prefix).\(filename)"
+        } else {
+            return filename
         }
     }
 

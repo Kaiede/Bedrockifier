@@ -75,6 +75,7 @@ public enum ContainerConnectionConfigKind {
 }
 
 public protocol ContainerConnectionConfig {
+    var prefixContainerName: Bool { get }
     var processPath: String { get }
     var kind: ContainerConnectionConfigKind { get }
     var newline: TerminalNewline { get }
@@ -92,15 +93,18 @@ public struct DockerConnectionConfig: ContainerConnectionConfig {
     let containerName: String
     public let password: ContainerPassword = .none
     public let validator: SSHHostKeyValidator? = nil
+    public let prefixContainerName: Bool
 
-    init(dockerPath: String, config: BackupConfig.ContainerConfig) {
+    init(dockerPath: String, config: BackupConfig.ContainerConfig, prefixAllContainerNames: Bool) {
         self.dockerPath = dockerPath
         self.containerName = config.name
+        self.prefixContainerName = config.prefixContainerName == true || prefixAllContainerNames
     }
 
-    init(dockerPath: String, containerName: String) {
+    init(dockerPath: String, containerName: String, prefixAllContainerNames: Bool) {
         self.dockerPath = dockerPath
         self.containerName = containerName
+        self.prefixContainerName = prefixAllContainerNames
     }
 
     public var kind: ContainerConnectionConfigKind { .docker }
@@ -121,8 +125,9 @@ public struct RCONConnectionConfig: ContainerConnectionConfig {
     let address: String
     public let password: ContainerPassword
     public let validator: SSHHostKeyValidator? = nil
+    public let prefixContainerName: Bool
 
-    init?(rconPath: String, config: BackupConfig.ContainerConfig) {
+    init?(rconPath: String, config: BackupConfig.ContainerConfig, prefixAllContainerNames: Bool) {
         guard let rconAddr = config.rcon else { return nil }
         let password = config.containerPassword()
         guard password != .none else {
@@ -135,6 +140,7 @@ public struct RCONConnectionConfig: ContainerConnectionConfig {
         self.rconPath = rconPath
         self.address = rconAddr
         self.password = password
+        self.prefixContainerName = config.prefixContainerName == true || prefixAllContainerNames
     }
 
     public var kind: ContainerConnectionConfigKind { .rcon }
@@ -162,8 +168,9 @@ public struct SSHConnectionConfig: ContainerConnectionConfig {
     let address: String
     public let password: ContainerPassword
     public let validator: SSHHostKeyValidator?
+    public let prefixContainerName: Bool
 
-    init?(validator: SSHHostKeyValidator, config: BackupConfig.ContainerConfig) {
+    init?(validator: SSHHostKeyValidator, config: BackupConfig.ContainerConfig, prefixAllContainerNames: Bool) {
         guard let sshAddr = config.ssh else { return nil }
         let password = config.containerPassword()
         guard password != .none else {
@@ -176,6 +183,7 @@ public struct SSHConnectionConfig: ContainerConnectionConfig {
         self.address = sshAddr
         self.password = password
         self.validator = validator
+        self.prefixContainerName = config.prefixContainerName == true || prefixAllContainerNames
     }
 
     public var kind: ContainerConnectionConfigKind { .ssh }

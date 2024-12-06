@@ -42,6 +42,7 @@ public struct BackupConfig: Codable {
 
     public struct ContainerConfig: Codable {
         public var name: String
+        public var prefixContainerName: Bool?
         public var rcon: String?
         public var ssh: String?
         public var password: String?
@@ -60,6 +61,7 @@ public struct BackupConfig: Codable {
     public var sshPath: String?
     public var sshpassPath: String?
     public var backupPath: String?
+    public var prefixContainerName: Bool?
     public var servers: ServerConfig?
     public var containers: ServerContainersConfig?
     public var trim: TrimConfig?
