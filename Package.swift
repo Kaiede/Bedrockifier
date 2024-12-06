@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "Bedrockifier",
     platforms: [
-        .macOS(.v13)
+        .macOS(.v14)
     ],
     products: [
             // The external product of our package is an importable
@@ -25,6 +25,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.1.3"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
         .package(url: "https://github.com/apple/swift-nio-ssh.git", from: "0.8.0"),
+        .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.0.0"),
         .package(url: "https://github.com/jpsim/Yams.git", from: "5.0.0"),
         .package(url: "https://github.com/Kaiede/PTYKit.git", branch: "master"),
         .package(url: "https://github.com/swift-server/swift-backtrace.git", from: "1.3.3"),
@@ -47,7 +48,8 @@ let package = Package(
             dependencies: [
                 "Bedrockifier",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "Backtrace", package: "swift-backtrace")
+                .product(name: "Backtrace", package: "swift-backtrace"),
+                .product(name: "Hummingbird", package: "hummingbird")
             ]
         ),
         .target(

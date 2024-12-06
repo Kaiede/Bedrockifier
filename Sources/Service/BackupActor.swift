@@ -36,11 +36,14 @@ actor BackupActor {
     private var currentBackup: Task<ContainerConnection, Never>?
     private var currentFullBackup: Task<Void, Never>?
 
+    private var lastBackup: LastBackupResult?
+
     init(config: BackupConfig, configDir: URL, dataDir: URL) {
         self.config = config
         self.backupUrl = dataDir
         self.healthFileUrl = configDir.appendingPathComponent(".service_is_healthy")
         self.containers = []
+        self.lastBackup = nil
     }
 
     public func backupContainer(container: ContainerConnection) async {
@@ -112,6 +115,14 @@ actor BackupActor {
         }
     }
 
+    public func checkHealth() -> Bool {
+        return FileManager.default.fileExists(atPath: healthFileUrl.path)
+    }
+
+    public func lastBackupResult() -> LastBackupResult? {
+        return self.lastBackup
+    }
+
     public func markHealthy(forceWrite: Bool = false) -> Bool {
         do {
             if FileManager.default.fileExists(atPath: healthFileUrl.path) && forceWrite {
@@ -174,6 +185,9 @@ actor BackupActor {
         BackupService.logger.info("Starting Full Backup")
         let needsListeners = needsListeners()
         var failedContainers = 0
+        var backedUpContainers: [String: UInt64] = [:]
+        var success: Bool = true
+
         for container in containers {
             do {
                 guard skipContainer?.name != container.name else {
@@ -206,23 +220,33 @@ actor BackupActor {
                 BackupService.logger.error("\(error.localizedDescription)")
                 BackupService.logger.error("Container \(container.name) failed to reset after backup")
             }
+
+            backedUpContainers[container.name] = 0;
         }
 
         do {
             try runPostBackupTasks()
 
-            BackupService.logger.info("Full Backup Completed")
-
             if failedContainers > 0 {
-                markUnhealthy()
+                success = false
+                BackupService.logger.error("Full Backup Incomplete with \(failedContainers) Failures")
             } else {
-                _ = markHealthy()
+                BackupService.logger.info("Full Backup Complete")
             }
         } catch let error {
             BackupService.logger.error("\(error.localizedDescription)")
             BackupService.logger.error("Full Backup Failed")
+            success = false
+        }
+
+        if success {
+            _ = markHealthy()
+        } else {
             markUnhealthy()
         }
+
+        let totalSize = backedUpContainers.values.reduce(0, +)
+        self.lastBackup = .init(date: .now, success: success, sizes: backedUpContainers, totalSize: totalSize)
     }
 
     private func runPostBackupTasks() throws {

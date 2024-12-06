@@ -60,6 +60,7 @@ public struct BackupConfig: Codable {
     public var sshPath: String?
     public var sshpassPath: String?
     public var backupPath: String?
+    public var tokenPath: String?
     public var servers: ServerConfig?
     public var containers: ServerContainersConfig?
     public var trim: TrimConfig?

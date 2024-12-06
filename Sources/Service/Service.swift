@@ -24,6 +24,7 @@
  */
 
 import Foundation
+import Hummingbird
 import Logging
 import PTYKit
 
@@ -41,6 +42,8 @@ final class BackupService {
         static let logoutStrings = [bedrockLogout, javaLogout]
     }
 
+    typealias ServiceContext = BasicRequestContext
+
     static let logger = Logger(label: "bedrockifier")
     private static let backupPriority = TaskPriority.background
 
@@ -49,15 +52,94 @@ final class BackupService {
     let dataUrl: URL
     let tools: ToolConfig
     let backupActor: BackupActor
+    let httpTokenFile: URL
 
     var intervalTimer: ServiceTimer<String>?
 
-    init(config: BackupConfig, configUrl: URL, dataUrl: URL, tools: ToolConfig) {
+    init(config: BackupConfig, configDir: URL, dataUrl: URL, tools: ToolConfig) {
         self.config = config
         self.environment = EnvironmentConfig()
         self.dataUrl = dataUrl
         self.tools = tools
-        self.backupActor = BackupActor(config: config, configDir: configUrl, dataDir: dataUrl)
+        self.backupActor = BackupActor(config: config, configDir: configDir, dataDir: dataUrl)
+        self.httpTokenFile = BackupService.configureToken(config: config, configDir: configDir)
+    }
+
+    static private func configureToken(config: BackupConfig, configDir: URL) -> URL {
+        let tokenPath = makeTokenFilePath(config: config, configDir: configDir)
+        do {
+            if FileManager.default.fileExists(atPath: tokenPath.path) {
+                try FileManager.default.removeItem(at: tokenPath)
+            }
+
+            let tokenData = TokenCheckingMiddleware<ServiceContext>.generateToken()
+            try tokenData.write(to: tokenPath, atomically: true, encoding: .utf8)
+        } catch {
+            BackupService.logger.error("Failed to write new token.")
+        }
+
+        return tokenPath
+    }
+
+    static private func makeTokenFilePath(config: BackupConfig, configDir: URL) -> URL {
+        if let tokenFile = config.tokenPath {
+            return URL(fileURLWithPath: tokenFile)
+        } else {
+            return configDir.appendingPathComponent(".bedrockifierToken")
+        }
+    }
+
+    private func makeHttpService() -> some ApplicationProtocol {
+        let router = Router(context: BasicRequestContext.self)
+        self.configureRouter(router)
+
+        let application = Application(
+            router: router,
+            configuration: .init(
+                address: .hostname("127.0.0.1", port: 8080),
+                serverName: "Bedrockifier"
+            ),
+            logger: BackupService.logger
+        )
+
+        return application
+    }
+
+    private func configureRouter(_ router: Router<ServiceContext>) {
+        // Read-Only Unsecured Endpoints
+        router.get("/live", use: handleHealthStatus)
+        router.get("/health", use: handleHealthStatus)
+        router.get("/status", use: handleServerStatus)
+
+        router.group()
+            .add(middleware: TokenCheckingMiddleware(tokenFile: httpTokenFile))
+            .get("/start-backup", use: handleStartBackup)
+            .get("/listen", use: handleNotImplemented) // NYI
+    }
+
+    @Sendable
+    private func handleHealthStatus(to request: Request, context: ServiceContext) async throws -> HTTPResponse.Status {
+        let isHealthy = await backupActor.checkHealth()
+        return isHealthy ? .ok : .serviceUnavailable
+    }
+
+    @Sendable
+    private func handleServerStatus(to request: Request, context: ServiceContext) async throws -> ServiceState {
+        let lastResult = await backupActor.lastBackupResult()
+        let response = ServiceState(lastBackup: lastResult)
+
+        return response
+    }
+
+    @Sendable
+    private func handleStartBackup(to request: Request, context: ServiceContext) async throws -> HTTPResponse.Status {
+        await backupActor.backupAllContainers(isDaily: true)
+        return .ok
+    }
+
+    @Sendable
+    private func handleNotImplemented(to request: Request, context: ServiceContext) async throws -> HTTPResponse.Status {
+        return .notImplemented
     }
 
     public func run() throws {
@@ -103,6 +185,12 @@ final class BackupService {
                     // Without the schedule, we have to assume the docker container specifies an interval
                     try await connectContainers()
                     try startIntervalBackups()
+                }
+
+                Task {
+                    BackupService.logger.info("Starting HTTP Service...")
+                    let httpService = makeHttpService()
+                    try await httpService.runService()
                 }
 
                 BackupService.logger.info("Service Started Successfully.")
