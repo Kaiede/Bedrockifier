@@ -1,7 +1,7 @@
 # Bedrockifier
 
 [![CI Status](https://github.com/Kaiede/Bedrockifier/actions/workflows/swift.yml/badge.svg)](https://github.com/Kaiede/Bedrockifier/actions)
-![Swift](https://img.shields.io/badge/Swift-5.9.2-brightgreen.svg?style=flat)
+![Swift](https://img.shields.io/badge/Swift-6.0.2-brightgreen.svg?style=flat)
 [![MIT license](http://img.shields.io/badge/License-MIT-brightgreen.svg)](http://opensource.org/licenses/MIT)
 
 [![CI Status](https://github.com/Kaiede/Bedrockifier/actions/workflows/docker.yml/badge.svg)](https://github.com/Kaiede/Bedrockifier/actions)
@@ -27,6 +27,6 @@ Release Notes are available on [GitHub](https://github.com/Kaiede/Bedrockifier/r
 
 ### Credits
 
-This was built in part by understanding how itzg/mc-backup works for Java, and is offered under similar license: https://github.com/itzg/docker-mc-backup 
+This was built in part by understanding how itzg/mc-backup works for Java, and is offered under similar license: https://github.com/itzg/docker-mc-backup
 
 Older source history for the docker container can be found at https://github.com/Kaiede/docker-minecraft-bedrock-backup
