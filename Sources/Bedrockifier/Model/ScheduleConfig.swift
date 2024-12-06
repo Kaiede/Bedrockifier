@@ -30,6 +30,7 @@ public struct ScheduleConfig: Codable {
     public var daily: DayTime?
     public var interval: String?
     public var startupDelay: String?
+    public var runInitialBackup: Bool?
 
     // Event Based Schedules
     public var onPlayerLogin: Bool?
