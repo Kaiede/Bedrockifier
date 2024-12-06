@@ -97,7 +97,7 @@ final class BackupService {
                     }
 
                     if let minInterval = try schedule.parseMinInterval() {
-                        BackupService.logger.info("Backup Minimum Interval is \(minInterval) seconds")
+                        BackupService.logger.info("Backup Minimum Interval is \(minInterval) seconds.")
                     }
                 } else {
                     // Without the schedule, we have to assume the docker container specifies an interval
@@ -112,6 +112,11 @@ final class BackupService {
                 await MainActor.run {
                     exit(-1)
                 }
+            }
+
+            if config.schedule?.runInitialBackup == true {
+                BackupService.logger.info("Performing Initial Backup...")
+                await self.backupActor.backupAllContainers(isDaily: true)
             }
         }
 
