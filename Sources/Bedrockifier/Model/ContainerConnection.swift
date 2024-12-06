@@ -186,9 +186,10 @@ public class ContainerConnection {
         for worldUrl in worlds {
             do {
                 let world = try World(url: worldUrl)
+                let prefix = connectionConfig.prefixContainerName ? name : nil
 
                 Library.log.info("Backing Up: \(world.name)")
-                let backupWorld = try world.backup(to: destination)
+                let backupWorld = try world.backup(to: destination, prefixContainerName: prefix)
                 Library.log.info("Backed up as: \(backupWorld.location.lastPathComponent)")
             } catch let error {
                 Library.log.error("Backup of world at \(worldUrl.path) failed.")
@@ -308,10 +309,11 @@ public class ContainerConnection {
 
 extension ContainerConnection {
     public static func loadContainers(from config: BackupConfig, tools: ToolConfig) throws -> [ContainerConnection] {
+        let prefixAllContainerNames = config.prefixContainerName ?? false
         var containers: [ContainerConnection] = []
         for container in config.containers?.bedrock ?? [] {
             Library.log.debug("Creating Bedrock Container Connection. (container: \(container.name))")
-            let config = containerConfig(container: container, tools: tools)
+            let config = containerConfig(container: container, tools: tools, prefixAllContainerNames: prefixAllContainerNames)
             let connection = try ContainerConnection(containerName: container.name,
                                                      config: config,
                                                      kind: .bedrock,
@@ -322,7 +324,7 @@ extension ContainerConnection {
 
         for container in config.containers?.java ?? [] {
             Library.log.debug("Creating Java Container Connection. (container: \(container.name)")
-            let config = containerConfig(container: container, tools: tools)
+            let config = containerConfig(container: container, tools: tools, prefixAllContainerNames: prefixAllContainerNames)
             let connection = try ContainerConnection(containerName: container.name,
                                                      config: config,
                                                      kind: .java,
@@ -333,11 +335,17 @@ extension ContainerConnection {
 
         // Offer Backwards Compatibility for Older Installs
         for container in config.servers ?? [:] {
+            let prefixAllContainers = config.prefixContainerName ?? false
             let containerName = container.key
             let worldsFolder = URL(fileURLWithPath: container.value)
             let worlds = try World.getWorlds(at: worldsFolder)
             let worldPaths = worlds.map({ $0.location.path })
-            let config = DockerConnectionConfig(dockerPath: tools.dockerPath, containerName: containerName)
+            let config = DockerConnectionConfig(
+                dockerPath: tools.dockerPath,
+                containerName: containerName,
+                prefixAllContainerNames: prefixAllContainers
+            )
+            
             let connection = try ContainerConnection(containerName: containerName,
                                                      config: config,
                                                      kind: .bedrock,
@@ -351,14 +359,27 @@ extension ContainerConnection {
 
     private static func containerConfig(
         container: BackupConfig.ContainerConfig,
-        tools: ToolConfig
+        tools: ToolConfig,
+        prefixAllContainerNames: Bool
     ) -> ContainerConnectionConfig {
-        if let sshConfig = SSHConnectionConfig(validator: tools.hostKeyValidator, config: container) {
+        if let sshConfig = SSHConnectionConfig(
+            validator: tools.hostKeyValidator,
+            config: container,
+            prefixAllContainerNames: prefixAllContainerNames
+        ) {
             return sshConfig
-        } else if let rconConfig = RCONConnectionConfig(rconPath: tools.rconPath, config: container) {
+        } else if let rconConfig = RCONConnectionConfig(
+            rconPath: tools.rconPath,
+            config: container,
+            prefixAllContainerNames: prefixAllContainerNames
+        ) {
             return rconConfig
         } else {
-            return DockerConnectionConfig(dockerPath: tools.dockerPath, config: container)
+            return DockerConnectionConfig(
+                dockerPath: tools.dockerPath,
+                config: container,
+                prefixAllContainerNames: prefixAllContainerNames
+            )
         }
     }
 }
