@@ -17,6 +17,7 @@ ARG TARGETVARIANT
 
 RUN apt-get update && \
   DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    curl \
     docker.io \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
