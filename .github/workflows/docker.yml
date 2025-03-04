@@ -21,7 +21,7 @@ jobs:
       arch: ${{ matrix.os == 'ubuntu-latest' && 'amd64' || 'arm64' }}
     strategy:
       matrix:
-        os: ['ubuntu-latest', 'buildjet-2vcpu-ubuntu-2204-arm']
+        os: ['ubuntu-latest', 'ubuntu-24.04-arm']
 
     steps:
     - name: Checkout
