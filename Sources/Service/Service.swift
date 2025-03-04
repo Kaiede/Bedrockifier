@@ -96,7 +96,7 @@ final class BackupService {
         let application = Application(
             router: router,
             configuration: .init(
-                address: .hostname("127.0.0.1", port: 8080),
+                address: .hostname("0.0.0.0", port: 8080),
                 serverName: "Bedrockifier"
             ),
             logger: BackupService.logger
