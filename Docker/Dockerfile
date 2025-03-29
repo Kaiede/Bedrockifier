@@ -40,6 +40,7 @@ COPY --from=builder /project/.build/release/bedrockifier-tool .
 COPY --from=builder /project/.build/release/bedrockifierd .
 COPY ./Docker/entry.sh .
 COPY ./Docker/healthcheck.sh .
+COPY ./Docker/trigger-backup.sh .
 
 ENTRYPOINT [ "/opt/bedrock/entry.sh" ]
 HEALTHCHECK --start-period=1m CMD bash /opt/bedrock/healthcheck.sh
