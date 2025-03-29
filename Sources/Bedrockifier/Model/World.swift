@@ -60,6 +60,20 @@ public struct World {
     public let name: String
     public let type: WorldType
     public let location: URL
+    public var size: UInt64 {
+        get {
+            do {
+                let possibleSize = try FileManager.default.attributesOfItem(atPath: location.path)[.size]
+                guard let size = possibleSize as? UInt64 else {
+                    return 0
+                }
+
+                return size
+            } catch {
+                return 0
+            }
+        }
+    }
 
     public init(url: URL) throws {
         self.type = try WorldType(url: url)

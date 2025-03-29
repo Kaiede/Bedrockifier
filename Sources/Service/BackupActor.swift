@@ -115,6 +115,7 @@ actor BackupActor {
         }
     }
 
+    nonisolated
     public func checkHealth() -> Bool {
         return FileManager.default.fileExists(atPath: healthFileUrl.path)
     }
@@ -189,6 +190,7 @@ actor BackupActor {
         var success: Bool = true
 
         for container in containers {
+            var backupSize: UInt64 = 0
             do {
                 guard skipContainer?.name != container.name else {
                     BackupService.logger.info("Skipping \(container.name) as it was just backed up")
@@ -203,7 +205,7 @@ actor BackupActor {
                     try await container.start()
                 }
 
-                try await container.runBackup(destination: backupUrl)
+                backupSize = try await container.runBackup(destination: backupUrl)
             } catch let error {
                 failedContainers += 1
                 BackupService.logger.error("\(error.localizedDescription)")
@@ -221,7 +223,7 @@ actor BackupActor {
                 BackupService.logger.error("Container \(container.name) failed to reset after backup")
             }
 
-            backedUpContainers[container.name] = 0;
+            backedUpContainers[container.name] = backupSize;
         }
 
         do {

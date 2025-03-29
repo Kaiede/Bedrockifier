@@ -166,7 +166,7 @@ public class ContainerConnection {
         try releaseHold(destination: destination)
     }
 
-    public func runBackup(destination: URL) async throws {
+    public func runBackup(destination: URL) async throws -> UInt64 {
         guard self.isRunning else {
             throw ContainerError.processNotRunning
         }
@@ -183,6 +183,7 @@ public class ContainerConnection {
         var failedBackups: [String] = []
         Library.log.info("Starting Backup of worlds. (container: \(name))")
 
+        var backupSize: UInt64 = 0
         for worldUrl in worlds {
             do {
                 let world = try World(url: worldUrl)
@@ -191,6 +192,8 @@ public class ContainerConnection {
                 Library.log.info("Backing Up: \(world.name)")
                 let backupWorld = try world.backup(to: destination, prefixContainerName: prefix)
                 Library.log.info("Backed up as: \(backupWorld.location.lastPathComponent)")
+
+                backupSize += backupWorld.size
             } catch let error {
                 Library.log.error("Backup of world at \(worldUrl.path) failed.")
                 Library.log.error("Error: \(error.localizedDescription)")
@@ -225,6 +228,8 @@ public class ContainerConnection {
         if failedBackups.count > 0 {
             throw ContainerError.backupsFailed(failedBackups)
         }
+
+        return backupSize
     }
 
     public func pauseAutosave() async throws {
@@ -345,7 +350,7 @@ extension ContainerConnection {
                 containerName: containerName,
                 prefixAllContainerNames: prefixAllContainers
             )
-            
+
             let connection = try ContainerConnection(containerName: containerName,
                                                      config: config,
                                                      kind: .bedrock,
