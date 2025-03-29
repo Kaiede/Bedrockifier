@@ -4,7 +4,7 @@ A copy of curl is provided in the container and can be used for scripts if desir
 
 ## Unprivileged Tasks
 
-These tasks do not require a token to execute.
+These tasks do not require a token to execute, and provide read-only access to the service.
 
 ### Health Check
 - `/live`
@@ -17,11 +17,11 @@ The service is considered unhealthy if there was an error or other failure durin
 ### Service Status
 - `/status`
 
-This provides more details. Currently only provides information about the last backup. The date of the backup, wether or not it succeeded, and the size of the worlds backed up.
+This provides more details about the service's current state in JSON format. Currently only provides information about the last backup. The date of the backup, wether or not it succeeded, and the size of the worlds backed up.
 
 ## Privileged Tasks
 
-These tasks require a token to execute. On each launch, Bedrockifier currently generates a new random token and writes it to `/config/.bedrockifierToken`. This token must be provided when making requests to these endpoints.
+These tasks require a token to execute. On each launch, Bedrockifier generates a new random token and writes it to `/config/.bedrockifierToken`. This token must be provided when making requests to these endpoints.
 
 This is done by providing an authorization header as part of the request, providing the token stored in the token file: `Authorization: Bearer <Token>`. When using curl, it's possible to pass the token in using a command similar to this:
 
@@ -29,11 +29,11 @@ This is done by providing an authorization header as part of the request, provid
 curl -v http://127.0.0.1:8080/start-backup -H "Authorization: Bearer $(cat <TOKEN_PATH>)"
 ```
 
-You will need to provide the appropriate address depending
+You will need to provide the appropriate address depending on how you've configured your ports.
 
 ### Trigger Backup
 - `/start-backup`
 
 This triggers a full backup of all containers. Can be used to create one-off backups. Useful when wanting to trim chunks or do other administrative tasks.
 
-Alternatively, an admin can access the docker container shell and execute `/trigger-backup.sh [tokenFile]`. This will read the local token from `/config/.bedrockifierToken` if a token file path isn't provided..
+Alternatively, an admin can access the docker container shell and execute `./trigger-backup.sh [tokenFile]`. This will read the local token from `/config/.bedrockifierToken` if a token file path isn't provided.
