@@ -11,6 +11,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions4gh/configure-wiki@v1
+        with:
+          path: Wiki
       - uses: actions4gh/deploy-wiki@v1
         with:
-          path: Wiki/
+          path: Wiki
