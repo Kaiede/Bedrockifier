@@ -1,5 +1,7 @@
 name: Deploy Wiki
 on:
+  push:
+    branches: [ main ]
   release:
     types:
       - published
@@ -10,9 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions4gh/configure-wiki@v1
-        with:
-          path: Wiki
       - uses: actions4gh/deploy-wiki@v1
         with:
           path: Wiki
