@@ -41,7 +41,7 @@ public struct World {
             } else if url.pathExtension == "zip" {
                 self = .javaBackup
             } else {
-                throw WorldError.invalidWorldType
+                throw WorldError.invalidUrl(url: url, innerError: WorldError.invalidWorldType)
             }
         }
 
