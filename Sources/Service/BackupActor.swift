@@ -161,9 +161,9 @@ actor BackupActor {
 
         BackupService.logger.info("Running Single Backup for \(container.name)")
         do {
-            try await container.runBackup(destination: backupUrl)
+            let backupSize = try await container.runBackup(destination: backupUrl)
             try runPostBackupTasks()
-            BackupService.logger.info("Single Backup Completed")
+            BackupService.logger.info("Single Backup Completed - \(backupSize) bytes used.")
             _ = markHealthy()
         } catch let error {
             BackupService.logger.error("Single Backup for \(container.name) failed")

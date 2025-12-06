@@ -119,7 +119,7 @@ final class BackupService {
 
     @Sendable
     private func handleHealthStatus(to request: Request, context: ServiceContext) async throws -> HTTPResponse.Status {
-        let isHealthy = await backupActor.checkHealth()
+        let isHealthy = backupActor.checkHealth()
         return isHealthy ? .ok : .serviceUnavailable
     }
 
@@ -197,9 +197,7 @@ final class BackupService {
             } catch {
                 BackupService.logger.error("Encountered Error During Startup: \(error.localizedDescription)")
                 BackupService.logger.trace("Error Details: \(error)")
-                await MainActor.run {
-                    exit(-1)
-                }
+                exit(-1)
             }
 
             if config.schedule?.runInitialBackup == true {
