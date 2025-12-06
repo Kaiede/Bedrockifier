@@ -49,3 +49,29 @@ public struct Library {
         return formatter
     }()
 }
+
+extension Logger {
+    fileprivate func markerCharacter(for value: Bool, char: String) -> String {
+        value ? char : "-"
+    }
+
+    public func traceFolderContents(_ folder: URL) {
+        do {
+            let contents = try FileManager.default.contentsOfDirectory(
+                at: folder,
+                includingPropertiesForKeys: [.isReadableKey, .isWritableKey]
+            )
+
+            self.trace("Contents of Folder: \(folder.path)")
+            for url in contents {
+                let values = try url.resourceValues(forKeys: [.isReadableKey])
+                let isReadable = markerCharacter(for: values.isReadable ?? false, char: "r")
+                let isWritable = markerCharacter(for: values.isWritable ?? false, char: "w")
+                self.trace(" - \(url.path) [\(isReadable)\(isWritable)]")
+            }
+        }
+        catch {
+            self.trace("Unable to trace contents of folder: \(folder.path), \(error)")
+        }
+    }
+}
