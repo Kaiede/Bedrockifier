@@ -147,7 +147,7 @@ final class SSHAcceptKnownHostKeysDelegate: NIOSSHClientServerAuthenticationDele
                     validationCompletePromise.succeed()
                     return
                 case .changed:
-                    Library.log.error("Host key does not match existing key. If this is a mistake, ")
+                    Library.log.error("Host key does not match existing key. This could mean that you changed your server configuration recently, or the backup service contacted a different host than expected. See the wiki's Toubleshooting page for more.")
                     validationCompletePromise.fail(HostKeyError.mismatchedKey)
                 }
             } catch {

@@ -26,3 +26,13 @@ depends_on:
       minecraft:
         condition: service_healthy
 ```
+
+## Host key does not match existing key.
+
+This happens when using SSH to talk to the minecraft server container, and the host key has changed from what it originally was. This can raise a flag that someone might have managed to change your network configuration without you being aware of it, but it can also just mean that a configuration change occurred.
+
+If you encounter this, one of two things happened:
+* Someone deleted the host key in the minecraft folder. Possibly because they tore down the server and started from scratch.
+* A different host is being contacted than the one it thinks it is contacting. This can be because of a DNS change or switching names between docker containers.
+
+You can remove the offending line from the `.authorizedKeys` file that is created by the service in your configuration directory. Next time the service runs a backup, it will accept and record the new key. No restart is necessary.
