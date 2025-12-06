@@ -26,7 +26,7 @@ tag=${args[0]}
 sourceTag=${args[1]}
 
 echo Running 'docker buildx imagetools create'
-echo docker buildx imagetools create \
+docker buildx imagetools create \
     -t $tag \
     $sourceTag-amd64 \
     $sourceTag-arm64 \
@@ -34,13 +34,13 @@ echo docker buildx imagetools create \
 if [ "${do_semver}" = "1" ]; then
     components=($(echo $tag | tr "." "\n"))
     minor_tag=${components[0]}.${components[1]}
-    echo docker buildx imagetools create \
+    docker buildx imagetools create \
         -t $minor_tag \
         $sourceTag-amd64 \
         $sourceTag-arm64 \
 
     major_tag=${components[0]}
-    echo docker buildx imagetools create \
+    docker buildx imagetools create \
         -t $major_tag \
         $sourceTag-amd64 \
         $sourceTag-arm64 \
