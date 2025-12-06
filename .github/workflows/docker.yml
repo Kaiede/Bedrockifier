@@ -46,7 +46,9 @@ jobs:
         file: ./Docker/Dockerfile
         platforms: linux/${{ env.arch }}
         push: ${{ github.event_name != 'pull_request' }}
-        tags: kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}-${{ env.arch }} kaiede/bedrockifier:${{ env.docker_tag }}-${{ env.arch }}
+        tags: |
+          kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}-${{ env.arch }}
+          kaiede/bedrockifier:${{ env.docker_tag }}-${{ env.arch }}
         build-args: |
           QEMU_CPU=max
           arch=${{ env.arch }}
