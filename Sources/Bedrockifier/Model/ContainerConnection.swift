@@ -198,6 +198,7 @@ public class ContainerConnection {
                 Library.log.error("Backup of world at \(worldUrl.path) failed.")
                 Library.log.error("Error: \(error.localizedDescription)")
                 Library.log.debug("Error Details: \(error)")
+                Library.log.traceFolderContents(worldUrl.deletingLastPathComponent())
                 failedBackups.append(worldUrl.path)
             }
         }

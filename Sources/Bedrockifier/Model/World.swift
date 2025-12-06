@@ -34,26 +34,27 @@ public struct World {
         case javaBackup
 
         init(url: URL) throws {
-            let isDirectory = try WorldType.isDirectory(url: url)
-
-            if isDirectory {
+            if WorldType.isFolderWorld(url: url) {
                 self = .folder
             } else if url.pathExtension == "mcworld" {
                 self = .mcworld
             } else if url.pathExtension == "zip" {
                 self = .javaBackup
             } else {
-                throw WorldError.invalidWorldType
+                throw WorldError.invalidUrl(url: url, innerError: WorldError.invalidWorldType)
             }
         }
 
-        private static func isDirectory(url: URL) throws -> Bool {
-            do {
-                let values = try url.resourceValues(forKeys: [.isDirectoryKey])
-                return values.isDirectory == true
-            } catch {
-                throw WorldError.invalidUrl(url: url, innerError: error)
-            }
+        private static func isFolderWorld(url: URL) -> Bool {
+            return checkBedrockFolder(url: url) || checkJavaFolder(url: url)
+        }
+
+        private static func checkBedrockFolder(url: URL) -> Bool {
+            return FileManager.default.fileExists(atPath: url.appendingPathComponent("levelname.txt").path)
+        }
+
+        private static func checkJavaFolder(url: URL) -> Bool {
+            return FileManager.default.fileExists(atPath: url.appendingPathComponent("level.dat").path)
         }
     }
 
@@ -161,9 +162,12 @@ extension World {
                 } else {
                     try packJava(to: archive, progress: progress)
                 }
+
+                let packedCount = archive.count { _ in true }
+                Library.log.trace("Archive contains \(packedCount) items.")
             }
         } catch is NullScopedObjectError {
-            throw WorldError.invalidLevelArchive
+            throw WorldError.archiveCreationFailed
         } catch let error {
             throw error
         }
@@ -182,21 +186,29 @@ extension World {
     private func packBedrock(to archive: Archive, progress: Progress? = nil) throws {
         let dirEnum = FileManager.default.enumerator(atPath: self.location.path)
 
+        var fileCount = 0
         while let archiveItem = dirEnum?.nextObject() as? String {
             let fullItemUrl = URL(fileURLWithPath: archiveItem, relativeTo: self.location)
             try archive.addEntry(with: archiveItem, fileURL: fullItemUrl)
+            fileCount += 1
         }
+
+        Library.log.debug("Packaged \(fileCount) files into mcworld archive.")
     }
 
     func packJava(to archive: Archive, progress: Progress? = nil) throws {
         let dirEnum = FileManager.default.enumerator(atPath: self.location.path)
 
+        var fileCount = 0
         let folderBase = NSString(string: self.location.lastPathComponent)
         while let archiveItem = dirEnum?.nextObject() as? String {
             let archivePath = String(folderBase.appendingPathComponent(archiveItem))
             let fullItemUrl = URL(fileURLWithPath: archiveItem, relativeTo: self.location)
             try archive.addEntry(with: archivePath, fileURL: fullItemUrl)
+            fileCount += 1
         }
+
+        Library.log.debug("Packaged \(fileCount) files into a zip archive.")
     }
 
     public func unpack(to url: URL, progress: Progress? = nil) throws -> World {
@@ -247,6 +259,10 @@ extension World {
         let targetFile = folder.appendingPathComponent(fileName)
 
         try FileManager.default.createDirectory(atPath: folder.path, withIntermediateDirectories: true, attributes: nil)
+
+        if !FileManager.default.fileExists(atPath: self.location.path) {
+            Library.log.warning("Source for backup does not exist.")
+        }
 
         switch self.type {
         case .folder:
@@ -361,6 +377,7 @@ extension World {
         case invalidLevelArchive
         case missingLevelName
         case invalidLevelNameFile
+        case archiveCreationFailed
     }
 }
 
@@ -372,6 +389,7 @@ extension World.WorldError: LocalizedError {
         case .invalidLevelArchive: return "World archive is not a valid zip or mcworld file"
         case .missingLevelName: return "Unable to determine name of the world"
         case .invalidLevelNameFile: return "Unable to read contents of levelname.txt"
+        case .archiveCreationFailed: return "Failed to create file for archive"
         }
     }
 }

@@ -1,6 +1,12 @@
 import XCTest
 @testable import Bedrockifier
 
+fileprivate func makeTempDir() throws -> URL {
+    let tempDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
+    return tempDirectory
+}
+
 final class WorldTests: XCTestCase {
     func testInvalidUrl() {
         let homePath = "\"\(FileManager.default.homeDirectoryForCurrentUser.path)\""
@@ -16,15 +22,55 @@ final class WorldTests: XCTestCase {
         }
     }
 
-    func testFolder() {
+    func testJavaFolder() {
         do {
-            let homeUrl = FileManager.default.homeDirectoryForCurrentUser
-            let world = try World(url: homeUrl)
+            let folder = try makeTempDir()
+            defer {
+                do {
+                    try FileManager.default.removeItem(at: folder)
+                } catch {
+                    XCTFail("\(error.localizedDescription)")
+                }
+            }
 
-            XCTAssertEqual(world.name, homeUrl.lastPathComponent)
+            let markerFile = folder.appendingPathComponent("level.dat")
+            let didCreate = FileManager.default.createFile(atPath: markerFile.path, contents: Data())
+            XCTAssertTrue(didCreate)
+
+            let world = try World(url: folder)
+            XCTAssertEqual(world.name, folder.lastPathComponent)
             XCTAssertEqual(world.type, .folder)
-            XCTAssertEqual(world.location, homeUrl)
-        } catch let error {
+            XCTAssertEqual(world.location, folder)
+        } catch {
+            XCTFail("\(error.localizedDescription)")
+        }
+    }
+
+    func testBedrockFolder() {
+        do {
+            let folder = try makeTempDir()
+            defer {
+                do {
+                    try FileManager.default.removeItem(at: folder)
+                } catch {
+                    XCTFail("\(error.localizedDescription)")
+                }
+            }
+
+            let markerFile = folder.appendingPathComponent("levelname.txt")
+            let levelName = "Bedrock Level"
+            guard let levelData = levelName.data(using: .utf8) else {
+                XCTFail("Failed to convert string to data")
+                return
+            }
+            let didCreate = FileManager.default.createFile(atPath: markerFile.path, contents: levelData)
+            XCTAssertTrue(didCreate)
+
+            let world = try World(url: folder)
+            XCTAssertEqual(world.name, levelName)
+            XCTAssertEqual(world.type, .folder)
+            XCTAssertEqual(world.location, folder)
+        } catch {
             XCTFail("\(error.localizedDescription)")
         }
     }
