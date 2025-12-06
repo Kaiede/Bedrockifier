@@ -46,7 +46,7 @@ jobs:
         file: ./Docker/Dockerfile
         platforms: linux/${{ env.arch }}
         push: ${{ github.event_name != 'pull_request' }}
-        tags: kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}-${{ env.arch }}
+        tags: kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}-${{ env.arch }} kaiede/bedrockifier:${{ env.docker_tag }}-${{ env.arch }}
         build-args: |
           QEMU_CPU=max
           arch=${{ env.arch }}
@@ -79,7 +79,7 @@ jobs:
 
     - name: Make Manifest - ${{ env.docker_tag }}
       if: github.event_name != 'pull_request'
-      run: bash Docker/merge.sh kaiede/bedrockifier:${{ env.docker_tag }} kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}
+      run: bash Docker/merge.sh kaiede/bedrockifier:${{ env.docker_tag }} kaiede/bedrockifier:${{ env.docker_tag }}
 
     - name: Get Release Tag
       id: tag
@@ -92,4 +92,4 @@ jobs:
 
     - name: Make Manifest - ${{ steps.tag.outputs.tag }}
       if: github.event_name == 'release'
-      run: bash Docker/merge.sh --semver kaiede/bedrockifier:${{ steps.tag.outputs.tag }} kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}
+      run: bash Docker/merge.sh --semver kaiede/bedrockifier:${{ steps.tag.outputs.tag }} kaiede/bedrockifier:${{ env.docker_tag }}
