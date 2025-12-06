@@ -8,7 +8,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        swift-version: [6.0.3]
+        swift-version: [6.2.1]
         os: [ubuntu-22.04]
 
     steps:
@@ -32,8 +32,8 @@ jobs:
           WORKING_DIRECTORY: Sources
 
   macOSBuild:
-    name: macOS 14 - Latest Xcode
-    runs-on: macOS-14
+    name: macOS 26 - Latest Xcode
+    runs-on: macOS-26
 
     steps:
       - name: Configure Xcode
