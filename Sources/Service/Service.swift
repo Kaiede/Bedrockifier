@@ -134,7 +134,12 @@ final class BackupService {
     @Sendable
     private func handleStartBackup(to request: Request, context: ServiceContext) async throws -> HTTPResponse.Status {
         await backupActor.backupAllContainers(isDaily: true)
-        return .ok
+        guard let lastResult = await backupActor.lastBackupResult() else {
+            BackupService.logger.error("Manual backup trigger completed with no backup result.")
+            return .internalServerError
+        }
+
+        return lastResult.success ? .ok : .internalServerError
     }
 
     @Sendable

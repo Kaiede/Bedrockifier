@@ -10,10 +10,11 @@ if [ "${DEBUG:-false}" == "true" ]; then
   set -x
 fi
 
+: "${DEBUG:=false}"
 : "${CONFIG_DIR:=/config}"
 : "${TOKEN_PATH:=${1-$CONFIG_DIR/.bedrockifierToken}}"
 
-if [ "${DEBUG:-false}" == "true" ]; then
+if [ "${DEBUG}" == "true" ]; then
   echo "Using Token Path: ${TOKEN_PATH}"
 fi
 
@@ -32,7 +33,7 @@ fi
 URL="${BACKUP_URL}"
 
 CURL_ARGS=(-sS -o /dev/null -w "%{http_code}")
-if [ "${DEBUG:-false}" == "true" ]; then
+if [ "${DEBUG}" == "true" ]; then
   CURL_ARGS=(-v -o /dev/null -w "%{http_code}")
 fi
 
@@ -40,7 +41,7 @@ HTTP_CODE="$(curl "${CURL_ARGS[@]}" -H "Authorization: Bearer ${TOKEN}" "${URL}"
 CURL_STATUS=$?
 
 if [ "${CURL_STATUS}" -ne 0 ]; then
-  echo "Backup trigger failed (curl exit ${CURL_STATUS}). Is bedrockifier running on 127.0.0.1:8080?" >&2
+  echo "Backup trigger failed (curl exit ${CURL_STATUS}) reaching ${URL}. If this keeps happening, restart the backup service container." >&2
   exit "${CURL_STATUS}"
 fi
 
