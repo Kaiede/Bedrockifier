@@ -304,8 +304,7 @@ final class BackupService {
         BackupService.logger.info("Listener Reconnect Interval: \(interval) seconds")
 
         let timer = ServiceTimer(identifier: "listener-reconnect", queue: DispatchQueue.main)
-        let startTime = Date()
-        timer.schedule(startingAt: startTime, repeating: .seconds(Int(interval)))
+        timer.schedule(startingAt: .now, repeating: .seconds(Int(interval)))
         timer.setHandler(priority: BackupService.backupPriority) {
             await self.reconnectListenersIfNeeded()
         }

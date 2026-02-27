@@ -13,6 +13,7 @@ Below is a full list of variables that can be provided as environment variables 
 
 * `CONFIG_FILE`: Use this in the rare case that you want to use something other than `config.yml` as the file name of your backup configuration.
 * `DATA_DIR`: Use this when you want to change the location of the `/data` directory to something different within the container. The main reason you might want to do that is if you are using a named volume for backups from multiple sources, and want your minecraft backups to live in a subfolder of that volume.
+* `LISTENER_RECONNECT_INTERVAL`: Controls how often listener-mode connections are checked and reconnected if needed. Accepts interval values like `30s`, `2m`, or `1h`. Defaults to `60s` if not set, and values lower than `5s` are clamped to `5s`.
 
 ### Deprecated Settings
 
