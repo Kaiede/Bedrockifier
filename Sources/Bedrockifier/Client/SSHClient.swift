@@ -51,13 +51,22 @@ final class SSHClient {
         let bootstrap = makeBootstrap()
         let channel = try await bootstrap.connect(host: host, port: port).get()
 
-        self.connectedChannel = try await channel.pipeline.handler(type: NIOSSHHandler.self).flatMap { [self] handler in
+        let childChannel = try await channel.pipeline.handler(type: NIOSSHHandler.self).flatMap { [self] handler in
             return makeChildHandler(eventLoop: channel.eventLoop, handler: handler)
         }.get()
+
+        self.connectedChannel = childChannel
+        childChannel.closeFuture.whenComplete { [weak self, weak childChannel] _ in
+            guard let self = self, let childChannel = childChannel else { return }
+            if self.connectedChannel === childChannel {
+                self.connectedChannel = nil
+            }
+            Library.log.warning("SSH connection closed.")
+        }
     }
 
     var isConnected: Bool {
-        return connectedChannel != nil
+        return connectedChannel?.isActive == true
     }
 
     func close() async throws {
@@ -71,6 +80,7 @@ final class SSHClient {
         return ClientBootstrap(group: group)
             .channelInitializer(self.initializeChannel)
             .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
+            .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_KEEPALIVE), value: 1)
             .channelOption(ChannelOptions.socket(SocketOptionLevel(IPPROTO_TCP), TCP_NODELAY), value: 1)
     }
 

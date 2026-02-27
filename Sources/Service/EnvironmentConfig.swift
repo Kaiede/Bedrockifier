@@ -49,6 +49,7 @@ struct EnvironmentConfig {
 
     // Deprecated Settings
     let backupInterval: String?
+    let listenerReconnectInterval: String?
 
     init() {
         // External Tools in Container
@@ -65,6 +66,9 @@ struct EnvironmentConfig {
 
         // Deprecated Settings
         self.backupInterval = ProcessInfo.processInfo.environment["BACKUP_INTERVAL"]
+
+        // Listener Connection Monitor
+        self.listenerReconnectInterval = ProcessInfo.processInfo.environment["LISTENER_RECONNECT_INTERVAL"]
     }
 
     private static func configDirectory() -> String {

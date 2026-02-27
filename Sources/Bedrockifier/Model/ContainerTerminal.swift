@@ -100,7 +100,7 @@ struct BedrockTerminal: ContainerTerminal {
             }
         }
 
-        if attemptLimit < 0 {
+        if attemptLimit <= 0 {
             throw ContainerConnection.ContainerError.saveNotCompleted
         }
     }
