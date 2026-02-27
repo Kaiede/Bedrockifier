@@ -366,17 +366,20 @@ final class BackupService {
     }
 
     private func getListenerReconnectInterval() -> TimeInterval {
-        if let interval = environment.listenerReconnectInterval {
-            do {
-                return max(5.0, try Bedrockifier.parse(interval: interval))
-            } catch {
+        let configuredInterval = environment.listenerReconnectInterval
+        do {
+            if let parsedInterval = try ListenerReconnectIntervalConfig.parse(configuredInterval) {
+                return parsedInterval
+            }
+        } catch {
+            if let interval = configuredInterval {
                 BackupService.logger.warning(
                     "Failed to parse LISTENER_RECONNECT_INTERVAL='\(interval)'. Falling back to 60s."
                 )
             }
         }
 
-        return 60.0
+        return ListenerReconnectIntervalConfig.defaultInterval
     }
 }
 
