@@ -2,6 +2,8 @@
 
 As things are changing quickly, and this is a small project maintained by one person with a full-time job, these guidelines have been added to establish some ground rules for contributions. 
 
+The maintainers reserve the right to make calls that are intended to honor the spirit of these guidelines as the situation continues to evolve, even if not directly spelled out in these rules.
+
 ### AI Policy
 
 This project doesn't outright ban contributions that are AI-assisted. However, software engineering principles still apply. As computers cannot be held accountable or liable, all changes and issues must be coming from a person who can be responsible for their contribution.
