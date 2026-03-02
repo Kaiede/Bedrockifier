@@ -33,7 +33,7 @@ final class ContainerTerminalRetryTests: XCTestCase {
     func testRetrySaveQueryPropagatesErrors() async {
         var attempts = 0
 
-        await XCTAssertThrowsErrorAsync(try await retrySaveQuery(maxAttempts: 3) {
+        await XCTAssertThrowsAsync(try await retrySaveQuery(maxAttempts: 3) {
             attempts += 1
             throw TestError.expectedFailure
         })
@@ -42,7 +42,7 @@ final class ContainerTerminalRetryTests: XCTestCase {
     }
 }
 
-private func XCTAssertThrowsErrorAsync(
+private func XCTAssertThrowsAsync(
     _ expression: @autoclosure () async throws -> Bool,
     file: StaticString = #filePath,
     line: UInt = #line

@@ -182,6 +182,18 @@ actor BackupActor {
         self.containers = containers
     }
 
+    func reconnectListenersIfNeeded() async {
+        for container in containers {
+            guard !container.isRunning else { continue }
+            BackupService.logger.warning("Listener connection down for \(container.name). Reconnecting...")
+            do {
+                try await container.start()
+            } catch {
+                BackupService.logger.error("Failed to reconnect \(container.name): \(error.localizedDescription)")
+            }
+        }
+    }
+
     private func runFullBackup(isDaily: Bool, skipContainer: ContainerConnection?) async {
         BackupService.logger.info("Starting Full Backup")
         let needsListeners = needsListeners()

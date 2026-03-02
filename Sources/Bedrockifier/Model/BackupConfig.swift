@@ -62,6 +62,7 @@ public struct BackupConfig: Codable {
     public var sshpassPath: String?
     public var backupPath: String?
     public var tokenPath: String?
+    public var listenerReconnectInterval: String?
     public var prefixContainerName: Bool?
     public var servers: ServerConfig?
     public var containers: ServerContainersConfig?

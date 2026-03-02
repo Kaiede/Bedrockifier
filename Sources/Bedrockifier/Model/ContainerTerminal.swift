@@ -128,3 +128,20 @@ struct JavaTerminal: ContainerTerminal {
         }
     }
 }
+
+func retrySaveQuery(
+    maxAttempts: Int = 3,
+    _ attempt: () async throws -> Bool
+) async throws -> Bool {
+    var attemptsRemaining = max(0, maxAttempts)
+
+    while attemptsRemaining > 0 {
+        if try await attempt() {
+            return true
+        }
+
+        attemptsRemaining -= 1
+    }
+
+    return false
+}

@@ -306,22 +306,10 @@ final class BackupService {
         let timer = ServiceTimer(identifier: "listener-reconnect", queue: DispatchQueue.main)
         timer.schedule(startingAt: .now, repeating: .seconds(Int(interval)))
         timer.setHandler(priority: BackupService.backupPriority) {
-            await self.reconnectListenersIfNeeded()
+            await self.backupActor.reconnectListenersIfNeeded()
         }
 
         self.listenerReconnectTimer = timer
-    }
-
-    private func reconnectListenersIfNeeded() async {
-        for container in await backupActor.containers {
-            guard !container.isRunning else { continue }
-            BackupService.logger.warning("Listener connection down for \(container.name). Reconnecting...")
-            do {
-                try await container.start()
-            } catch {
-                BackupService.logger.error("Failed to reconnect \(container.name): \(error.localizedDescription)")
-            }
-        }
     }
 
     private func onListenerEvent(container: ContainerConnection, content: String) async {
@@ -365,20 +353,20 @@ final class BackupService {
     }
 
     private func getListenerReconnectInterval() -> TimeInterval {
-        let configuredInterval = environment.listenerReconnectInterval
+        let configuredInterval = config.listenerReconnectInterval ?? environment.listenerReconnectInterval
         do {
-            if let parsedInterval = try ListenerReconnectIntervalConfig.parse(configuredInterval) {
-                return parsedInterval
+            if let interval = configuredInterval {
+                return max(5.0, try Bedrockifier.parse(interval: interval))
             }
         } catch {
             if let interval = configuredInterval {
                 BackupService.logger.warning(
-                    "Failed to parse LISTENER_RECONNECT_INTERVAL='\(interval)'. Falling back to 60s."
+                    "Failed to parse listener reconnect interval '\(interval)'. Falling back to 60s."
                 )
             }
         }
 
-        return ListenerReconnectIntervalConfig.defaultInterval
+        return 60.0
     }
 }
 
