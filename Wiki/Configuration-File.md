@@ -41,6 +41,7 @@ trim:
   trimDays: <count of days>
   keepDays: <count of days>
   minKeep: <count of backups>
+listenerReconnectInterval: <interval>
 loggingLevel: [debug or trace]
 ownership:
   chown: 1000:1001
@@ -80,6 +81,14 @@ In addition to backing up the worlds themselves, additional folders for the serv
 Good practice here would be to use a `daily` backup along with something like `onLastLogout` along with `minInterval` to have control over how many backups are generated during the day, but still get one good snapshot. Especially if you can run the daily backup before the files are uploaded to a different service or storage provider.
 
 * `runInitialBackup`: Tells the service to run a backup when the service starts, rather than waiting for events or the backup interval. If `startupDelay` is set, it will perform the backup after the delay.
+
+### Listener Reconnect Interval
+
+This optional top-level setting controls how often listener-mode connections are checked and reconnected.
+
+* `listenerReconnectInterval`: Interval string such as `30s`, `2m`, or `1h`. Values lower than `5s` are clamped to `5s`. Defaults to `60s` if not set.
+
+If both `listenerReconnectInterval` in `config.yml` and `LISTENER_RECONNECT_INTERVAL` are set, the configuration file value is used.
 
 ### Trim
 

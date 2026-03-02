@@ -120,7 +120,7 @@ final class BackupService {
 
     @Sendable
     private func handleHealthStatus(to request: Request, context: ServiceContext) async throws -> HTTPResponse.Status {
-        let isHealthy = backupActor.checkHealth()
+        let isHealthy = await backupActor.checkHealth()
         return isHealthy ? .ok : .serviceUnavailable
     }
 

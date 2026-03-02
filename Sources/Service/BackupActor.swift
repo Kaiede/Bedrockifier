@@ -115,9 +115,17 @@ actor BackupActor {
         }
     }
 
-    nonisolated
     public func checkHealth() -> Bool {
-        return FileManager.default.fileExists(atPath: healthFileUrl.path)
+        guard FileManager.default.fileExists(atPath: healthFileUrl.path) else {
+            return false
+        }
+
+        // When listener-based scheduling is enabled, container connectivity is part of service health.
+        if needsListeners() {
+            return containers.allSatisfy(\.isRunning)
+        }
+
+        return true
     }
 
     public func lastBackupResult() -> LastBackupResult? {
