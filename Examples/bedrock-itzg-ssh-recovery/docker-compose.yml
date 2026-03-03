@@ -1,0 +1,67 @@
+version: '3.7'
+
+services:
+  backup:
+    image: kaiede/minecraft-bedrock-backup
+    restart: always
+    # Make sure the minecraft image starts before the backup
+    depends_on:
+      - "public"
+    environment:
+        # Useful for making sure your logs have a proper timestamp
+        TZ: "America/Los_Angeles"
+    volumes:
+      # (Optional) Map a configuration folder separately from the backups.
+      # - /opt/minecraft/backup-config:/config
+      # Map your backups folder into /data
+      - /opt/minecraft/backups:/data
+      # Map your server's data folder
+      - /opt/bedrock/public:/bedrock_public
+
+  public:
+    image: itzg/minecraft-bedrock-server
+    restart: always
+    container_name: bedrock_public
+    # Expose the mc-server-runner's SSH port to just the backup container
+    expose:
+      - 2222
+    # Make the minecraft server port public
+    ports:
+      - 19132:19132/udp
+    environment:
+      # Enable SSH
+      ENABLE_SSH: "TRUE"
+      # Server settings
+      EULA: "TRUE"
+      LEVEL_NAME: "PublicSMP"
+    volumes:
+      - /opt/bedrock/public:/data
+    stdin_open: true
+    tty: true
+
+  restore-menu:
+    image: kaiede/minecraft-bedrock-restore-menu:local
+    profiles:
+      - tools
+    # Run this ad-hoc with: docker compose run --rm restore-menu
+    build:
+      context: ../..
+      dockerfile: Docker/restore.dockerfile
+    environment:
+      TZ: ${TZ:-America/Los_Angeles}
+      TERM: "xterm-256color"
+      # Defaults to /server/worlds/<LEVEL_NAME> when a world name can't be inferred
+      LEVEL_NAME: ${LEVEL_NAME:-PublicSMP}
+      # Backups from the backup service above
+      BACKUP_DIR: "/backups"
+      # Optional ownership/mode settings for restored files
+      RESTORE_UID: ${UID:-1000}
+      RESTORE_GID: ${GID:-1000}
+      RESTORE_MODE: ${RESTORE_MODE:-}
+    volumes:
+      # Mount backups read-only into /backups for the restore menu picker
+      - /opt/minecraft/backups:/backups:ro
+      # Restore destination root; script writes to /server/worlds/<world>
+      - /opt/bedrock/public:/server
+    stdin_open: true
+    tty: true
