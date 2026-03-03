@@ -37,15 +37,37 @@ final class SSHClient {
     private let serverAuthDelegate: SSHAcceptKnownHostKeysDelegate
 
     private var connectedChannel: Channel?
+    private var reconnectEndpoint: (host: String, port: Int)?
+    private var reconnectAttemptTask: Task<Void, Never>?
+    private var isConnecting = false
+    private var reconnectState = SSHReconnectState()
 
-    init(group: EventLoopGroup, terminal: PseudoTerminal, validator: SSHHostKeyValidator, password: ContainerPassword) {
+    private let onDisconnect: (() -> Void)?
+
+    init(
+        group: EventLoopGroup,
+        terminal: PseudoTerminal,
+        validator: SSHHostKeyValidator,
+        password: ContainerPassword,
+        onDisconnect: (() -> Void)? = nil
+    ) {
         self.group = group
         self.terminal = terminal
         self.userAuthDelegate = SSHBasicAuthDelegate(password: password)
         self.serverAuthDelegate = SSHAcceptKnownHostKeysDelegate(validator: validator)
+        self.onDisconnect = onDisconnect
     }
 
     func connect(host: String, port: Int) async throws {
+        guard !isConnecting else {
+            Library.log.debug("Skipping duplicate SSH connect request while a connect is already in progress.")
+            return
+        }
+
+        self.isConnecting = true
+        defer { self.isConnecting = false }
+
+        self.reconnectEndpoint = (host: host, port: port)
         Library.log.info("Connecting to \(host):\(port)")
         self.serverAuthDelegate.updateHost(host: host, port: port)
         let bootstrap = makeBootstrap()
@@ -58,8 +80,10 @@ final class SSHClient {
         self.connectedChannel = childChannel
         childChannel.closeFuture.whenComplete { [weak self, weak childChannel] _ in
             guard let self = self, let childChannel = childChannel else { return }
-            if self.connectedChannel === childChannel {
+            let wasActiveChannel = self.connectedChannel === childChannel
+            if wasActiveChannel {
                 self.connectedChannel = nil
+                self.startReconnectCycleIfNeeded()
             }
             Library.log.warning("SSH connection closed.")
         }
@@ -72,8 +96,16 @@ final class SSHClient {
     func close() async throws {
         Library.log.trace("Closing SSH connection.")
         self.serverAuthDelegate.disconnected()
+        self.reconnectState.beginExplicitClose()
+        defer {
+            self.reconnectState.endExplicitClose()
+            self.connectedChannel = nil
+            self.reconnectAttemptTask = nil
+        }
+
+        self.reconnectAttemptTask?.cancel()
+        self.reconnectState.reconnectCycleCompleted()
         try await connectedChannel?.close()
-        self.connectedChannel = nil
     }
 
     private func makeBootstrap() -> ClientBootstrap {
@@ -112,6 +144,67 @@ final class SSHClient {
         }
 
         return promise.futureResult
+    }
+
+    private func startReconnectCycleIfNeeded() {
+        guard reconnectState.shouldStartReconnectCycle(onDisconnectFromActiveChannel: true) else {
+            return
+        }
+
+        guard reconnectAttemptTask == nil else {
+            return
+        }
+
+        guard let endpoint = reconnectEndpoint else {
+            reconnectState.reconnectCycleCompleted()
+            return
+        }
+
+        reconnectAttemptTask = Task { [weak self] in
+            guard let self = self else { return }
+            defer {
+                self.reconnectAttemptTask = nil
+                self.reconnectState.reconnectCycleCompleted()
+            }
+
+            self.onDisconnect?()
+
+            do {
+                Library.log.info("Detected SSH disconnect. Attempting immediate reconnect...")
+                try await self.connect(host: endpoint.host, port: endpoint.port)
+            } catch is CancellationError {
+                Library.log.debug("Reconnect attempt cancelled.")
+            } catch {
+                Library.log.warning("Immediate reconnect attempt failed: \(error.localizedDescription)")
+            }
+        }
+    }
+}
+
+struct SSHReconnectState {
+    private var reconnectCycleActive = false
+    private var explicitCloseInProgress = false
+
+    mutating func beginExplicitClose() {
+        explicitCloseInProgress = true
+        reconnectCycleActive = false
+    }
+
+    mutating func endExplicitClose() {
+        explicitCloseInProgress = false
+    }
+
+    mutating func shouldStartReconnectCycle(onDisconnectFromActiveChannel isActiveChannel: Bool) -> Bool {
+        guard isActiveChannel else { return false }
+        guard !explicitCloseInProgress else { return false }
+        guard !reconnectCycleActive else { return false }
+
+        reconnectCycleActive = true
+        return true
+    }
+
+    mutating func reconnectCycleCompleted() {
+        reconnectCycleActive = false
     }
 }
 
