@@ -55,6 +55,7 @@ final class BackupService {
     let httpTokenFile: URL
 
     var intervalTimer: ServiceTimer<String>?
+    var listenerReconnectTimer: ServiceTimer<String>?
 
     init(config: BackupConfig, configDir: URL, dataUrl: URL, tools: ToolConfig) {
         self.config = config
@@ -119,7 +120,7 @@ final class BackupService {
 
     @Sendable
     private func handleHealthStatus(to request: Request, context: ServiceContext) async throws -> HTTPResponse.Status {
-        let isHealthy = backupActor.checkHealth()
+        let isHealthy = await backupActor.checkHealth()
         return isHealthy ? .ok : .serviceUnavailable
     }
 
@@ -176,6 +177,7 @@ final class BackupService {
 
                     if await backupActor.needsListeners() {
                         await startListenerBackups()
+                        startListenerReconnectMonitor()
                     }
 
                     if let minInterval = try schedule.parseMinInterval() {
@@ -297,6 +299,19 @@ final class BackupService {
         }
     }
 
+    private func startListenerReconnectMonitor() {
+        let interval = getListenerReconnectInterval()
+        BackupService.logger.info("Listener Reconnect Interval: \(interval) seconds")
+
+        let timer = ServiceTimer(identifier: "listener-reconnect", queue: DispatchQueue.main)
+        timer.schedule(startingAt: .now, repeating: .seconds(Int(interval)))
+        timer.setHandler(priority: BackupService.backupPriority) {
+            await self.backupActor.reconnectListenersIfNeeded()
+        }
+
+        self.listenerReconnectTimer = timer
+    }
+
     private func onListenerEvent(container: ContainerConnection, content: String) async {
         BackupService.logger.debug("Listener Event for \(container.name): \(content)")
 
@@ -335,6 +350,23 @@ final class BackupService {
 
     private func getStartupDelay() throws -> TimeInterval? {
         return try config.schedule?.parseStartupDelay()
+    }
+
+    private func getListenerReconnectInterval() -> TimeInterval {
+        let configuredInterval = config.listenerReconnectInterval ?? environment.listenerReconnectInterval
+        do {
+            if let interval = configuredInterval {
+                return max(5.0, try Bedrockifier.parse(interval: interval))
+            }
+        } catch {
+            if let interval = configuredInterval {
+                BackupService.logger.warning(
+                    "Failed to parse listener reconnect interval '\(interval)'. Falling back to 60s."
+                )
+            }
+        }
+
+        return 60.0
     }
 }
 

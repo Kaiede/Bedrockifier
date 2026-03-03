@@ -115,9 +115,17 @@ actor BackupActor {
         }
     }
 
-    nonisolated
     public func checkHealth() -> Bool {
-        return FileManager.default.fileExists(atPath: healthFileUrl.path)
+        guard FileManager.default.fileExists(atPath: healthFileUrl.path) else {
+            return false
+        }
+
+        // When listener-based scheduling is enabled, container connectivity is part of service health.
+        if needsListeners() {
+            return containers.allSatisfy(\.isRunning)
+        }
+
+        return true
     }
 
     public func lastBackupResult() -> LastBackupResult? {
@@ -180,6 +188,18 @@ actor BackupActor {
 
     public func update(containers: [ContainerConnection]) {
         self.containers = containers
+    }
+
+    func reconnectListenersIfNeeded() async {
+        for container in containers {
+            guard !container.isRunning else { continue }
+            BackupService.logger.warning("Listener connection down for \(container.name). Reconnecting...")
+            do {
+                try await container.start()
+            } catch {
+                BackupService.logger.error("Failed to reconnect \(container.name): \(error.localizedDescription)")
+            }
+        }
     }
 
     private func runFullBackup(isDaily: Bool, skipContainer: ContainerConnection?) async {

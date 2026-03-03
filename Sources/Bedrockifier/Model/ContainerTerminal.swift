@@ -90,17 +90,12 @@ struct BedrockTerminal: ContainerTerminal {
         }
 
         // Wait for files to be ready
-        var attemptLimit = 3
-        while attemptLimit > 0 {
+        let saveReady = try await retrySaveQuery {
             try terminal.sendLine("save query")
-            if try await expect(["Files are now ready to be copied"], timeout: 10.0) == .noMatch {
-                attemptLimit -= 1
-            } else {
-                break
-            }
+            return try await expect(["Files are now ready to be copied"], timeout: 10.0) != .noMatch
         }
 
-        if attemptLimit < 0 {
+        if !saveReady {
             throw ContainerConnection.ContainerError.saveNotCompleted
         }
     }
@@ -132,4 +127,21 @@ struct JavaTerminal: ContainerTerminal {
             throw ContainerConnection.ContainerError.resumeFailed
         }
     }
+}
+
+func retrySaveQuery(
+    maxAttempts: Int = 3,
+    _ attempt: () async throws -> Bool
+) async throws -> Bool {
+    var attemptsRemaining = max(0, maxAttempts)
+
+    while attemptsRemaining > 0 {
+        if try await attempt() {
+            return true
+        }
+
+        attemptsRemaining -= 1
+    }
+
+    return false
 }
