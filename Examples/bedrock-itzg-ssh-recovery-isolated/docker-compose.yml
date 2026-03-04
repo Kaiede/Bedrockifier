@@ -14,9 +14,9 @@ services:
       # (Optional) Map a configuration folder separately from the backups.
       # - /opt/minecraft/backup-config:/config
       # Backup output location (writeable)
-      - /opt/minecraft/backups:/data
+      - minecraft-server-backups:/data
       # Read-only source mount for server data used by backups
-      - /opt/bedrock/public:/bedrock_public:ro
+      - minecraft-server-data:/bedrock_public:ro
 
   public:
     image: itzg/minecraft-bedrock-server
@@ -33,21 +33,24 @@ services:
       ENABLE_SSH: "TRUE"
       # Server settings
       EULA: "TRUE"
-      LEVEL_NAME: "PublicSMP"
+      LEVEL_NAME: ${LEVEL_NAME:-PublicSMP}
     volumes:
-      - /opt/bedrock/public:/data
+      - minecraft-server-data:/data
     stdin_open: true
     tty: true
 
   restore-menu:
-    image: kaiede/minecraft-bedrock-restore-menu:example
+    image: local/bedrockifier-restore:latest
     profiles:
       - tools
-    # Run this ad-hoc with: docker compose --profile tools run --rm restore-menu
+      - restore
+    # Run this ad-hoc with either profile:
+    # - docker compose --profile restore run --rm restore-menu
+    # - docker compose --profile tools run --rm restore-menu
     # Example-only image build; this is not a separately published artifact.
     build:
       context: ../..
-      dockerfile: Docker/restore.dockerfile
+      dockerfile: Examples/bedrock-itzg-ssh-recovery-isolated/restore.dockerfile
     # Restore from local mounts only; no container networking required.
     network_mode: "none"
     environment:
@@ -61,8 +64,23 @@ services:
       RESTORE_MODE: ${RESTORE_MODE:-}
     volumes:
       # Protect backup archives from accidental writes during restore
-      - /opt/minecraft/backups:/backups:ro
+      - minecraft-server-backups:/backups:ro
       # Restore destination root; script writes to /server/worlds/<world>
-      - /opt/bedrock/public:/server
+      - minecraft-server-data:/server
     stdin_open: true
     tty: true
+
+volumes:
+  minecraft-server-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${MC_DATA_DIR:-/opt/bedrock/public}
+
+  minecraft-server-backups:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${BEDROCKIFIER_BACKUPS_DIR:-/opt/minecraft/backups}

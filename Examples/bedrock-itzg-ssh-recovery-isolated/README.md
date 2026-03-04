@@ -4,7 +4,7 @@ This isolated restore example separates backup and restore into different contai
 
 - `backup` uses the main `kaiede/minecraft-bedrock-backup` image.
 - Backup reads server content from a read-only source mount (`/bedrock_public:ro`).
-- `restore-menu` uses a lightweight Alpine-based image built from `Docker/restore.dockerfile`.
+- `restore-menu` uses a lightweight Alpine-based image built from `restore.dockerfile` in this example folder.
 - Restore reads backup archives from a read-only source mount (`/backups:ro`).
 
 This layout gives a safer permissioned layout by reducing unnecessary write access:
@@ -16,10 +16,13 @@ This layout gives a safer permissioned layout by reducing unnecessary write acce
 
 - `docker-compose.yml`: compose setup with protected mounts and isolated restore service.
 - `config.yml`: Bedrockifier backup config used by the backup container.
+- `restore.dockerfile`: local example Dockerfile used only for the isolated restore service.
 
 ## How to run
 
-1. Update host bind mounts in `docker-compose.yml` for your environment.
+1. Update shared volume env vars for your environment:
+   `MC_DATA_DIR` and `BEDROCKIFIER_BACKUPS_DIR`.
+   Defaults are local bind paths: `/opt/bedrock/public` and `/opt/minecraft/backups`.
 2. Start normal server + backup:
 
 ```bash
@@ -35,7 +38,7 @@ docker compose stop backup
 4. Run isolated restore menu (builds the small restore image if needed):
 
 ```bash
-docker compose --profile tools run --rm restore-menu
+docker compose --profile restore run --rm restore-menu
 ```
 
 5. Start backup again:
