@@ -18,7 +18,9 @@ ARG TARGETVARIANT
 RUN apt-get update && \
   DEBIAN_FRONTEND=noninteractive apt-get install -y \
     curl \
+    dialog \
     docker.io \
+    unzip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -40,6 +42,7 @@ COPY --from=builder /project/.build/release/bedrockifier-tool .
 COPY --from=builder /project/.build/release/bedrockifierd .
 COPY ./Docker/entry.sh .
 COPY ./Docker/healthcheck.sh .
+COPY ./Docker/restore-menu.sh .
 COPY ./Docker/trigger-backup.sh .
 
 ENTRYPOINT [ "/opt/bedrock/entry.sh" ]

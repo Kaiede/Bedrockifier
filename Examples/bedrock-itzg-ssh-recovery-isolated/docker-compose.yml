@@ -13,10 +13,10 @@ services:
     volumes:
       # (Optional) Map a configuration folder separately from the backups.
       # - /opt/minecraft/backup-config:/config
-      # Map your backups folder into /data
+      # Backup output location (writeable)
       - /opt/minecraft/backups:/data
-      # Map your server's data folder
-      - /opt/bedrock/public:/bedrock_public
+      # Read-only source mount for server data used by backups
+      - /opt/bedrock/public:/bedrock_public:ro
 
   public:
     image: itzg/minecraft-bedrock-server
@@ -40,25 +40,27 @@ services:
     tty: true
 
   restore-menu:
-    image: kaiede/minecraft-bedrock-backup
+    image: kaiede/minecraft-bedrock-restore-menu:example
     profiles:
       - tools
     # Run this ad-hoc with: docker compose --profile tools run --rm restore-menu
-    # Uses the same backup image with an entrypoint override.
-    entrypoint: ["/opt/bedrock/restore-menu.sh"]
+    # Example-only image build; this is not a separately published artifact.
+    build:
+      context: ../..
+      dockerfile: Docker/restore.dockerfile
+    # Restore from local mounts only; no container networking required.
+    network_mode: "none"
     environment:
       TZ: ${TZ:-America/Los_Angeles}
       TERM: "xterm-256color"
       # Defaults to /server/worlds/<LEVEL_NAME> when a world name can't be inferred
       LEVEL_NAME: ${LEVEL_NAME:-PublicSMP}
-      # Backups from the backup service above
       BACKUP_DIR: "/backups"
-      # Optional ownership/mode settings for restored files
       RESTORE_UID: ${UID:-1000}
       RESTORE_GID: ${GID:-1000}
       RESTORE_MODE: ${RESTORE_MODE:-}
     volumes:
-      # Mount backups read-only into /backups for the restore menu picker
+      # Protect backup archives from accidental writes during restore
       - /opt/minecraft/backups:/backups:ro
       # Restore destination root; script writes to /server/worlds/<world>
       - /opt/bedrock/public:/server

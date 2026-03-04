@@ -1,3 +1,5 @@
+# Example-only restore image used by the isolated recovery compose sample.
+# This image is built locally by compose and is not part of the published CI tags.
 FROM alpine:3.20
 
 RUN apk add --no-cache \
