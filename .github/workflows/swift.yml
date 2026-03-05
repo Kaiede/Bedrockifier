@@ -22,7 +22,7 @@ jobs:
       with:
           swift-version: ${{ matrix.swift-version }}
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v6
     - name: Swift Package Information
       run: |
         swift --version
@@ -46,7 +46,7 @@ jobs:
         with:
           xcode-version: 'latest-stable'
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v6
       - name: Swift Package Information
         run: |
           swift --version
