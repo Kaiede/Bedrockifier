@@ -11,7 +11,7 @@ The service writes a couple of state files to the configuration folder. This inc
 
 This means the service couldn’t connect to the Minecraft docker container using SSH because the connection was refused. If the SSH port isn’t exposed to the backup container, or the Minecraft container isn’t working, you will get this error. It can also happen if you are using an old version of itgz’s Java or Bedrock container that doesn’t have support for SSH_ENABLE.
 
-* Make sure both containers are part of the same docker-compose file, or part of the same docker VLAN.
+* Make sure both containers are part of the same compose file, or part of the same docker VLAN.
 * Expose port 2222 from the Minecraft container:
 
 ```
