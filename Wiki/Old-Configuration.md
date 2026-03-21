@@ -1,7 +1,7 @@
 There's a couple of steps required to properly configure this service, since it integrates with both docker and the minecraft server containers you are running. You can find a full example of the configuration files in the `Docker/Examples` folder on GitHub.
 
 * [Note File Locations](#note-file-locations)
-* [Setup docker-compose.yml](#configure-docker-compose-file)
+* [Setup compose.yml](#configure-docker-compose-file)
 * [Configure Permissions](#configure-permissions)
 * [Setup Backup Service (config.yml)](#configure-backup-service)
 * [Run](#run)
@@ -19,7 +19,7 @@ Backups require access to three locations. Make a note of these.
 
 ### Configure Docker Compose File
 
-In your `docker-compose.yml` file where you configure your minecraft server, you will want to make sure your server container has a couple options set so that the container can be attached to and have commands issued to it:
+In your `compose.yml` file where you configure your minecraft server, you will want to make sure your server container has a couple options set so that the container can be attached to and have commands issued to it:
 
 ```
     stdin_open: true
@@ -44,7 +44,7 @@ Once the options are set on your server container(s), you will want to add anoth
       - /opt/bedrock/server:/server
 ```
 
-The service should always depend on all the bedrock servers listed in your `docker-compose.yml` file. We want to let the minecraft servers start before taking a backup on launch. It is recommended to set `container_name ` for each server that will be backed up for ease of configuration later.
+The service should always depend on all the bedrock servers listed in your `compose.yml` file. We want to let the minecraft servers start before taking a backup on launch. It is recommended to set `container_name ` for each server that will be backed up for ease of configuration later.
 
 In most cases, you only need to configure the timezone for the container, but there are more variables available. [A full list is available here](Docker-Variables).
 
@@ -71,7 +71,7 @@ In many cases you can use a regular user that has been added to the docker group
 
 #### Overriding User/Group of the Backup Tool
 
-In cases where you need to override the user and group that is picked for you by entrypoint-demoter. The user must be part of the docker group, or otherwise have access to attach to the server containers. This also will have problems when running Docker rootless. To do the override, set the UID and GID environment variables in your docker-compose.yml file.
+In cases where you need to override the user and group that is picked for you by entrypoint-demoter. The user must be part of the docker group, or otherwise have access to attach to the server containers. This also will have problems when running Docker rootless. To do the override, set the UID and GID environment variables in your compose.yml file.
 
 ### Configure Backup Service
 
@@ -93,7 +93,7 @@ trim:
   minKeep: 2
 ```
 
-Containers has two sub-nodes, `bedrock` and `java`. Under each is a list of containers you want to backup. `name` is the name of the docker container and must match the one provided by `docker ps`, or `container_name` in your `docker-compose.yml` file. `worlds` is another list of paths to each world. This path is the backup container's file path to the world. So in the example above, `/opt/bedrock/server/worlds/MyWorld` will become `/server/worlds/MyWorld` in the config file.
+Containers has two sub-nodes, `bedrock` and `java`. Under each is a list of containers you want to backup. `name` is the name of the docker container and must match the one provided by `docker ps`, or `container_name` in your `compose.yml` file. `worlds` is another list of paths to each world. This path is the backup container's file path to the world. So in the example above, `/opt/bedrock/server/worlds/MyWorld` will become `/server/worlds/MyWorld` in the config file.
 
 Make sure to put each server under the correct heading, as doing live backups is slightly different for each, and the service needs to know which type it is working with.
 
@@ -105,7 +105,7 @@ The basic trim settings above will keep backups for 14 days, only keep 1 backup 
 
 ### Run
 
-Run `docker-compose up` once the above steps are done to verify via the console that the first backup is successful. Then you can stop the containers and restart them using `docker-compose start` to run them in the background like you normally would.
+Run `docker compose up` once the above steps are done to verify via the console that the first backup is successful. Then you can stop the containers and restart them using `docker compose start` to run them in the background like you normally would.
 
 ### Restoring Backups
 
