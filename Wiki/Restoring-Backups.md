@@ -2,14 +2,14 @@
 
 For Bedrock servers, backups are stored as .mcworld files, which also happen to be zip files. It makes it possible to restore a backup doing something like this:
 
-* docker-compose stop
+* docker compose stop
 * cd /opt/minecraft/bedrock-server/worlds
 * mv MyWorld MyWorld.bak
 * mkdir MyWorld
 * cd MyWorld
 * unzip /opt/minecraft/backups/MyWorld-<TIMESTAMP>.mcworld
-* docker-compose start
-* Delete MyWorld.bak once everything is confirmed working
+* docker compose start
+* rm MyWorld.bak # After everything is confirmed working
 
 In this example, /opt/minecraft/bedrock-server is the data folder for the minecraft server container, and /opt/minecraft/backups is the backup folder for the backup container.
 
@@ -17,12 +17,12 @@ In this example, /opt/minecraft/bedrock-server is the data folder for the minecr
 
 Java backups follow the same format that the client uses for backups made of single-player worlds. It is a zip file with a single folder inside, with the name of the world. Inside the folder is the world contents.
 
-* docker-compose stop
+* docker compose stop
 * cd /opt/minecraft/java-server/
 * mv MyWorld MyWorld.bak
 * unzip /opt/minecraft/backups/MyWorld-<TIMESTAMP>.mcworld
-* docker-compose start
-* Delete MyWorld.bak once everything is confirmed working
+* docker compose start
+* rm MyWorld.bak # After everything is confirmed working
 
 In this example, /opt/minecraft/java-server is the data folder for the Minecraft server container, and /opt/minecraft/backups is the backup folder for the backup container.
 
