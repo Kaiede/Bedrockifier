@@ -54,13 +54,13 @@ This section lists all the servers to be backed up, and informs the tool how to 
 
 In addition to backing up the worlds themselves, additional folders for the server can be backed up. The common use for this is wanting to back up log files or installed resource/behavior packs or mods. These get backed up as a separate “Container.extras” zip file next to the worlds themselves.
 
-* `<container name>`: This is the name of the docker container to be backed up. Something like `minecraft_server` as an example. When using Docker to communicate with the server, it needs to match the name visible in `docker ps`, or the `container_name` setting in docker-compose.yml. If using the `ssh` or `rcon` option, this can be any name you like.
+* `<container name>`: This is the name of the docker container to be backed up. Something like `minecraft_server` as an example. When using Docker to communicate with the server, it needs to match the name visible in `docker ps`, or the `container_name` setting in compose.yml. If using the `ssh` or `rcon` option, this can be any name you like.
 
-* `rcon` and `ssh`: These tell the backup service to use either RCON or SSH instead of Docker to connect to the Minecraft server. The address/port is in the form of 'hostname:port', e.g. 'minecraft:2222' for SSH, or 'minecraft:25575' for RCON. When using docker-compose, the hostname can be the service name given.
+* `rcon` and `ssh`: These tell the backup service to use either RCON or SSH instead of Docker to connect to the Minecraft server. The address/port is in the form of 'hostname:port', e.g. 'minecraft:2222' for SSH, or 'minecraft:25575' for RCON. When using docker compose, the hostname can be the service name given.
 
 * `password` or `passwordFile`: One of these must be set if `rcon` or `ssh` is used. This is the password used to connect to the RCON/SSH server. When using `passwordFile`, it's expected to be a YAML file in the same format that itzg's Minecraft containers use. That is, a YAML file with a single root `password` key that has a string value with the password in it (`password: <password>`).
 
-* `<world path>`: This is the internal path to the world folder you want to backup. For example, if you mapped `/opt/bedrock/server` to `/server` in your `docker-compose.yml`, then this path should be `/server/worlds/<MyWorldName>`
+* `<world path>`: This is the internal path to the world folder you want to backup. For example, if you mapped `/opt/bedrock/server` to `/server` in your `compose.yml`, then this path should be `/server/worlds/<MyWorldName>`
 
 * `<folder path>`: For extras, this is any folder you want to backup that isn’t part of any world. Using an example where a Java server is mapped to `/server`, and you wanted to backup the logs and mods folders, you would simply add `/server/logs` and `/server/mods` to the list under **extras**.
 

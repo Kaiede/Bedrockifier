@@ -1,4 +1,4 @@
-Starting with 1.4.0, Bedrockifier includes a minimal HTTP endpoint that can be used to perform a couple different tasks. It runs on port 8080 and can be exposed in your docker container configuration, or the `ports` configuration in docker-compose. By default, it is not accessible except to the services in the same docker-compose file, or to commands running in the container's shell environment.
+Starting with 1.4.0, Bedrockifier includes a minimal HTTP endpoint that can be used to perform a couple different tasks. It runs on port 8080 and can be exposed in your docker container configuration, or the `ports` configuration in your compose file. By default, it is not accessible except to the services in the same compose file, or to commands running in the container's shell environment.
 
 A copy of curl is provided in the container and can be used for scripts if desired.
 

@@ -1,6 +1,6 @@
 **Updated for v1.3.1**
 
-There are a few steps to get started. In this guide, we will be using `docker-compose` to configure the docker containers as a group. If you are using something other than `docker-compose`, this guide may still be a useful reference, but will not have step-by-step instructions.
+There are a few steps to get started. In this guide, we will be using `docker compose` to configure the docker containers as a group. If you are using something other than `docker compose`, this guide may still be a useful reference, but will not have step-by-step instructions.
 
 * Add backup container
 * Configure the service's schedule and trim settings
@@ -10,7 +10,7 @@ There are also full examples of a few different configurations available in the 
 
 # Configuring Docker Compose
 
-First, we want to start with a docker-compose with the Minecraft server you want to use. itzg's containers are recommended, and you can find more details in the documentation available for those containers if you haven't already configured your server:
+First, we want to start with a docker compose file with the Minecraft server you want to use. itzg's containers are recommended, and you can find more details in the documentation available for those containers if you haven't already configured your server:
 
 * [itzg's Minecraft Server Docs](https://docker-minecraft-server.readthedocs.io/en/latest/)
 * [itzg's Bedrock Minecraft Server Readme](https://github.com/itzg/docker-minecraft-bedrock-server/blob/master/README.md)
@@ -106,7 +106,7 @@ There are multiple ways to configure a container starting with 1.3. SSH and RCON
 
 SSH is only supported on itzg's containers at this point in time, and is supported on both Bedrock and Java. It was added to support the 1.3 release of Bedrockifier. By default, these containers will write out a `.env` and `.yaml` file into the /data volume with a random password that's regenerated each time the server starts. Bedrockifier can read the yaml file for you, so you don't have to set any password in your config files. On Java this is `.rcon-cli.yaml` (same as for RCON), while on Bedrock it is `.remote-console.yaml`
 
-The first step is to enable SSH in your docker-compose.yml:
+The first step is to enable SSH in your docker compose.yml:
 
 * Expose the `2222` port to other containers, but not the public network, if necessary.
 * Set the `ENABLE_SSH` variable to true on the minecraft server container.
@@ -165,7 +165,7 @@ containers:
 
 RCON uses the built-in RCON support of the Java Minecraft server. The limitation is that this only works for interval/daily backups, and cannot be used to backup the container based on when users log in or out. When using itzg's container, it will generate a random RCON password by default and write it out to `.rcon-cli.yaml` and `.rcon-cli.env`. We can use the yaml file to pass along the password to the backup service without having to enter it into our configuration files, and is highly recommended.
 
-When configuring `docker-compose.yml`, we need to expose the RCON port to the backup service. Optionally, we can ensure RCON is enabled using the `ENABLE_RCON` variable when using itzg's container. It's enabled by default (unlike SSH), so it's not needed, but I like being explicit in my configuration files.
+When configuring `docker compose.yml`, we need to expose the RCON port to the backup service. Optionally, we can ensure RCON is enabled using the `ENABLE_RCON` variable when using itzg's container. It's enabled by default (unlike SSH), so it's not needed, but I like being explicit in my configuration files.
 
 ```
 services:
@@ -187,7 +187,7 @@ services:
     # ... etc ...
 ```
 
-Here we have an example container based on the docker-compose above, where the "public" service is our SMP server, so we just need to tell Bedrockifier that for this container, this is the RCON server to connect to, and where to find the RCON password. Here, we use the `.rcon-cli.yaml` file that itzg's container writes out with the password to keep things a little simpler.
+Here we have an example container based on the docker compose above, where the "public" service is our SMP server, so we just need to tell Bedrockifier that for this container, this is the RCON server to connect to, and where to find the RCON password. Here, we use the `.rcon-cli.yaml` file that itzg's container writes out with the password to keep things a little simpler.
 
 ```
 containers:
