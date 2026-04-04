@@ -98,14 +98,14 @@ public struct World {
         let levelNameFile = location.appendingPathComponent("levelname.txt")
         if FileManager.default.fileExists(atPath: levelNameFile.path) {
             do {
-                return try String(contentsOf: location.appendingPathComponent("levelname.txt"))
+                return try normalizeWorldName(String(contentsOf: location.appendingPathComponent("levelname.txt")))
             } catch {
                 throw WorldError.invalidLevelNameFile
             }
         }
 
         // Java default also works for corrupted Bedrock situations.
-        return location.lastPathComponent
+        return normalizeWorldName(location.lastPathComponent)
     }
 
     private static func fetchBedrockBackupName(location: URL) throws -> String {
@@ -121,7 +121,7 @@ public struct World {
             throw WorldError.missingLevelName
         }
 
-        return finalResult
+        return normalizeWorldName(finalResult)
     }
 
     private static func fetchJavaBackupName(location: URL) throws -> String {
@@ -134,7 +134,11 @@ public struct World {
             throw WorldError.missingLevelName
         }
 
-        return worldName
+        return normalizeWorldName(worldName)
+    }
+
+    private static func normalizeWorldName(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 
@@ -188,7 +192,7 @@ extension World {
 
         var fileCount = 0
         while let archiveItem = dirEnum?.nextObject() as? String {
-            let fullItemUrl = URL(fileURLWithPath: archiveItem, relativeTo: self.location)
+            let fullItemUrl = self.location.appendingPathComponent(archiveItem)
             try archive.addEntry(with: archiveItem, fileURL: fullItemUrl)
             fileCount += 1
         }
@@ -203,7 +207,7 @@ extension World {
         let folderBase = NSString(string: self.location.lastPathComponent)
         while let archiveItem = dirEnum?.nextObject() as? String {
             let archivePath = String(folderBase.appendingPathComponent(archiveItem))
-            let fullItemUrl = URL(fileURLWithPath: archiveItem, relativeTo: self.location)
+            let fullItemUrl = self.location.appendingPathComponent(archiveItem)
             try archive.addEntry(with: archivePath, fileURL: fullItemUrl)
             fileCount += 1
         }

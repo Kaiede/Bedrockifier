@@ -8,15 +8,12 @@ services:
     depends_on:
       - "public"
     environment:
-        # Useful for making sure your logs have a proper timestamp
-        TZ: "America/Los_Angeles"
+      # Useful for making sure your logs have a proper timestamp
+      TZ: ${TZ:-America/Los_Angeles}
     volumes:
-      # (Optional) Map a configuration folder separately from the backups.
-      # - /opt/minecraft/backup-config:/config
-      # Map your backups folder into /data
-      - /opt/minecraft/data:/data
-      # Map your server's data folder
-      - /opt/minecraft/public:/public
+      - ./config.yml:/config/config.yml:ro
+      - minecraft-server-backups:/data
+      - java-public-data:/public:ro
 
   public:
     image: itzg/minecraft-server
@@ -39,5 +36,40 @@ services:
       MOTD: "Public SMP Server"
       MEMORY: "2G"
     volumes:
-      - /opt/minecraft/public:/data
+      - java-public-data:/data
     restart: unless-stopped
+
+  restore-menu:
+    image: kaiede/minecraft-bedrock-backup
+    profiles:
+      - restore
+    entrypoint: ["/opt/bedrock/restore-menu.sh"]
+    network_mode: "none"
+    environment:
+      TZ: ${TZ:-America/Los_Angeles}
+      TERM: "xterm-256color"
+      BACKUP_DIR: "/data"
+      RESTORE_UID: ${UID:-1000}
+      RESTORE_GID: ${GID:-1000}
+      RESTORE_MODE: ${RESTORE_MODE:-}
+    volumes:
+      - ./config.yml:/config/config.yml:ro
+      - minecraft-server-backups:/data:ro
+      - java-public-data:/public
+    stdin_open: true
+    tty: true
+
+volumes:
+  minecraft-server-backups:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${BEDROCKIFIER_BACKUPS_DIR:-/opt/minecraft/backups}
+
+  java-public-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${JAVA_PUBLIC_DATA_DIR:-/opt/minecraft/public}

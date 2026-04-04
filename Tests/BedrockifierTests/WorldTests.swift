@@ -75,6 +75,37 @@ final class WorldTests: XCTestCase {
         }
     }
 
+    func testBedrockArchiveUnpacksUsingTrimmedWorldName() throws {
+        let source = try makeTempDir()
+        let destination = try makeTempDir()
+        let archive = source.deletingLastPathComponent().appendingPathComponent("\(UUID().uuidString).mcworld")
+
+        defer {
+            try? FileManager.default.removeItem(at: source)
+            try? FileManager.default.removeItem(at: destination)
+            try? FileManager.default.removeItem(at: archive)
+        }
+
+        let markerFile = source.appendingPathComponent("levelname.txt")
+        let levelName = "Trimmed Level\n"
+        let didCreateLevelName = FileManager.default.createFile(atPath: markerFile.path, contents: Data(levelName.utf8))
+        XCTAssertTrue(didCreateLevelName)
+
+        let payloadFile = source.appendingPathComponent("payload.txt")
+        let didCreatePayload = FileManager.default.createFile(atPath: payloadFile.path, contents: Data("restored".utf8))
+        XCTAssertTrue(didCreatePayload)
+
+        let packed = try World(url: source)
+        XCTAssertEqual(packed.name, "Trimmed Level")
+
+        _ = try packed.pack(to: archive)
+        let unpacked = try World(url: archive).unpack(to: destination)
+
+        XCTAssertEqual(unpacked.name, "Trimmed Level")
+        XCTAssertEqual(unpacked.location.lastPathComponent, "Trimmed Level")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: unpacked.location.appendingPathComponent("payload.txt").path))
+    }
+
     func testFetchNameFailure() {
         let tempDirectory = URL(fileURLWithPath: NSTemporaryDirectory())
         let testDirectory = tempDirectory.appendingPathComponent("fetchNameFailureTest", isDirectory: true)
