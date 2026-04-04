@@ -4,21 +4,16 @@ services:
   backup:
     image: kaiede/minecraft-bedrock-backup
     restart: always
-    # Make sure the minecraft images start before the backup
+    # Make sure the minecraft image starts before the backup
     depends_on:
       - "public"
-      - "private"
     environment:
-        # Useful for making sure your logs have a proper timestamp
-        TZ: "America/Los_Angeles"
+      # Useful for making sure your logs have a proper timestamp
+      TZ: ${TZ:-America/Los_Angeles}
     volumes:
-      # (Optional) Map a configuration folder separately from the backups.
-      # - /opt/minecraft/backup-config:/config
-      # Map your backups folder into /data
-      - /opt/minecraft/backups:/data
-      # Map the data folders for both servers
-      - /opt/bedrock/private:/bedrock_private
-      - /opt/bedrock/public:/bedrock_public
+      - ./config.yml:/config/config.yml:ro
+      - minecraft-server-backups:/data
+      - bedrock-public-data:/bedrock_public:ro
 
   public:
     image: itzg/minecraft-bedrock-server
@@ -35,7 +30,43 @@ services:
       ENABLE_SSH: "TRUE"
       # Server settings
       EULA: "TRUE"
+      LEVEL_NAME: ${LEVEL_NAME:-PublicSMP}
     volumes:
-      - /opt/bedrock/public:/data
+      - bedrock-public-data:/data
     stdin_open: true
     tty: true
+
+  restore-menu:
+    image: kaiede/minecraft-bedrock-backup
+    profiles:
+      - restore
+    entrypoint: ["/opt/bedrock/restore-menu.sh"]
+    network_mode: "none"
+    environment:
+      TZ: ${TZ:-America/Los_Angeles}
+      TERM: "xterm-256color"
+      BACKUP_DIR: "/data"
+      RESTORE_UID: ${UID:-1000}
+      RESTORE_GID: ${GID:-1000}
+      RESTORE_MODE: ${RESTORE_MODE:-}
+    volumes:
+      - ./config.yml:/config/config.yml:ro
+      - minecraft-server-backups:/data:ro
+      - bedrock-public-data:/bedrock_public
+    stdin_open: true
+    tty: true
+
+volumes:
+  minecraft-server-backups:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${BEDROCKIFIER_BACKUPS_DIR:-/opt/minecraft/backups}
+
+  bedrock-public-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${BEDROCK_PUBLIC_DATA_DIR:-/opt/bedrock/public}

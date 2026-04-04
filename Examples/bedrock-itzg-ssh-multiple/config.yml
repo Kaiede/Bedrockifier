@@ -1,3 +1,4 @@
+prefixContainerName: true
 containers:
   bedrock:
     # Backup the world "PrivateSMP" on the "bedrock_private" docker container
