@@ -25,7 +25,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.7.1"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.11.0"),
         .package(url: "https://github.com/apple/swift-nio-ssh.git", from: "0.12.0"),
-        .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.21.1"),
+        .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.22.0"),
         .package(url: "https://github.com/jpsim/Yams.git", from: "6.2.1"),
         .package(url: "https://github.com/Kaiede/PTYKit.git", branch: "master"),
         .package(url: "https://github.com/swift-server/swift-backtrace.git", from: "1.3.5"),
