@@ -23,7 +23,7 @@ let package = Package(
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.7.1"),
-        .package(url: "https://github.com/apple/swift-log.git", from: "1.11.0"),
+        .package(url: "https://github.com/apple/swift-log.git", from: "1.12.0"),
         .package(url: "https://github.com/apple/swift-nio-ssh.git", from: "0.12.0"),
         .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.21.1"),
         .package(url: "https://github.com/jpsim/Yams.git", from: "6.2.1"),
