@@ -1,4 +1,4 @@
-ARG swift_image=swift:6.2.4-jammy
+ARG swift_image=swift:6.3.1-jammy
 
 ###### BUILDER
 FROM $swift_image as builder
