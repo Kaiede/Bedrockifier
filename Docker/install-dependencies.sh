@@ -16,7 +16,7 @@ else
     chmod a+r /etc/apt/keyrings/docker.asc
 
     # Add the repository to Apt sources:
-    tee /etc/apt/sources.list.d/docker.sources <<EOF sed 's/^        //'
+    tee /etc/apt/sources.list.d/docker.sources <<EOF | sed 's/^        //'
         Types: deb
         URIs: https://download.docker.com/linux/ubuntu
         Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
