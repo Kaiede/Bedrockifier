@@ -16,7 +16,7 @@ env:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
-    name: Docker - ${{ matrix.os }}${{ env.tag_suffix }}
+    name: Image - ${{ matrix.os }} ${{ matrix.variant }}
     if: github.repository == 'Kaiede/Bedrockifier'
     env:
       arch: ${{ matrix.os == 'ubuntu-latest' && 'amd64' || 'arm64' }}
@@ -68,7 +68,7 @@ jobs:
   merge-tags:
     needs: ['build']
     runs-on: ubuntu-latest
-    name: Merge Tags - image${{ env.tag_suffix }}
+    name: Merge Tags - ${{ matrix.variant }}
     if: github.repository == 'Kaiede/Bedrockifier' && github.event_name != 'pull_request'
     env:
       tag_suffix: ${{ matrix.variant != 'full' && format('-{0}', matrix.variant) || '' }}
