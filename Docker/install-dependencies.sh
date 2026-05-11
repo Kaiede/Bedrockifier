@@ -21,7 +21,7 @@ else
 
     # Docker packages
     apt update
-    apt install -y docker-ce docker-ce-cli containerd.io
+    apt install -y docker-ce-cli
 fi
 
 apt clean
