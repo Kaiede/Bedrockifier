@@ -23,7 +23,7 @@ else
     Components: stable
     Architectures: $(dpkg --print-architecture)
     Signed-By: /etc/apt/keyrings/docker.asc
-    EOF
+EOF
 
     # Docker packages
     apt update
