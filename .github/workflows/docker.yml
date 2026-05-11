@@ -47,8 +47,8 @@ jobs:
         platforms: linux/${{ matrix.host.arch }}
         push: ${{ github.event_name != 'pull_request' }}
         tags: |
-          kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}-${{ matrix.host.arch }}${{ matrix.variant.tag }}
-          kaiede/bedrockifier:${{ env.docker_tag }}-${{ matrix.host.arch }}${{ matrix.variant.tag }}
+          kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}${{ matrix.variant.tag }}-${{ matrix.host.arch }}
+          kaiede/bedrockifier:${{ env.docker_tag }}${{ matrix.variant.tag }}-${{ matrix.host.arch }}
         build-args: |
           QEMU_CPU=max
           IMAGEVARIANT=${{ matrix.variant.name }}
@@ -59,8 +59,8 @@ jobs:
     - name: Check Expected Output
       run: |
         echo Final Expected Images:
-        echo   kaiede/bedrockifier:${{ env.docker_tag }}-${{ matrix.host.arch }}${{ matrix.variant.tag }}
-        echo   kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}-${{ matrix.host.arch }}${{ matrix.variant.tag }}
+        echo   kaiede/bedrockifier:${{ env.docker_tag }}${{ matrix.variant.tag }}-${{ matrix.host.arch }}
+        echo   kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}${{ matrix.variant.tag }}-${{ matrix.host.arch }}
 
   merge-tags:
     needs: ['build']
