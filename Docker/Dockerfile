@@ -1,7 +1,7 @@
-ARG swift_image=swift:6.2.4-jammy
+ARG swift_image=swift:6.3.1
 
 ###### BUILDER
-FROM $swift_image as builder
+FROM $swift_image AS builder
 WORKDIR /project
 
 ADD . /project
