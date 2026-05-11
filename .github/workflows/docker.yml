@@ -16,13 +16,15 @@ env:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
-    name: Docker - ${{ matrix.os }}
+    name: Docker - ${{ matrix.os }}${{ env.tag_suffix }}
     if: github.repository == 'Kaiede/Bedrockifier'
     env:
       arch: ${{ matrix.os == 'ubuntu-latest' && 'amd64' || 'arm64' }}
+      tag_suffix: ${{ matrix.variant != 'full' && format('-{0}', matrix.variant) || '' }}
     strategy:
       matrix:
         os: ['ubuntu-latest', 'ubuntu-24.04-arm']
+        variant: ['full', 'slim']
 
     steps:
     - name: Checkout
@@ -39,7 +41,7 @@ jobs:
         username: ${{ secrets.DOCKER_USER }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Build ${{ env.arch }}
+    - name: Build ${{ env.arch }} - ${{ matrix.variant }}
       uses: docker/build-push-action@v7
       with:
         builder: ${{ steps.buildx.outputs.name }}
@@ -48,18 +50,31 @@ jobs:
         platforms: linux/${{ env.arch }}
         push: ${{ github.event_name != 'pull_request' }}
         tags: |
-          kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}-${{ env.arch }}
-          kaiede/bedrockifier:${{ env.docker_tag }}-${{ env.arch }}
+          kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}-${{ env.arch }}${{env.tag_suffix}}
+          kaiede/bedrockifier:${{ env.docker_tag }}-${{ env.arch }}${{env.tag_suffix}}
         build-args: |
           QEMU_CPU=max
+          IMAGEVARIANT=${{ matrix.variant }}
           arch=${{ env.arch }}
           swift_base=${{ env.swift_base }}
           swift_version=${{ env.swift_version }}
 
+    - name: Check Expected Output
+      run: |
+        echo Final Expected Images:
+        echo   kaiede/bedrockifier:${{ env.docker_tag }}-${{ env.arch }}${{env.tag_suffix}}
+        echo   kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}-${{ env.arch }}${{env.tag_suffix}}
+
   merge-tags:
     needs: ['build']
     runs-on: ubuntu-latest
+    name: Merge Tags - image${{ env.tag_suffix }}
     if: github.repository == 'Kaiede/Bedrockifier' && github.event_name != 'pull_request'
+    env:
+      tag_suffix: ${{ matrix.variant != 'full' && format('-{0}', matrix.variant) || '' }}
+    strategy:
+      matrix:
+        variant: ['full', 'slim']
 
     steps:
     - name: Checkout
@@ -78,11 +93,11 @@ jobs:
 
     - name: Make Manifest - ${{ env.docker_tag }}
       if: github.event_name != 'pull_request'
-      run: bash Docker/merge.sh kaiede/minecraft-bedrock-backup:${{ env.docker_tag }} kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}
+      run: bash Docker/merge.sh kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}${{ env.tag_suffix }} kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}${{ env.tag_suffix }}
 
     - name: Make Manifest - ${{ env.docker_tag }}
       if: github.event_name != 'pull_request'
-      run: bash Docker/merge.sh kaiede/bedrockifier:${{ env.docker_tag }} kaiede/bedrockifier:${{ env.docker_tag }}
+      run: bash Docker/merge.sh kaiede/bedrockifier:${{ env.docker_tag }}${{ env.tag_suffix }} kaiede/bedrockifier:${{ env.docker_tag }}${{ env.tag_suffix }}
 
     - name: Get Release Tag
       id: tag
@@ -91,8 +106,8 @@ jobs:
 
     - name: Make Manifest - ${{ steps.tag.outputs.tag }}
       if: github.event_name == 'release'
-      run: bash Docker/merge.sh --semver kaiede/minecraft-bedrock-backup:${{ steps.tag.outputs.tag }} kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}
+      run: bash Docker/merge.sh --semver kaiede/minecraft-bedrock-backup:${{ steps.tag.outputs.tag }}${{ env.tag_suffix }} kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}${{ env.tag_suffix }}
 
     - name: Make Manifest - ${{ steps.tag.outputs.tag }}
       if: github.event_name == 'release'
-      run: bash Docker/merge.sh --semver kaiede/bedrockifier:${{ steps.tag.outputs.tag }} kaiede/bedrockifier:${{ env.docker_tag }}
+      run: bash Docker/merge.sh --semver kaiede/bedrockifier:${{ steps.tag.outputs.tag }}${{ env.tag_suffix }} kaiede/bedrockifier:${{ env.docker_tag }}${{ env.tag_suffix }}

@@ -14,13 +14,9 @@ WORKDIR /opt/bedrock
 ARG TARGETOS
 ARG TARGETARCH
 ARG TARGETVARIANT
+ARG IMAGEVARIANT
 
-RUN apt-get update && \
-  DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    curl \
-    docker.io \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+RUN --mount=source=Docker/install-dependencies.sh,target=/tmp/install-dependencies.sh /tmp/install-dependencies.sh
 
 ARG GITHUB_BASEURL=https://github.com
 
