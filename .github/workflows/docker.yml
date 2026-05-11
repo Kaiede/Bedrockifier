@@ -38,7 +38,7 @@ jobs:
         username: ${{ secrets.DOCKER_USER }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Build ${{ matrix.arch }} - ${{ matrix.variant }}
+    - name: Build ${{ matrix.host.arch }} - ${{ matrix.variant.name }}
       uses: docker/build-push-action@v7
       with:
         builder: ${{ steps.buildx.outputs.name }}
@@ -51,7 +51,7 @@ jobs:
           kaiede/bedrockifier:${{ env.docker_tag }}-${{ matrix.host.arch }}${{ matrix.variant.tag }}
         build-args: |
           QEMU_CPU=max
-          IMAGEVARIANT=${{ matrix.variant }}
+          IMAGEVARIANT=${{ matrix.variant.name }}
           arch=${{ matrix.host.arch }}
           swift_base=${{ env.swift_base }}
           swift_version=${{ env.swift_version }}
