@@ -16,7 +16,7 @@ ARG TARGETARCH
 ARG TARGETVARIANT
 ARG IMAGEVARIANT
 
-RUN --mount=source=Docker/install-dependencies.sh,target=/tmp/install-dependencies.sh /tmp/install-dependencies.sh
+RUN --mount=source=Docker/install-dependencies.sh,target=/tmp/install-dependencies.sh /tmp/install-dependencies.sh ${IMAGEVARIANT}
 
 ARG GITHUB_BASEURL=https://github.com
 

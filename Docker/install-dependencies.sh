@@ -5,7 +5,7 @@ set -xeuo pipefail
 
 apt update
 
-if [ "${IMAGEVARIANT}" == "slim" ]; then
+if [ "$1" == "slim" ]; then
     apt install -y curl
 else
     apt install -y ca-certificates curl
