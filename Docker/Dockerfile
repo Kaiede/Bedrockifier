@@ -24,15 +24,18 @@ RUN apt-get update && \
 
 ARG GITHUB_BASEURL=https://github.com
 
+# renovate: datasource=github-releases packageName=itzg/easy-add
 ARG EASY_ADD_VERSION=0.8.11
 ADD ${GITHUB_BASEURL}/itzg/easy-add/releases/download/${EASY_ADD_VERSION}/easy-add_${TARGETOS}_${TARGETARCH}${TARGETVARIANT} /usr/bin/easy-add
 RUN chmod +x /usr/bin/easy-add
 
+# renovate: datasource=github-releases packageName=itzg/rcon-cli
 ARG RCON_CLI_VERSION=1.7.4
 RUN easy-add --var os=${TARGETOS} --var arch=${TARGETARCH}${TARGETVARIANT} \
   --var version=${RCON_CLI_VERSION} --var app=rcon-cli --file {{.app}} \
   --from ${GITHUB_BASEURL}/itzg/{{.app}}/releases/download/{{.version}}/{{.app}}_{{.version}}_{{.os}}_{{.arch}}.tar.gz
 
+# renovate: datasource=github-releases packageName=itzg/entrypoint-demoter
 ARG ENTRYPOINT_DEMOTER_VERSION=0.4.9
 RUN easy-add --var version=${ENTRYPOINT_DEMOTER_VERSION} --var app=entrypoint-demoter --file {{.app}} --from ${GITHUB_BASEURL}/itzg/{{.app}}/releases/download/v{{.version}}/{{.app}}_{{.version}}_linux_${TARGETARCH}.tar.gz
 
