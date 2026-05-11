@@ -16,14 +16,8 @@ else
     chmod a+r /etc/apt/keyrings/docker.asc
 
     # Add the repository to Apt sources:
-    tee /etc/apt/sources.list.d/docker.sources <<EOF | sed 's/^        //'
-        Types: deb
-        URIs: https://download.docker.com/linux/ubuntu
-        Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
-        Components: stable
-        Architectures: $(dpkg --print-architecture)
-        Signed-By: /etc/apt/keyrings/docker.asc
-EOF
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+        tee /etc/apt/sources.list.d/docker.list > /dev/null
 
     # Docker packages
     apt update
