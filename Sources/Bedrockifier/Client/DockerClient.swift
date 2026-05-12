@@ -36,8 +36,6 @@ enum DockerClientError: Error {
 }
 
 final class DockerClient {
-    static let defaultSocketPath = "/var/run/docker.sock"
-
     private let group: EventLoopGroup
     private let terminal: PseudoTerminal
     private let socketPath: String
@@ -53,7 +51,7 @@ final class DockerClient {
     init(
         group: EventLoopGroup,
         terminal: PseudoTerminal,
-        socketPath: String = DockerClient.defaultSocketPath,
+        socketPath: String,
         onDisconnect: (() -> Void)? = nil
     ) {
         self.group = group
