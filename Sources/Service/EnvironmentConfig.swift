@@ -37,7 +37,6 @@ struct EnvironmentConfig {
 
     // External Tools in Container
     let dockerSocketPath: String
-    let rconPath: String
 
     // Config Folder Settings
     let configDirectory: String
@@ -54,7 +53,6 @@ struct EnvironmentConfig {
     init() {
         // External Tools in Container
         self.dockerSocketPath = ProcessInfo.processInfo.environment["DOCKER_SOCK"] ?? "/var/run/docker.sock"
-        self.rconPath = ProcessInfo.processInfo.environment["RCON_PATH"] ?? "/usr/local/bin/rcon-cli"
 
         // Config Folder Settings
         self.configDirectory = EnvironmentConfig.configDirectory()

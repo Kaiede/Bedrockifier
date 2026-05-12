@@ -57,7 +57,6 @@ public struct BackupConfig: Codable {
     }
 
     public var dockerSocketPath: String?
-    public var rconPath: String?
     public var backupPath: String?
     public var tokenPath: String?
     public var listenerReconnectInterval: String?
