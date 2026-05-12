@@ -32,7 +32,7 @@ RUN easy-add --var os=${TARGETOS} --var arch=${TARGETARCH}${TARGETVARIANT} \
   --from ${GITHUB_BASEURL}/itzg/{{.app}}/releases/download/{{.version}}/{{.app}}_{{.version}}_{{.os}}_{{.arch}}.tar.gz
 
 # renovate: datasource=github-releases packageName=itzg/entrypoint-demoter
-ARG ENTRYPOINT_DEMOTER_VERSION=0.4.9
+ARG ENTRYPOINT_DEMOTER_VERSION=0.4.10
 RUN easy-add --var version=${ENTRYPOINT_DEMOTER_VERSION} --var app=entrypoint-demoter --file {{.app}} --from ${GITHUB_BASEURL}/itzg/{{.app}}/releases/download/v{{.version}}/{{.app}}_{{.version}}_linux_${TARGETARCH}.tar.gz
 
 COPY --from=builder /project/.build/release/bedrockifier-tool .
