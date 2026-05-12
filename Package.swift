@@ -47,7 +47,6 @@ let package = Package(
             dependencies: [
                 "Bedrockifier",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "Backtrace", package: "swift-backtrace"),
                 .product(name: "Hummingbird", package: "hummingbird")
             ]
         ),
