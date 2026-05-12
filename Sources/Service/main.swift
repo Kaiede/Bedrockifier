@@ -24,6 +24,7 @@
  */
 
 import ArgumentParser
+import Backtrace
 import Foundation
 import Logging
 import PTYKit

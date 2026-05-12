@@ -5,7 +5,7 @@ FROM $swift_image AS builder
 WORKDIR /project
 
 ADD . /project
-RUN swift build -c release --static-swift-stdlib
+RUN swift build -c release -Xswiftc -g
 
 ###### DEPENDENCY FETCHER
 FROM $swift_image-slim AS deps
