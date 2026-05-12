@@ -73,6 +73,7 @@ final class SSHClient {
         let bootstrap = makeBootstrap()
         let channel = try await bootstrap.connect(host: host, port: port).get()
 
+        Library.log.trace("Connected to \(host):\(port)")
         let childChannel = try await channel.pipeline.handler(type: NIOSSHHandler.self).flatMap { [self] handler in
             return makeChildHandler(eventLoop: channel.eventLoop, handler: handler)
         }.get()
@@ -136,6 +137,7 @@ final class SSHClient {
                 return eventLoop.makeFailedFuture(SSHClientError.unsupportedChannelType)
             }
 
+            Library.log.trace("Adding SSH Child Handlers.")
             return child.pipeline.addHandlers([
                 SSHPipeHandler(),
                 TerminalHandler(terminal: self.terminal),

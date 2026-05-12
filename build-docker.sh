@@ -4,6 +4,14 @@
 
 set -euo pipefail
 
+toolPath=$(which docker)
+podmanPath=$(which podman)
+
+if [[ "$podmanPath" != "" ]]; then
+    echo "Using Podman."
+    toolPath=$podmanPath
+fi
+
 tag=${1:-dev}
 COMMIT=${2:-main}
 PUSH=${3:-nopush}
@@ -24,7 +32,7 @@ fi
 
 dockerTag=$dockerRepo:${tag}-${TARGETARCH}
 
-docker build . -f Docker/Dockerfile \
+$toolPath build . -f Docker/Dockerfile \
     -t $dockerTag \
     --build-arg TARGETOS=${TARGETOS} \
     --build-arg TARGETARCH=${TARGETARCH} \
