@@ -58,7 +58,7 @@ public class ContainerConnection {
                 config: ContainerConnectionConfig,
                 kind: Kind,
                 worlds: [String],
-                extras: [String]?) throws {
+                extras: [String]?) async throws {
         self.name = containerName
         self.connectionConfig = config
         self.kind = kind
@@ -93,14 +93,14 @@ public class ContainerConnection {
         case .rcon:
             let processUrl = config.processUrl
             let processArgs = try config.makeArguments()
-            self.channel = try ProcessChannel(terminal: terminal, processUrl: processUrl, processArgs: processArgs)
+            self.channel = try await ProcessChannel(terminal: terminal, processUrl: processUrl, processArgs: processArgs)
         case .docker:
             let processUrl = config.processUrl
             let processArgs = try config.makeArguments()
-            self.channel = try ProcessChannel(terminal: terminal, processUrl: processUrl, processArgs: processArgs)
+            self.channel = try await ProcessChannel(terminal: terminal, processUrl: processUrl, processArgs: processArgs)
         }
 
-        try self.terminal.setWindowSize(columns: 65000, rows: 24)
+        try await self.terminal.setWindowSize(columns: 65000, rows: 24)
     }
 
     public convenience init(
@@ -109,10 +109,10 @@ public class ContainerConnection {
         kind: Kind,
         worlds: [String],
         extras: [String]?
-    ) throws {
+    ) async throws {
         Library.log.info("Starting Container Connection. newline = \(config.newline)")
         let terminal = try PseudoTerminal(identifier: containerName, newline: config.newline)
-        try self.init(terminal: terminal,
+        try await self.init(terminal: terminal,
                       containerName: containerName,
                       config: config,
                       kind: kind,
@@ -121,7 +121,9 @@ public class ContainerConnection {
     }
 
     public func listen(for strings: [String], handler: @escaping TerminalListener) {
-        terminal.terminal.listen(for: strings, handler: handler)
+        Task {
+            await terminal.terminal.listen(for: strings, handler: handler)
+        }
     }
 
     public func start() async throws {
@@ -148,9 +150,9 @@ public class ContainerConnection {
         }
     }
 
-    public func reset() throws {
+    public func reset() async throws {
         Library.log.debug("Resetting Container Process. (container: \(name), kind: \(connectionConfig.kind))")
-        try channel.reset()
+        try await channel.reset()
     }
 
     public func cleanupIncompleteBackup(destination: URL) async throws {
@@ -302,40 +304,46 @@ public class ContainerConnection {
     }
 
     private func logTerminalSize() {
-        do {
-            let windowSize = try terminal.terminal.getWindowSize()
-            Library.log.debug(
-                "Docker Process Window Size Fetched. (cols = \(windowSize.ws_col), rows = \(windowSize.ws_row)"
-            )
-        } catch {
-            Library.log.debug("Failed to get terminal window size")
+        Task {
+            do {
+                let windowSize = try await terminal.terminal.getWindowSize()
+                Library.log.debug(
+                    "Docker Process Window Size Fetched. (cols = \(windowSize.ws_col), rows = \(windowSize.ws_row)"
+                )
+            } catch {
+                Library.log.debug("Failed to get terminal window size")
+            }
         }
     }
 }
 
 extension ContainerConnection {
-    public static func loadContainers(from config: BackupConfig, tools: ToolConfig) throws -> [ContainerConnection] {
+    public static func loadContainers(from config: BackupConfig, tools: ToolConfig) async throws -> [ContainerConnection] {
         let prefixAllContainerNames = config.prefixContainerName ?? false
         var containers: [ContainerConnection] = []
         for container in config.containers?.bedrock ?? [] {
             Library.log.debug("Creating Bedrock Container Connection. (container: \(container.name))")
             let config = containerConfig(container: container, tools: tools, prefixAllContainerNames: prefixAllContainerNames)
-            let connection = try ContainerConnection(containerName: container.name,
-                                                     config: config,
-                                                     kind: .bedrock,
-                                                     worlds: container.worlds,
-                                                     extras: container.extras)
+            let connection = try await ContainerConnection(
+                containerName: container.name,
+                config: config,
+                kind: .bedrock,
+                worlds: container.worlds,
+                extras: container.extras
+            )
             containers.append(connection)
         }
 
         for container in config.containers?.java ?? [] {
             Library.log.debug("Creating Java Container Connection. (container: \(container.name)")
             let config = containerConfig(container: container, tools: tools, prefixAllContainerNames: prefixAllContainerNames)
-            let connection = try ContainerConnection(containerName: container.name,
-                                                     config: config,
-                                                     kind: .java,
-                                                     worlds: container.worlds,
-                                                     extras: container.extras)
+            let connection = try await ContainerConnection(
+                containerName: container.name,
+                config: config,
+                kind: .java,
+                worlds: container.worlds,
+                extras: container.extras
+            )
             containers.append(connection)
         }
 
@@ -352,11 +360,13 @@ extension ContainerConnection {
                 prefixAllContainerNames: prefixAllContainers
             )
 
-            let connection = try ContainerConnection(containerName: containerName,
-                                                     config: config,
-                                                     kind: .bedrock,
-                                                     worlds: worldPaths,
-                                                     extras: nil)
+            let connection = try await ContainerConnection(
+                containerName: containerName,
+                config: config,
+                kind: .bedrock,
+                worlds: worldPaths,
+                extras: nil
+            )
             containers.append(connection)
         }
 
