@@ -7,17 +7,12 @@ WORKDIR /project
 ADD . /project
 RUN swift build -c release -Xswiftc -g
 
-###### RUNTIME CONTAINER
-FROM $swift_image-slim
-WORKDIR /opt/bedrock
+###### DEPENDENCY FETCHER
+FROM $swift_image-slim AS deps
 
 ARG TARGETOS
 ARG TARGETARCH
 ARG TARGETVARIANT
-ARG IMAGEVARIANT
-
-RUN --mount=source=Docker/install-dependencies.sh,target=/tmp/install-dependencies.sh /tmp/install-dependencies.sh ${IMAGEVARIANT}
-
 ARG GITHUB_BASEURL=https://github.com
 
 # renovate: datasource=github-releases packageName=itzg/easy-add
@@ -35,10 +30,17 @@ RUN easy-add --var os=${TARGETOS} --var arch=${TARGETARCH}${TARGETVARIANT} \
 ARG ENTRYPOINT_DEMOTER_VERSION=0.4.10
 RUN easy-add --var version=${ENTRYPOINT_DEMOTER_VERSION} --var app=entrypoint-demoter --file {{.app}} --from ${GITHUB_BASEURL}/itzg/{{.app}}/releases/download/v{{.version}}/{{.app}}_{{.version}}_linux_${TARGETARCH}.tar.gz
 
-COPY --from=builder /project/.build/release/bedrockifier-tool .
-COPY --from=builder /project/.build/release/bedrockifierd .
-COPY ./Docker/entry.sh .
-COPY ./Docker/trigger-backup.sh .
+###### RUNTIME CONTAINER
+FROM $swift_image-slim
+WORKDIR /opt/bedrock
+
+ARG IMAGEVARIANT
+
+RUN --mount=source=Docker/install-dependencies.sh,target=/tmp/install-dependencies.sh /tmp/install-dependencies.sh ${IMAGEVARIANT}
+
+COPY --from=deps /usr/local/bin/rcon-cli /usr/local/bin/entrypoint-demoter /usr/local/bin/
+COPY --from=builder /project/.build/release/bedrockifier-tool /project/.build/release/bedrockifierd .
+COPY ./Docker/entry.sh ./Docker/trigger-backup.sh .
 
 ENTRYPOINT [ "/opt/bedrock/entry.sh" ]
 HEALTHCHECK --start-period=1m CMD curl -f http://localhost:8080/health || exit 1
