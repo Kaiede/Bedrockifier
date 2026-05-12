@@ -5,7 +5,7 @@ FROM $swift_image AS builder
 WORKDIR /project
 
 ADD . /project
-RUN swift build -c release -Xswiftc -g --static-swift-stdlib
+RUN swift build -c release --static-swift-stdlib
 
 ###### RUNTIME CONTAINER
 FROM $swift_image-slim
