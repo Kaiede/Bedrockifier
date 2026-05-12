@@ -32,7 +32,7 @@ protocol ContainerChannel {
 
     func start() async throws
     func close() async throws
-    mutating func reset() throws
+    mutating func reset() async throws
 }
 
 struct ProcessChannel: ContainerChannel {
@@ -41,11 +41,11 @@ struct ProcessChannel: ContainerChannel {
     private let processArgs: [String]
     private var process: Process
 
-    init(terminal: PseudoTerminal, processUrl: URL, processArgs: [String]) throws {
+    init(terminal: PseudoTerminal, processUrl: URL, processArgs: [String]) async throws {
         self.terminal = terminal
         self.processUrl = processUrl
         self.processArgs = processArgs
-        self.process = try Process(processUrl, arguments: processArgs, terminal: terminal)
+        self.process = try await Process(processUrl, arguments: processArgs, terminal: terminal)
     }
 
     var isConnected: Bool { process.isRunning }
@@ -58,8 +58,8 @@ struct ProcessChannel: ContainerChannel {
         try self.process.run()
     }
 
-    mutating func reset() throws {
-        self.process = try Process(processUrl, arguments: processArgs, terminal: terminal)
+    mutating func reset() async throws {
+        self.process = try await Process(processUrl, arguments: processArgs, terminal: terminal)
     }
 }
 

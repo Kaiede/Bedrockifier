@@ -41,17 +41,21 @@ final class TerminalHandler: ChannelDuplexHandler {
     }
 
     deinit {
-        do {
-            try terminalChannel?.disconnect()
-            Library.log.info("SSH Terminal disconnected from deinit.")
-        } catch {
-            Library.log.error("Failed to disconnect from Terminal during deinit. (\(error.localizedDescription)")
+        if let terminalChannel {
+            Task {
+                do {
+                    try await terminalChannel.disconnect()
+                    Library.log.info("SSH Terminal disconnected from deinit.")
+                } catch {
+                    Library.log.error("Failed to disconnect from Terminal during deinit. (\(error.localizedDescription)")
+                }
+            }
         }
     }
 
-    func handlerAdded(context: ChannelHandlerContext) {
+    func handlerAdded(context: ChannelHandlerContext) async {
         do {
-            let channel = try terminal.connect()
+            let channel = try await terminal.connect()
             channel.fileHandle.readabilityHandler = { handle in
                 guard var string = String(data: handle.availableData, encoding: .utf8) else {
                     Library.log.error("Failed to read terminal data as UTF8 for SSH.")
@@ -71,10 +75,10 @@ final class TerminalHandler: ChannelDuplexHandler {
         }
     }
 
-    func handlerRemoved(context: ChannelHandlerContext) {
+    func handlerRemoved(context: ChannelHandlerContext) async {
         self.terminalChannel?.fileHandle.readabilityHandler = nil
         do {
-            try self.terminalChannel?.disconnect()
+            try await self.terminalChannel?.disconnect()
             Library.log.info("SSH Terminal disconnected.")
         } catch {
             Library.log.error("Failed to disconnect from Terminal. (\(error.localizedDescription)")

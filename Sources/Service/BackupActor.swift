@@ -235,7 +235,7 @@ actor BackupActor {
             do {
                 if !needsListeners {
                     try await container.stop()
-                    try container.reset()
+                    try await container.reset()
                 }
             } catch let error {
                 failedContainers += 1

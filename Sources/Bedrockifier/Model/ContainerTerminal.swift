@@ -43,8 +43,8 @@ private struct ErrorStrings {
 }
 
 internal extension ContainerTerminal {
-    func setWindowSize(columns: UInt16, rows: UInt16) throws {
-        return try terminal.setWindowSize(columns: columns, rows: rows)
+    func setWindowSize(columns: UInt16, rows: UInt16) async throws {
+        return try await terminal.setWindowSize(columns: columns, rows: rows)
     }
 }
 
@@ -71,7 +71,7 @@ struct BedrockTerminal: ContainerTerminal {
 
     func resumeAutosave() async throws {
         // Release Save Hold
-        try terminal.sendLine("save resume")
+        try await terminal.sendLine("save resume")
         let saveResumeStrings = [
             "Changes to the level are resumed", // 1.17 and earlier
             "Changes to the world are resumed", // 1.18 and later
@@ -84,14 +84,14 @@ struct BedrockTerminal: ContainerTerminal {
 
     func pauseAutosave() async throws {
         // Start Save Hold
-        try terminal.sendLine("save hold")
+        try await terminal.sendLine("save hold")
         if try await expect(["Saving", "The command is already running"], timeout: 10.0) == .noMatch {
             throw ContainerConnection.ContainerError.pauseFailed
         }
 
         // Wait for files to be ready
         let saveReady = try await retrySaveQuery {
-            try terminal.sendLine("save query")
+            try await terminal.sendLine("save query")
             return try await expect(["Files are now ready to be copied"], timeout: 10.0) != .noMatch
         }
 
@@ -106,19 +106,19 @@ struct JavaTerminal: ContainerTerminal {
 
     func pauseAutosave() async throws {
         // Need a longer timeout on the flush in case server is still starting up
-        try terminal.sendLine("save-all flush")
+        try await terminal.sendLine("save-all flush")
         if try await expect(["Saved the game"], timeout: 30.0) == .noMatch {
             throw ContainerConnection.ContainerError.pauseFailed
         }
 
-        try terminal.sendLine("save-off")
+        try await terminal.sendLine("save-off")
         if try await expect(["Automatic saving is now disabled"], timeout: 10.0) == .noMatch {
             throw ContainerConnection.ContainerError.pauseFailed
         }
     }
 
     func resumeAutosave() async throws {
-        try terminal.sendLine("save-on")
+        try await terminal.sendLine("save-on")
         let saveResumeStrings = [
             "Automatic saving is now enabled",
             "Saving is already turned on"
