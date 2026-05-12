@@ -89,7 +89,7 @@ final class SSHClient {
             Library.log.warning("SSH connection closed.")
         }
         
-        Library.log.trace("SSH connection to \(host):\(port) established.")
+        Library.log.info("SSH connection to \(host):\(port) established.")
     }
 
     var isConnected: Bool {

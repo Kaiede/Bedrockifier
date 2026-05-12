@@ -56,7 +56,7 @@ final class TerminalHandler: ChannelDuplexHandler {
     func handlerAdded(context: ChannelHandlerContext) {
         Task {
             do {
-                Library.log.info("Connecting SSH Terminal.")
+                Library.log.trace("Connecting SSH Terminal.")
                 let channel = try await terminal.connect()
                 channel.fileHandle.readabilityHandler = { handle in
                     guard var string = String(data: handle.availableData, encoding: .utf8) else {
@@ -71,7 +71,7 @@ final class TerminalHandler: ChannelDuplexHandler {
                 }
                 
                 self.terminalChannel = channel
-                Library.log.info("SSH Terminal fully connected.")
+                Library.log.info("SSH terminal connected.")
             } catch {
                 Library.log.error("Failed to connect to terminal. (\(error.localizedDescription))")
             }
