@@ -100,9 +100,9 @@ jobs:
       uses: dawidd6/action-get-tag@v1
 
     - name: Make Manifest - ${{ steps.tag.outputs.tag }}
-      if: github.event_name == 'release'
+      if: ${{ github.event_name == 'release' && matrix.variant.name != 'slim' }}
       run: bash Docker/merge.sh --semver kaiede/minecraft-bedrock-backup:${{ steps.tag.outputs.tag }}${{ matrix.variant.tag }} kaiede/minecraft-bedrock-backup:${{ env.docker_tag }}${{ matrix.variant.tag }}
 
     - name: Make Manifest - ${{ steps.tag.outputs.tag }}
-      if: github.event_name == 'release'
+      if: ${{ github.event_name == 'release' && matrix.variant.name != 'slim' }}
       run: bash Docker/merge.sh --semver kaiede/bedrockifier:${{ steps.tag.outputs.tag }}${{ matrix.variant.tag }} kaiede/bedrockifier:${{ env.docker_tag }}${{ matrix.variant.tag }}
