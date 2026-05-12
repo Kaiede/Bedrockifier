@@ -60,6 +60,7 @@ final class SSHClient {
 
     func connect(host: String, port: Int) async throws {
         guard !isConnecting else {
+            // TODO: Need to support some mechanism for waiting on this connect?
             Library.log.debug("Skipping duplicate SSH connect request while a connect is already in progress.")
             return
         }
