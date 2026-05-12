@@ -28,12 +28,12 @@ import Foundation
 import PTYKit
 
 public struct ToolConfig {
-    let dockerPath: String
+    let dockerSocketPath: String
     let rconPath: String
     let hostKeyValidator: SSHHostKeyValidator
 
-    public init(dockerPath: String, rconPath: String, hostKeyValidator: SSHHostKeyValidator) {
-        self.dockerPath = dockerPath
+    public init(dockerSocketPath: String, rconPath: String, hostKeyValidator: SSHHostKeyValidator) {
+        self.dockerSocketPath = dockerSocketPath
         self.rconPath = rconPath
         self.hostKeyValidator = hostKeyValidator
     }
@@ -74,49 +74,48 @@ public enum ContainerConnectionConfigKind {
     case ssh
 }
 
+public enum ContainerChannelConfig {
+    case process(url: URL, arguments: [String])
+    case ssh(host: String, port: Int, validator: SSHHostKeyValidator)
+    case docker(socket: String, container: String)
+}
+
 public protocol ContainerConnectionConfig {
     var prefixContainerName: Bool { get }
-    var processPath: String { get }
     var kind: ContainerConnectionConfigKind { get }
     var newline: TerminalNewline { get }
     var password: ContainerPassword { get }
-    var validator: SSHHostKeyValidator? { get }
-    func makeArguments() throws -> [String]
+    func makeChannelConfig() throws -> ContainerChannelConfig
 }
 
 extension ContainerConnectionConfig {
-    var processUrl: URL { URL(fileURLWithPath: processPath) }
+    //var processUrl: URL { URL(fileURLWithPath: processPath) }
 }
 
 public struct DockerConnectionConfig: ContainerConnectionConfig {
-    let dockerPath: String
+    let socketPath: String
     let containerName: String
     public let password: ContainerPassword = .none
     public let validator: SSHHostKeyValidator? = nil
     public let prefixContainerName: Bool
-
-    init(dockerPath: String, config: BackupConfig.ContainerConfig, prefixAllContainerNames: Bool) {
-        self.dockerPath = dockerPath
+    
+    init(socketPath: String, config: BackupConfig.ContainerConfig, prefixAllContainerNames: Bool) {
+        self.socketPath = socketPath
         self.containerName = config.name
         self.prefixContainerName = config.prefixContainerName == true || prefixAllContainerNames
     }
 
-    init(dockerPath: String, containerName: String, prefixAllContainerNames: Bool) {
-        self.dockerPath = dockerPath
+    init(socketPath: String, containerName: String, prefixAllContainerNames: Bool) {
+        self.socketPath = socketPath
         self.containerName = containerName
         self.prefixContainerName = prefixAllContainerNames
     }
 
     public var kind: ContainerConnectionConfigKind { .docker }
     public var newline: TerminalNewline { .default }
-    public var processPath: String { dockerPath }
-
-    public func makeArguments() -> [String] {
-        return [
-            "attach",
-            "--sig-proxy=false",
-            containerName
-        ]
+    
+    public func makeChannelConfig() throws -> ContainerChannelConfig {
+        return .docker(socket: socketPath, container: containerName)
     }
 }
 
@@ -145,22 +144,23 @@ public struct RCONConnectionConfig: ContainerConnectionConfig {
 
     public var kind: ContainerConnectionConfigKind { .rcon }
     public var newline: TerminalNewline { .ssh }
-    public var processPath: String { rconPath }
-
-    public func makeArguments() throws -> [String] {
+    
+    public func makeChannelConfig() throws -> ContainerChannelConfig {
         let parts = address.split(whereSeparator: { $0 == ":" })
         guard parts.count == 2 else {
             throw ParseError.invalidHostname(address)
         }
-
-        return [
-            "--host",
-            "\(parts[0])",
-            "--port",
-            "\(parts[1])",
-            "--password",
-            "\(password)"
-        ]
+        
+        return .process(
+            url: URL(fileURLWithPath: rconPath),
+            arguments: [
+                "--host",
+                "\(parts[0])",
+                "--port",
+                "\(parts[1])",
+                "--password",
+                "\(password)"
+        ])
     }
 }
 
@@ -188,17 +188,19 @@ public struct SSHConnectionConfig: ContainerConnectionConfig {
 
     public var kind: ContainerConnectionConfigKind { .ssh }
     public var newline: TerminalNewline { .ssh }
-    public var processPath: String { "" }
-
-    public func makeArguments() throws -> [String] {
+    
+    public func makeChannelConfig() throws -> ContainerChannelConfig {
         let parts = address.split(whereSeparator: { $0 == ":" })
         guard parts.count == 2 else {
             throw ParseError.invalidHostname(address)
         }
-
-        return [
-            String(parts[0]),
-            String(parts[1])
-        ]
+        guard let port = Int(parts[1]) else {
+            throw ParseError.invalidHostname(address)
+        }
+        guard let validator else {
+            throw ParseError.invalidSyntax
+        }
+        
+        return .ssh(host: String(parts[0]), port: port, validator: validator)
     }
 }

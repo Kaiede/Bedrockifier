@@ -63,6 +63,45 @@ struct ProcessChannel: ContainerChannel {
     }
 }
 
+struct DockerChannel: ContainerChannel {
+    private let client: DockerClient
+    private let containerName: String
+
+    init(
+        terminal: PseudoTerminal,
+        containerName: String,
+        socketPath: String,
+    ) {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        self.client = DockerClient(group: group, terminal: terminal, socketPath: socketPath)
+        self.containerName = containerName
+    }
+    
+    var isConnected: Bool { client.isConnected }
+
+    func start() async throws {
+        do {
+            try await client.connect(containerName: containerName)
+        } catch {
+            Library.log.error("Failed to connect Docker channel to container. (\(error.localizedDescription))")
+            Library.log.error(
+                "Check that the Docker configuration is correct, and check the minecraft server logs for further errors."
+            )
+        }
+    }
+    
+    func close() async throws {
+        do {
+            try await client.close()
+        } catch {
+            Library.log.error("Failed to close Docker channel. (\(error.localizedDescription))")
+            throw error
+        }
+    }
+
+    func reset() {}
+}
+
 struct SecureShellChannel: ContainerChannel {
     private let host: String
     private let port: Int

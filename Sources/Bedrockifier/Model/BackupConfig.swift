@@ -56,10 +56,8 @@ public struct BackupConfig: Codable {
         public var bedrock: [ContainerConfig]?
     }
 
-    public var dockerPath: String?
+    public var dockerSocketPath: String?
     public var rconPath: String?
-    public var sshPath: String?
-    public var sshpassPath: String?
     public var backupPath: String?
     public var tokenPath: String?
     public var listenerReconnectInterval: String?
@@ -70,6 +68,12 @@ public struct BackupConfig: Codable {
     public var ownership: OwnershipConfig?
     public var schedule: ScheduleConfig?
     public var loggingLevel: LoggingConfig?
+    
+    // Deprecated - Not Used Anymore
+    // Kept here because removal would regress existing users
+    public var dockerPath: String?
+    public var sshPath: String?
+    public var sshpassPath: String?
 }
 
 extension BackupConfig.ContainerConfig {
