@@ -21,7 +21,7 @@ RUN --mount=source=Docker/install-dependencies.sh,target=/tmp/install-dependenci
 ARG GITHUB_BASEURL=https://github.com
 
 # renovate: datasource=github-releases packageName=itzg/easy-add
-ARG EASY_ADD_VERSION=0.8.11
+ARG EASY_ADD_VERSION=0.8.12
 ADD ${GITHUB_BASEURL}/itzg/easy-add/releases/download/${EASY_ADD_VERSION}/easy-add_${TARGETOS}_${TARGETARCH}${TARGETVARIANT} /usr/bin/easy-add
 RUN chmod +x /usr/bin/easy-add
 
