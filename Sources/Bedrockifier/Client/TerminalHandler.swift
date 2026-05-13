@@ -67,7 +67,9 @@ final class TerminalHandler: ChannelDuplexHandler {
                     string = string.convertNewlinesForSSH()
                     Library.log.trace("Read data from NIO terminal: '\(string.debugDescription)'")
                     let buffer = ByteBuffer(string: string)
-                    context.writeAndFlush(self.wrapOutboundOut(buffer), promise: nil)
+                    context.writeAndFlush(self.wrapOutboundOut(buffer)).whenFailure { error in
+                        Library.log.error("Failed to write to Channel. (\(error.localizedDescription))")
+                    }
                 }
                 
                 self.terminalChannel = channel
