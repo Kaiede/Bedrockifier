@@ -60,6 +60,7 @@ final class SSHClient {
 
     func connect(host: String, port: Int) async throws {
         guard !isConnecting else {
+            // TODO: Need to support some mechanism for waiting on this connect?
             Library.log.debug("Skipping duplicate SSH connect request while a connect is already in progress.")
             return
         }
@@ -87,6 +88,8 @@ final class SSHClient {
             }
             Library.log.warning("SSH connection closed.")
         }
+        
+        Library.log.info("SSH connection to \(host):\(port) established.")
     }
 
     var isConnected: Bool {
@@ -136,6 +139,7 @@ final class SSHClient {
                 return eventLoop.makeFailedFuture(SSHClientError.unsupportedChannelType)
             }
 
+            Library.log.trace("Adding SSH Child Handlers.")
             return child.pipeline.addHandlers([
                 SSHPipeHandler(),
                 TerminalHandler(terminal: self.terminal),

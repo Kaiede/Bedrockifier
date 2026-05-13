@@ -53,35 +53,40 @@ final class TerminalHandler: ChannelDuplexHandler {
         }
     }
 
-    func handlerAdded(context: ChannelHandlerContext) async {
-        do {
-            let channel = try await terminal.connect()
-            channel.fileHandle.readabilityHandler = { handle in
-                guard var string = String(data: handle.availableData, encoding: .utf8) else {
-                    Library.log.error("Failed to read terminal data as UTF8 for SSH.")
-                    return
+    func handlerAdded(context: ChannelHandlerContext) {
+        Task {
+            do {
+                Library.log.trace("Connecting SSH Terminal.")
+                let channel = try await terminal.connect()
+                channel.fileHandle.readabilityHandler = { handle in
+                    guard var string = String(data: handle.availableData, encoding: .utf8) else {
+                        Library.log.error("Failed to read terminal data as UTF8 for SSH.")
+                        return
+                    }
+                    
+                    string = string.convertNewlinesForSSH()
+                    Library.log.trace("Read data from terminal: '\(string.withEscapedInvisibles())'")
+                    let buffer = ByteBuffer(string: string)
+                    context.writeAndFlush(self.wrapOutboundOut(buffer), promise: nil)
                 }
-
-                string = string.convertNewlinesForSSH()
-                Library.log.trace("Read data from terminal: '\(string.withEscapedInvisibles())'")
-                let buffer = ByteBuffer(string: string)
-                context.writeAndFlush(self.wrapOutboundOut(buffer), promise: nil)
+                
+                self.terminalChannel = channel
+                Library.log.info("SSH terminal connected.")
+            } catch {
+                Library.log.error("Failed to connect to terminal. (\(error.localizedDescription))")
             }
-
-            self.terminalChannel = channel
-            Library.log.info("SSH Terminal fully connected.")
-        } catch {
-            Library.log.error("Failed to connect to terminal. (\(error.localizedDescription))")
         }
     }
 
-    func handlerRemoved(context: ChannelHandlerContext) async {
-        self.terminalChannel?.fileHandle.readabilityHandler = nil
-        do {
-            try await self.terminalChannel?.disconnect()
-            Library.log.info("SSH Terminal disconnected.")
-        } catch {
-            Library.log.error("Failed to disconnect from Terminal. (\(error.localizedDescription)")
+    func handlerRemoved(context: ChannelHandlerContext) {
+        Task {
+            self.terminalChannel?.fileHandle.readabilityHandler = nil
+            do {
+                try await self.terminalChannel?.disconnect()
+                Library.log.info("SSH Terminal disconnected.")
+            } catch {
+                Library.log.error("Failed to disconnect from Terminal. (\(error.localizedDescription)")
+            }
         }
     }
 

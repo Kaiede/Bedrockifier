@@ -93,24 +93,22 @@ actor BackupActor {
     public func cleanupContainers() async {
         BackupService.logger.info("Checking for servers that might not be cleaned up")
         for container in containers where container.isSaveHeld(destination: backupUrl) {
-            Task {
-                BackupService.logger.info("\(container.name) is dirty, cleaning up")
-                do {
-                    let wasRunning = container.isRunning
-                    if !wasRunning {
-                        try await container.start()
-                    }
-
-                    BackupService.logger.info("Cleaning up old backups for \(container.name)")
-                    try await container.cleanupIncompleteBackup(destination: backupUrl)
-
-                    if !wasRunning {
-                        try await container.stop()
-                    }
-                } catch let error {
-                    BackupService.logger.error("\(error.localizedDescription)")
-                    BackupService.logger.error("Failed to clean up container \(container.name)")
+            BackupService.logger.info("\(container.name) is dirty, cleaning up")
+            do {
+                let wasRunning = container.isRunning
+                if !wasRunning {
+                    try await container.start()
                 }
+
+                BackupService.logger.info("Cleaning up old backups for \(container.name)")
+                try await container.cleanupIncompleteBackup(destination: backupUrl)
+
+                if !wasRunning {
+                    try await container.stop()
+                }
+            } catch let error {
+                BackupService.logger.error("\(error.localizedDescription)")
+                BackupService.logger.error("Failed to clean up container \(container.name)")
             }
         }
     }

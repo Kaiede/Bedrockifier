@@ -306,7 +306,7 @@ public class ContainerConnection {
     private func logTerminalSize() {
         Task {
             do {
-                let windowSize = try await terminal.terminal.getWindowSize()
+                let windowSize = try terminal.terminal.getWindowSize()
                 Library.log.debug(
                     "Docker Process Window Size Fetched. (cols = \(windowSize.ws_col), rows = \(windowSize.ws_row)"
                 )
