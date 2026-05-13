@@ -27,17 +27,20 @@ import Foundation
 import NIOCore
 import PTYKit
 
-final class TerminalHandler: ChannelDuplexHandler {
+
+final class TerminalHandler: ChannelDuplexHandler, @unchecked Sendable {
     typealias InboundIn = ByteBuffer
 
     typealias OutboundIn = ByteBuffer
     typealias OutboundOut = ByteBuffer
 
+    private let convertNewlines: Bool
     private let terminal: PseudoTerminal
     private var terminalChannel: PseudoTerminal.Channel?
 
-    init(terminal: PseudoTerminal) {
+    init(terminal: PseudoTerminal, convertNewlines: Bool = true) {
         self.terminal = terminal
+        self.convertNewlines = convertNewlines
     }
 
     deinit {
@@ -56,22 +59,26 @@ final class TerminalHandler: ChannelDuplexHandler {
     func handlerAdded(context: ChannelHandlerContext) {
         Task {
             do {
-                Library.log.trace("Connecting SSH Terminal.")
+                Library.log.trace("Connecting NIO Terminal.")
                 let channel = try await terminal.connect()
                 channel.fileHandle.readabilityHandler = { handle in
                     guard var string = String(data: handle.availableData, encoding: .utf8) else {
-                        Library.log.error("Failed to read terminal data as UTF8 for SSH.")
+                        Library.log.error("Failed to read terminal data as UTF8 for NIO.")
                         return
                     }
                     
-                    string = string.convertNewlinesForSSH()
-                    Library.log.trace("Read data from terminal: '\(string.withEscapedInvisibles())'")
+                    if self.convertNewlines {
+                        string = string.convertNewlinesForSSH()
+                    }
+                    Library.log.trace("Read data from NIO terminal: '\(string.debugDescription)'")
                     let buffer = ByteBuffer(string: string)
-                    context.writeAndFlush(self.wrapOutboundOut(buffer), promise: nil)
+                    context.writeAndFlush(self.wrapOutboundOut(buffer)).whenFailure { error in
+                        Library.log.error("Failed to write to Channel. (\(error.localizedDescription))")
+                    }
                 }
                 
                 self.terminalChannel = channel
-                Library.log.info("SSH terminal connected.")
+                Library.log.info("NIO terminal connected.")
             } catch {
                 Library.log.error("Failed to connect to terminal. (\(error.localizedDescription))")
             }
@@ -83,7 +90,7 @@ final class TerminalHandler: ChannelDuplexHandler {
             self.terminalChannel?.fileHandle.readabilityHandler = nil
             do {
                 try await self.terminalChannel?.disconnect()
-                Library.log.info("SSH Terminal disconnected.")
+                Library.log.info("NIO Terminal disconnected.")
             } catch {
                 Library.log.error("Failed to disconnect from Terminal. (\(error.localizedDescription)")
             }
@@ -93,11 +100,11 @@ final class TerminalHandler: ChannelDuplexHandler {
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         let bytes = unwrapInboundIn(data)
         let writableData = Data(buffer: bytes, byteTransferStrategy: .noCopy)
-        Library.log.trace("writing data to terminal")
+        Library.log.trace("Writing data to NIO terminal")
         if let terminalChannel = self.terminalChannel {
             do {
                 try terminalChannel.fileHandle.write(contentsOf: writableData)
-                Library.log.trace("written data to terminal")
+                Library.log.trace("Wrote data to NIO terminal")
             } catch {
                 Library.log.error("Failed to write data to terminal fileHandle.")
             }

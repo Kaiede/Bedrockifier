@@ -24,11 +24,11 @@ let package = Package(
         // Dependencies declare other packages that this package depends on.
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.7.1"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.12.0"),
+        .package(url: "https://github.com/apple/swift-nio.git", from: "2.99.0"),
         .package(url: "https://github.com/apple/swift-nio-ssh.git", from: "0.13.0"),
         .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.22.0"),
         .package(url: "https://github.com/jpsim/Yams.git", from: "6.2.1"),
         .package(url: "https://github.com/Kaiede/PTYKit.git", branch: "master"),
-        .package(url: "https://github.com/swift-server/swift-backtrace.git", from: "1.3.5"),
         .package(url: "https://github.com/vapor/console-kit.git", from: "4.16.0"),
         .package(url: "https://github.com/weichsel/ZIPFoundation.git", from: "0.9.20")
     ],
@@ -48,7 +48,6 @@ let package = Package(
             dependencies: [
                 "Bedrockifier",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "Backtrace", package: "swift-backtrace"),
                 .product(name: "Hummingbird", package: "hummingbird")
             ]
         ),
@@ -56,6 +55,7 @@ let package = Package(
             name: "Bedrockifier",
             dependencies: [
                 .product(name: "Logging", package: "swift-log"),
+                .product(name: "NIOHTTP1", package: "swift-nio"),
                 .product(name: "NIOSSH", package: "swift-nio-ssh"),
                 .product(name: "PTYKit", package: "PTYKit"),
                 .product(name: "Yams", package: "Yams"),

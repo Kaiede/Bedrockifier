@@ -66,7 +66,7 @@ final class SSHPipeHandler: ChannelDuplexHandler {
     func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
         let bytes = self.unwrapOutboundIn(data)
 
-        Library.log.trace("writing data: '\(String(buffer: bytes).withEscapedInvisibles())'")
+        Library.log.trace("writing data: '\(String(buffer: bytes).debugDescription)'")
         let channelData = SSHChannelData(type: .channel, data: .byteBuffer(bytes))
         context.write(self.wrapOutboundOut(channelData), promise: promise)
     }

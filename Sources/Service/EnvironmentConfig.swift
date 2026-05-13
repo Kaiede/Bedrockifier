@@ -36,7 +36,7 @@ struct EnvironmentConfig {
     static let defaultOldDataPath = "/backups"
 
     // External Tools in Container
-    let dockerPath: String
+    let dockerSocketPath: String
     let rconPath: String
 
     // Config Folder Settings
@@ -53,7 +53,7 @@ struct EnvironmentConfig {
 
     init() {
         // External Tools in Container
-        self.dockerPath = ProcessInfo.processInfo.environment["DOCKER_PATH"] ?? "/usr/bin/docker"
+        self.dockerSocketPath = ProcessInfo.processInfo.environment["DOCKER_SOCK"] ?? "/var/run/docker.sock"
         self.rconPath = ProcessInfo.processInfo.environment["RCON_PATH"] ?? "/usr/local/bin/rcon-cli"
 
         // Config Folder Settings

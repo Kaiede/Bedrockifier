@@ -73,31 +73,20 @@ public class ContainerConnection {
         case .java:
             self.terminal = JavaTerminal(terminal: terminal)
         }
-
-        switch connectionConfig.kind {
-        case .ssh:
-            let address = try connectionConfig.makeArguments()
-            guard let port = Int(address[1]) else {
-                throw ParseError.invalidSyntax
-            }
-            guard let validator = config.validator else {
-                throw ParseError.invalidSyntax
-            }
+        
+        switch try connectionConfig.makeChannelConfig() {
+        case .process(let url, let arguments):
+            self.channel = try await ProcessChannel(terminal: terminal, processUrl: url, processArgs: arguments)
+        case .docker(let socketPath, let containerName):
+            self.channel = DockerChannel(terminal: terminal, containerName: containerName, socketPath: socketPath)
+        case .ssh(let host, let port, let validator):
             self.channel = SecureShellChannel(
                 terminal: terminal,
-                host: address[0],
+                host: host,
                 port: port,
                 validator: validator,
                 password: connectionConfig.password
             )
-        case .rcon:
-            let processUrl = config.processUrl
-            let processArgs = try config.makeArguments()
-            self.channel = try await ProcessChannel(terminal: terminal, processUrl: processUrl, processArgs: processArgs)
-        case .docker:
-            let processUrl = config.processUrl
-            let processArgs = try config.makeArguments()
-            self.channel = try await ProcessChannel(terminal: terminal, processUrl: processUrl, processArgs: processArgs)
         }
 
         try await self.terminal.setWindowSize(columns: 65000, rows: 24)
@@ -355,7 +344,7 @@ extension ContainerConnection {
             let worlds = try World.getWorlds(at: worldsFolder)
             let worldPaths = worlds.map({ $0.location.path })
             let config = DockerConnectionConfig(
-                dockerPath: tools.dockerPath,
+                socketPath: tools.dockerSocketPath,
                 containerName: containerName,
                 prefixAllContainerNames: prefixAllContainers
             )
@@ -392,7 +381,7 @@ extension ContainerConnection {
             return rconConfig
         } else {
             return DockerConnectionConfig(
-                dockerPath: tools.dockerPath,
+                socketPath: tools.dockerSocketPath,
                 config: container,
                 prefixAllContainerNames: prefixAllContainerNames
             )

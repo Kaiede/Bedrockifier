@@ -24,7 +24,6 @@
  */
 
 import ArgumentParser
-import Backtrace
 import Foundation
 import Logging
 import PTYKit
@@ -41,7 +40,7 @@ struct Server: ParsableCommand {
     var hostKeysPath: String?
 
     @Option(name: .shortAndLong, help: "Path to docker")
-    var dockerPath: String?
+    var dockerSocketPath: String?
 
     @Option(name: .shortAndLong, help: "Path to rcon-cli")
     var rconPath: String?
@@ -79,10 +78,9 @@ struct Server: ParsableCommand {
             return
         }
 
-        let dockerPath = self.dockerPath ?? config.dockerPath ?? environment.dockerPath
-        guard FileManager.default.fileExists(atPath: dockerPath) else {
-            Server.logger.error("Docker not found at path \(dockerPath)")
-            return
+        let dockerSocketPath = self.dockerSocketPath ?? config.dockerSocketPath ?? environment.dockerSocketPath
+        if !FileManager.default.fileExists(atPath: dockerSocketPath) {
+            Server.logger.info("Docker socket not found at path \(dockerSocketPath). Using docker to control containers will fail.")
         }
 
         let rconPath = self.rconPath ?? config.rconPath ?? environment.rconPath
@@ -93,7 +91,7 @@ struct Server: ParsableCommand {
 
         let hostKeysUri = getHostKeyFileUrl(environment: environment)
         let tools = ToolConfig(
-            dockerPath: dockerPath,
+            dockerSocketPath: dockerSocketPath,
             rconPath: rconPath,
             hostKeyValidator: SSHHostKeyValidator(keysFile: hostKeysUri)
         )

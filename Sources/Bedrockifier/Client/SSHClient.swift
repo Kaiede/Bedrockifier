@@ -114,9 +114,9 @@ final class SSHClient {
     private func makeBootstrap() -> ClientBootstrap {
         return ClientBootstrap(group: group)
             .channelInitializer(self.initializeChannel)
-            .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
-            .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_KEEPALIVE), value: 1)
-            .channelOption(ChannelOptions.socket(SocketOptionLevel(IPPROTO_TCP), TCP_NODELAY), value: 1)
+            .channelOption(.socketOption(.so_reuseaddr), value: 1)
+            .channelOption(.socketOption(.so_keepalive), value: 1)
+            .channelOption(.socket(IPPROTO_TCP, TCP_NODELAY), value: 1)
     }
 
     private func initializeChannel(channel: Channel) -> EventLoopFuture<Void> {
