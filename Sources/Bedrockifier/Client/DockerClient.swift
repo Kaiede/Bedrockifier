@@ -111,12 +111,14 @@ final class DockerClient {
             httpEncoder: httpEncoder,
             httpDecoder: httpDecoder
         ) { channel, isTTY in
+            let terminalHandler = TerminalHandler(terminal: terminal, convertNewlines: !isTTY)
+            
             if isTTY {
-                return channel.pipeline.addHandler(TerminalHandler(terminal: terminal))
+                return channel.pipeline.addHandler(terminalHandler)
             }
             return channel.pipeline.addHandlers([
                 DockerStreamDemuxHandler(),
-                TerminalHandler(terminal: terminal)
+                terminalHandler
             ])
         }
 

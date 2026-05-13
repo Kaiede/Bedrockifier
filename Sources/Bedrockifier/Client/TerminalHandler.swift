@@ -34,11 +34,13 @@ final class TerminalHandler: ChannelDuplexHandler, @unchecked Sendable {
     typealias OutboundIn = ByteBuffer
     typealias OutboundOut = ByteBuffer
 
+    private let convertNewlines: Bool
     private let terminal: PseudoTerminal
     private var terminalChannel: PseudoTerminal.Channel?
 
-    init(terminal: PseudoTerminal) {
+    init(terminal: PseudoTerminal, convertNewlines: Bool = true) {
         self.terminal = terminal
+        self.convertNewlines = convertNewlines
     }
 
     deinit {
@@ -65,7 +67,9 @@ final class TerminalHandler: ChannelDuplexHandler, @unchecked Sendable {
                         return
                     }
                     
-                    string = string.convertNewlinesForSSH()
+                    if self.convertNewlines {
+                        string = string.convertNewlinesForSSH()
+                    }
                     Library.log.trace("Read data from NIO terminal: '\(string.debugDescription)'")
                     let buffer = ByteBuffer(string: string)
                     context.writeAndFlush(self.wrapOutboundOut(buffer)).whenFailure { error in
