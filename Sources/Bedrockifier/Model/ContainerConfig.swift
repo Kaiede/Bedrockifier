@@ -29,12 +29,10 @@ import PTYKit
 
 public struct ToolConfig {
     let dockerSocketPath: String
-    let rconPath: String
     let hostKeyValidator: SSHHostKeyValidator
 
-    public init(dockerSocketPath: String, rconPath: String, hostKeyValidator: SSHHostKeyValidator) {
+    public init(dockerSocketPath: String, hostKeyValidator: SSHHostKeyValidator) {
         self.dockerSocketPath = dockerSocketPath
-        self.rconPath = rconPath
         self.hostKeyValidator = hostKeyValidator
     }
 }
@@ -76,8 +74,9 @@ public enum ContainerConnectionConfigKind {
 
 public enum ContainerChannelConfig {
     case process(url: URL, arguments: [String])
-    case ssh(host: String, port: Int, validator: SSHHostKeyValidator)
     case docker(socket: String, container: String)
+    case ssh(host: String, port: Int, validator: SSHHostKeyValidator)
+    case rcon(host: String, port: Int)
 }
 
 public protocol ContainerConnectionConfig {
@@ -120,13 +119,12 @@ public struct DockerConnectionConfig: ContainerConnectionConfig {
 }
 
 public struct RCONConnectionConfig: ContainerConnectionConfig {
-    let rconPath: String
     let address: String
     public let password: ContainerPassword
     public let validator: SSHHostKeyValidator? = nil
     public let prefixContainerName: Bool
 
-    init?(rconPath: String, config: BackupConfig.ContainerConfig, prefixAllContainerNames: Bool) {
+    init?(config: BackupConfig.ContainerConfig, prefixAllContainerNames: Bool) {
         guard let rconAddr = config.rcon else { return nil }
         let password = config.containerPassword()
         guard password != .none else {
@@ -136,7 +134,6 @@ public struct RCONConnectionConfig: ContainerConnectionConfig {
             return nil
         }
 
-        self.rconPath = rconPath
         self.address = rconAddr
         self.password = password
         self.prefixContainerName = config.prefixContainerName == true || prefixAllContainerNames
@@ -150,17 +147,11 @@ public struct RCONConnectionConfig: ContainerConnectionConfig {
         guard parts.count == 2 else {
             throw ParseError.invalidHostname(address)
         }
+        guard let port = Int(parts[1]) else {
+            throw ParseError.invalidHostname(address)
+        }
         
-        return .process(
-            url: URL(fileURLWithPath: rconPath),
-            arguments: [
-                "--host",
-                "\(parts[0])",
-                "--port",
-                "\(parts[1])",
-                "--password",
-                "\(password)"
-        ])
+        return .rcon(host: String(parts[0]), port: port)
     }
 }
 

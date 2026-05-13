@@ -42,9 +42,6 @@ struct Server: ParsableCommand {
     @Option(name: .shortAndLong, help: "Path to docker")
     var dockerSocketPath: String?
 
-    @Option(name: .shortAndLong, help: "Path to rcon-cli")
-    var rconPath: String?
-
     @Option(name: .shortAndLong, help: "Folder to read config from")
     var configFolder: String?
 
@@ -83,16 +80,9 @@ struct Server: ParsableCommand {
             Server.logger.info("Docker socket not found at path \(dockerSocketPath). Using docker to control containers will fail.")
         }
 
-        let rconPath = self.rconPath ?? config.rconPath ?? environment.rconPath
-        guard FileManager.default.fileExists(atPath: rconPath) else {
-            Server.logger.error("rcon-cli not found at path \(rconPath)")
-            return
-        }
-
         let hostKeysUri = getHostKeyFileUrl(environment: environment)
         let tools = ToolConfig(
             dockerSocketPath: dockerSocketPath,
-            rconPath: rconPath,
             hostKeyValidator: SSHHostKeyValidator(keysFile: hostKeysUri)
         )
 

@@ -102,6 +102,52 @@ struct DockerChannel: ContainerChannel {
     func reset() {}
 }
 
+struct RConChannel: ContainerChannel {
+    private let host: String
+    private let port: Int
+    private let password: ContainerPassword
+    private var client: RConClient
+    
+    init(
+        terminal: PseudoTerminal,
+        host: String,
+        port: Int,
+        password: ContainerPassword
+    ) {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        let client = RConClient(group: group, terminal: terminal)
+        self.client = client
+        self.host = host
+        self.port = port
+        self.password = password
+    }
+    
+    var isConnected: Bool { client.isConnected }
+
+    func start() async throws {
+        do {
+            try await client.connect(host: host, port: port)
+            try await client.authenticate(password: password)
+        } catch {
+            Library.log.error("Failed to connect RCON channel to host. (\(error.localizedDescription))")
+            Library.log.error(
+                "Check that the RCON configuration is correct, and check the minecraft server logs for further errors."
+            )
+        }
+    }
+
+    func close() async throws {
+        do {
+            try await client.close()
+        } catch {
+            Library.log.error("Failed to close RCON channel. (\(error.localizedDescription))")
+            throw error
+        }
+    }
+
+    func reset() {}
+}
+
 struct SecureShellChannel: ContainerChannel {
     private let host: String
     private let port: Int

@@ -79,6 +79,8 @@ public class ContainerConnection {
             self.channel = try await ProcessChannel(terminal: terminal, processUrl: url, processArgs: arguments)
         case .docker(let socketPath, let containerName):
             self.channel = DockerChannel(terminal: terminal, containerName: containerName, socketPath: socketPath)
+        case .rcon(let host, let port):
+            self.channel = RConChannel(terminal: terminal, host: host, port: port, password: connectionConfig.password)
         case .ssh(let host, let port, let validator):
             self.channel = SecureShellChannel(
                 terminal: terminal,
@@ -374,7 +376,6 @@ extension ContainerConnection {
         ) {
             return sshConfig
         } else if let rconConfig = RCONConnectionConfig(
-            rconPath: tools.rconPath,
             config: container,
             prefixAllContainerNames: prefixAllContainerNames
         ) {
