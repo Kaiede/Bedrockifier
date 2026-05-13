@@ -30,8 +30,9 @@ import PTYKit
 public struct ToolConfig {
     let dockerSocketPath: String
     let hostKeyValidator: SSHHostKeyValidator
-        self.dockerSocketPath = dockerSocketPath
+
     public init(dockerSocketPath: String, hostKeyValidator: SSHHostKeyValidator) {
+        self.dockerSocketPath = dockerSocketPath
         self.hostKeyValidator = hostKeyValidator
     }
 }
@@ -148,9 +149,6 @@ public struct RCONConnectionConfig: ContainerConnectionConfig {
         }
         guard let port = Int(parts[1]) else {
             throw ParseError.invalidHostname(address)
-        }
-        guard let validator else {
-            throw ParseError.invalidSyntax
         }
         
         return .rcon(host: String(parts[0]), port: port)

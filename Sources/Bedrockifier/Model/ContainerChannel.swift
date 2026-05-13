@@ -130,7 +130,7 @@ struct RConChannel: ContainerChannel {
         do {
             try await client.connect(host: host, port: port)
             try await client.authenticate(password: password)
-            try terminalHandler.start()
+            try await terminalHandler.start()
         } catch {
             Library.log.error("Failed to connect RCON channel to host. (\(error.localizedDescription))")
             Library.log.error(
@@ -141,7 +141,7 @@ struct RConChannel: ContainerChannel {
 
     func close() async throws {
         do {
-            terminalHandler.stop()
+            await terminalHandler.stop()
             try await client.close()
         } catch {
             Library.log.error("Failed to close RCON channel. (\(error.localizedDescription))")

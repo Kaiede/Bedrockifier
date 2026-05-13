@@ -33,7 +33,7 @@ ARG IMAGEVARIANT
 RUN --mount=source=Docker/install-dependencies.sh,target=/tmp/install-dependencies.sh \
     /tmp/install-dependencies.sh ${IMAGEVARIANT}
 
-COPY --from=deps /usr/local/bin/rcon-cli /usr/local/bin/entrypoint-demoter /usr/local/bin/
+COPY --from=deps /usr/local/bin/entrypoint-demoter /usr/local/bin/
 COPY --from=builder /project/.build/release/bedrockifier-tool /project/.build/release/bedrockifierd .
 COPY ./Docker/entry.sh ./Docker/trigger-backup.sh .
 

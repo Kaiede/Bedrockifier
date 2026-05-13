@@ -43,16 +43,20 @@ final class RConTerminalHandler {
     deinit {
         commandContinuation?.finish()
         processingTask?.cancel()
-        do {
-            try terminalChannel?.disconnect()
-            Library.log.info("RCON Terminal disconnected from deinit.")
-        } catch {
-            Library.log.error("Failed to disconnect from Terminal during deinit. (\(error.localizedDescription)")
+        if let terminalChannel {
+            Task {
+                do {
+                    try await terminalChannel.disconnect()
+                    Library.log.info("RCON Terminal disconnected from deinit.")
+                } catch {
+                    Library.log.error("Failed to disconnect from RCON Terminal during deinit. (\(error.localizedDescription)")
+                }
+            }
         }
     }
 
-    func start() throws {
-        let channel = try terminal.connect()
+    func start() async throws {
+        let channel = try await terminal.connect()
         let (stream, continuation) = AsyncStream<String>.makeStream()
 
         channel.fileHandle.readabilityHandler = { [weak self] handle in
@@ -71,7 +75,7 @@ final class RConTerminalHandler {
         Library.log.info("RCON Terminal fully connected.")
     }
 
-    func stop() {
+    func stop() async {
         commandContinuation?.finish()
         commandContinuation = nil
         processingTask?.cancel()
@@ -79,7 +83,7 @@ final class RConTerminalHandler {
 
         terminalChannel?.fileHandle.readabilityHandler = nil
         do {
-            try terminalChannel?.disconnect()
+            try await terminalChannel?.disconnect()
             Library.log.info("RCON Terminal disconnected.")
         } catch {
             Library.log.error("Failed to disconnect from Terminal. (\(error.localizedDescription)")
@@ -93,7 +97,7 @@ final class RConTerminalHandler {
             return
         }
 
-        Library.log.trace("Read data from terminal: '\(string.withEscapedInvisibles())'")
+        Library.log.trace("Read data from terminal: '\(string.debugDescription)'")
         lineBuffer.append(string)
 
         // RCON sends discrete commands, so split on newlines and dispatch each whole line.
@@ -125,7 +129,7 @@ final class RConTerminalHandler {
         // terminate the response so the next read on the consumer side is line-aligned.
         let normalized = response.convertNewlinesForSSH()
         let payload = normalized.hasSuffix("\r\n") ? normalized : normalized + "\r\n"
-        Library.log.trace("Writing RCON response to terminal: '\(payload.withEscapedInvisibles())'")
+        Library.log.trace("Writing RCON response to terminal: '\(payload.debugDescription)'")
 
         do {
             try terminalChannel.fileHandle.write(contentsOf: Data(payload.utf8))
