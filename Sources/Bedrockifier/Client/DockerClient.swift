@@ -91,8 +91,8 @@ final class DockerClient {
                 channel.pipeline.addHandler(upgradeHandler)
             }
 
+        Library.log.trace("Opening docker socket...")
         let channel = try await bootstrap.connect(unixDomainSocketPath: socketPath).get()
-
         do {
             try await upgradePromise.futureResult.get()
         } catch {
@@ -100,6 +100,7 @@ final class DockerClient {
             throw error
         }
 
+        Library.log.trace("Creating channel.")
         self.connectedChannel = channel
         channel.closeFuture.whenComplete { [weak self, weak channel] _ in
             guard let self = self, let channel = channel else { return }
@@ -110,6 +111,8 @@ final class DockerClient {
             }
             Library.log.warning("Docker connection closed.")
         }
+        
+        Library.log.info("Attached to container '\(containerName)'.")
     }
 
     func close() async throws {
@@ -187,6 +190,7 @@ final class DockerAttachUpgradeHandler: ChannelInboundHandler, RemovableChannelH
     }
 
     func channelActive(context: ChannelHandlerContext) {
+        Library.log.trace("Starting docker connection upgrade.")
         let path = "/containers/\(containerName)/attach?stream=1&stdin=1&stdout=1&stderr=1"
         let request =
             "POST \(path) HTTP/1.1\r\n" +
@@ -255,7 +259,9 @@ final class DockerAttachUpgradeHandler: ChannelInboundHandler, RemovableChannelH
                 if let leftover = leftover, leftover.readableBytes > 0 {
                     context.fireChannelRead(self.wrapInboundOut(leftover))
                 }
-                context.pipeline.removeHandler(context: context).whenComplete { _ in
+                context.pipeline.removeHandler(self).whenComplete { _ in
+                    Library.log.debug("Docker attach upgrade completed.")
+                    Library.log.debug("\(context.pipeline.debugDescription)")
                     self.upgradePromise.succeed(())
                 }
             case .failure(let error):
