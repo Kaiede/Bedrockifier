@@ -165,7 +165,7 @@ struct RConFrame {
 
 extension RConFrame: CustomDebugStringConvertible {
     var debugDescription: String {
-        "RConFrame(id: \(id), type: \(type), body: \(body))"
+        "RConFrame(id: \(id), type: \(type), body: \(body.debugDescription))"
     }
 }
 
@@ -335,10 +335,11 @@ final class RConStreamHandler: ChannelDuplexHandler, @unchecked Sendable {
         
     func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
         var byteBuffer = unwrapOutboundIn(data)
-        guard let body = byteBuffer.readString(length: byteBuffer.readableBytes) else {
+        guard var body = byteBuffer.readString(length: byteBuffer.readableBytes) else {
             return
         }
         
+        body = body.trimmingCharacters(in: .newlines)
         let id = client.nextID()
         let frame = RConFrame(id: id, type: RConFrame.typeExecCommand, body: body)
         context.write(self.wrapOutboundOut(frame), promise: promise)
