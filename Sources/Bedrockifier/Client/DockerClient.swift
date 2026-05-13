@@ -26,6 +26,7 @@
 import Foundation
 
 import NIOCore
+import NIOHTTP1
 import NIOPosix
 import PTYKit
 
@@ -33,6 +34,26 @@ enum DockerClientError: Error {
     case invalidResponse
     case upgradeFailed(String)
     case connectionClosed
+    case inspectFailed(String)
+    case stdinUnavailable(String)
+}
+
+private struct ContainerInspect: Decodable {
+    struct Config: Decodable {
+        let tty: Bool
+        let openStdin: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case tty = "Tty"
+            case openStdin = "OpenStdin"
+        }
+    }
+
+    let config: Config
+
+    enum CodingKeys: String, CodingKey {
+        case config = "Config"
+    }
 }
 
 final class DockerClient {
@@ -74,27 +95,41 @@ final class DockerClient {
         defer { self.isConnecting = false }
 
         self.attachedContainer = containerName
-        Library.log.info("Connecting Docker attach for container '\(containerName)' via \(socketPath)")
+        Library.log.info("Connecting to Docker container '\(containerName)' via \(socketPath)")
 
         let terminal = self.terminal
-        let upgradePromise = group.next().makePromise(of: Void.self)
-        let upgradeHandler = DockerAttachUpgradeHandler(
+        let connectPromise = group.next().makePromise(of: Void.self)
+
+        let httpEncoder = HTTPRequestEncoder()
+        let httpDecoder = ByteToMessageHandler(
+            HTTPResponseDecoder(leftOverBytesStrategy: .forwardBytes)
+        )
+
+        let connectionHandler = DockerConnectionHandler(
             containerName: containerName,
-            upgradePromise: upgradePromise
-        ) { channel in
-            channel.pipeline.addHandler(TerminalHandler(terminal: terminal))
+            connectPromise: connectPromise,
+            httpEncoder: httpEncoder,
+            httpDecoder: httpDecoder
+        ) { channel, isTTY in
+            if isTTY {
+                return channel.pipeline.addHandler(TerminalHandler(terminal: terminal))
+            }
+            return channel.pipeline.addHandlers([
+                DockerStreamDemuxHandler(),
+                TerminalHandler(terminal: terminal)
+            ])
         }
 
         let bootstrap = ClientBootstrap(group: group)
-            .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_KEEPALIVE), value: 1)
+            .channelOption(.socketOption(.so_keepalive), value: 1)
             .channelInitializer { channel in
-                channel.pipeline.addHandler(upgradeHandler)
+                channel.pipeline.addHandlers([httpEncoder, httpDecoder, connectionHandler])
             }
 
         Library.log.trace("Opening docker socket...")
         let channel = try await bootstrap.connect(unixDomainSocketPath: socketPath).get()
         do {
-            try await upgradePromise.futureResult.get()
+            try await connectPromise.futureResult.get()
         } catch {
             try? await channel.close()
             throw error
@@ -104,6 +139,7 @@ final class DockerClient {
         self.connectedChannel = channel
         channel.closeFuture.whenComplete { [weak self, weak channel] _ in
             guard let self = self, let channel = channel else { return }
+
             let wasActiveChannel = self.connectedChannel === channel
             if wasActiveChannel {
                 self.connectedChannel = nil
@@ -111,7 +147,7 @@ final class DockerClient {
             }
             Library.log.warning("Docker connection closed.")
         }
-        
+
         Library.log.info("Attached to container '\(containerName)'.")
     }
 
@@ -164,142 +200,258 @@ final class DockerClient {
     }
 }
 
-/// Sends the Docker attach request, parses the HTTP/1.1 response headers,
-/// validates the 101 upgrade, then swaps itself out for the supplied post-upgrade
-/// handlers so the rest of the pipeline sees a raw byte stream to the container.
-final class DockerAttachUpgradeHandler: ChannelInboundHandler, RemovableChannelHandler {
-    typealias InboundIn = ByteBuffer
-    typealias InboundOut = ByteBuffer
-    typealias OutboundOut = ByteBuffer
+/// Drives the Docker attach lifecycle on top of NIOHTTP1:
+///   1. GET `/containers/{name}/json` -> parse `Config.Tty` / `Config.OpenStdin`.
+///   2. POST `/containers/{name}/attach` with `Upgrade: tcp` -> wait for 101.
+///   3. Reconfigure the pipeline: install the post-upgrade handlers, then remove
+///      the HTTP codec (forwarding any unread bytes as raw ByteBuffers) and self.
+final class DockerConnectionHandler: ChannelInboundHandler, RemovableChannelHandler, @unchecked Sendable {
+    typealias InboundIn = HTTPClientResponsePart
+    typealias OutboundOut = HTTPClientRequestPart
+
+    private enum State {
+        case awaitingInspectHead
+        case readingInspectBody
+        case awaitingUpgradeHead
+        case awaitingUpgradeEnd
+        case reconfiguring
+        case streaming
+        case failed
+    }
 
     private let containerName: String
-    private let upgradePromise: EventLoopPromise<Void>
-    private let installPostUpgradeHandlers: (Channel) -> EventLoopFuture<Void>
+    private let connectPromise: EventLoopPromise<Void>
+    private let httpEncoder: HTTPRequestEncoder
+    private let httpDecoder: ByteToMessageHandler<HTTPResponseDecoder>
+    private let installPostUpgradeHandlers: (Channel, Bool) -> EventLoopFuture<Void>
 
-    private var responseBuffer: ByteBuffer?
-    private var upgradeComplete = false
+    private var state: State = .awaitingInspectHead
+    private var inspectBody: ByteBuffer?
+    private var isTTY = false
 
     init(
         containerName: String,
-        upgradePromise: EventLoopPromise<Void>,
-        installPostUpgradeHandlers: @escaping (Channel) -> EventLoopFuture<Void>
+        connectPromise: EventLoopPromise<Void>,
+        httpEncoder: HTTPRequestEncoder,
+        httpDecoder: ByteToMessageHandler<HTTPResponseDecoder>,
+        installPostUpgradeHandlers: @escaping (Channel, Bool) -> EventLoopFuture<Void>
     ) {
         self.containerName = containerName
-        self.upgradePromise = upgradePromise
+        self.connectPromise = connectPromise
+        self.httpEncoder = httpEncoder
+        self.httpDecoder = httpDecoder
         self.installPostUpgradeHandlers = installPostUpgradeHandlers
     }
 
     func channelActive(context: ChannelHandlerContext) {
-        Library.log.trace("Starting docker connection upgrade.")
-        let path = "/containers/\(containerName)/attach?stream=1&stdin=1&stdout=1&stderr=1"
-        let request =
-            "POST \(path) HTTP/1.1\r\n" +
-            "Host: docker\r\n" +
-            "Connection: Upgrade\r\n" +
-            "Upgrade: tcp\r\n" +
-            "Content-Length: 0\r\n" +
-            "\r\n"
-
-        var buffer = context.channel.allocator.buffer(capacity: request.utf8.count)
-        buffer.writeString(request)
-        context.writeAndFlush(wrapOutboundOut(buffer), promise: nil)
+        sendInspectRequest(context: context)
         context.fireChannelActive()
     }
 
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        var inbound = unwrapInboundIn(data)
+        let part = unwrapInboundIn(data)
 
-        if upgradeComplete {
-            // Post-upgrade reads should already be flowing past us. Pass through defensively.
-            context.fireChannelRead(wrapInboundOut(inbound))
-            return
-        }
-
-        if responseBuffer == nil {
-            responseBuffer = inbound
-        } else {
-            responseBuffer?.writeBuffer(&inbound)
-        }
-
-        guard var buffer = responseBuffer else { return }
-        guard let headerEnd = indexOfCRLFCRLF(in: buffer.readableBytesView) else {
-            // Wait for more data; keep accumulating.
-            responseBuffer = buffer
-            return
-        }
-
-        let headerLength = headerEnd + 4
-        let headerBytes = buffer.readBytes(length: headerLength) ?? []
-        let leftover = buffer.readableBytes > 0 ? buffer.readSlice(length: buffer.readableBytes) : nil
-        responseBuffer = nil
-
-        guard let headers = String(bytes: headerBytes, encoding: .utf8) else {
-            upgradePromise.fail(DockerClientError.invalidResponse)
-            context.close(promise: nil)
-            return
-        }
-
-        let statusLine = headers.split(whereSeparator: { $0 == "\r" || $0 == "\n" }).first.map(String.init) ?? ""
-        let parts = statusLine.split(separator: " ", maxSplits: 2).map(String.init)
-        guard parts.count >= 2, parts[1] == "101" else {
-            Library.log.error("Docker attach upgrade failed: '\(statusLine)'")
-            upgradePromise.fail(DockerClientError.upgradeFailed(statusLine))
-            context.close(promise: nil)
-            return
-        }
-
-        Library.log.debug("Docker attach upgrade accepted.")
-        upgradeComplete = true
-
-        installPostUpgradeHandlers(context.channel).whenComplete { [weak self] result in
-            guard let self = self else { return }
-            switch result {
-            case .success:
-                // Forward any bytes that arrived after the headers — they belong to the post-upgrade pipeline.
-                if let leftover = leftover, leftover.readableBytes > 0 {
-                    context.fireChannelRead(self.wrapInboundOut(leftover))
-                }
-                context.pipeline.removeHandler(self).whenComplete { _ in
-                    Library.log.debug("Docker attach upgrade completed.")
-                    Library.log.debug("\(context.pipeline.debugDescription)")
-                    self.upgradePromise.succeed(())
-                }
-            case .failure(let error):
-                self.upgradePromise.fail(error)
-                context.close(promise: nil)
+        switch state {
+        case .awaitingInspectHead:
+            guard case .head(let head) = part else {
+                fail(DockerClientError.invalidResponse, context: context)
+                return
             }
+            guard head.status == .ok else {
+                Library.log.error("Docker inspect failed: \(head.status)")
+                fail(DockerClientError.inspectFailed("\(head.status)"), context: context)
+                return
+            }
+            state = .readingInspectBody
+
+        case .readingInspectBody:
+            switch part {
+            case .body(var chunk):
+                if inspectBody == nil {
+                    inspectBody = chunk
+                } else {
+                    inspectBody?.writeBuffer(&chunk)
+                }
+            case .end:
+                finishInspect(context: context)
+            case .head:
+                fail(DockerClientError.invalidResponse, context: context)
+            }
+
+        case .awaitingUpgradeHead:
+            guard case .head(let head) = part else {
+                // .body or .end before .head is malformed.
+                fail(DockerClientError.invalidResponse, context: context)
+                return
+            }
+            guard head.status == .switchingProtocols else {
+                Library.log.error("Docker attach upgrade failed: \(head.status)")
+                fail(DockerClientError.upgradeFailed("\(head.status)"), context: context)
+                return
+            }
+            state = .awaitingUpgradeEnd
+
+        case .awaitingUpgradeEnd:
+            if case .end = part {
+                beginUpgrade(context: context)
+            }
+            // Ignore any stray .body
+
+        case .reconfiguring, .streaming, .failed:
+            return
         }
     }
 
     func errorCaught(context: ChannelHandlerContext, error: Error) {
-        if !upgradeComplete {
-            upgradePromise.fail(error)
-        }
         Library.log.error("Docker pipeline error: \(error.localizedDescription)")
-        context.close(promise: nil)
+        fail(error, context: context)
     }
 
     func channelInactive(context: ChannelHandlerContext) {
-        if !upgradeComplete {
-            upgradePromise.fail(DockerClientError.connectionClosed)
+        if state != .streaming, state != .failed {
+            state = .failed
+            connectPromise.fail(DockerClientError.connectionClosed)
         }
         context.fireChannelInactive()
     }
 
-    private func indexOfCRLFCRLF(in bytes: ByteBufferView) -> Int? {
-        // \r\n\r\n
-        let needle: [UInt8] = [0x0D, 0x0A, 0x0D, 0x0A]
-        guard bytes.count >= needle.count else { return nil }
-        let start = bytes.startIndex
-        for offset in 0...(bytes.count - needle.count) {
-            let i0 = bytes.index(start, offsetBy: offset)
-            if bytes[i0] == needle[0]
-                && bytes[bytes.index(i0, offsetBy: 1)] == needle[1]
-                && bytes[bytes.index(i0, offsetBy: 2)] == needle[2]
-                && bytes[bytes.index(i0, offsetBy: 3)] == needle[3] {
-                return offset
+    private func sendInspectRequest(context: ChannelHandlerContext) {
+        Library.log.trace("Sending docker inspect request.")
+        var head = HTTPRequestHead(
+            version: .http1_1,
+            method: .GET,
+            uri: "/containers/\(containerName)/json"
+        )
+        head.headers.add(name: "Host", value: "docker")
+        head.headers.add(name: "Accept", value: "application/json")
+        context.write(wrapOutboundOut(.head(head)), promise: nil)
+        context.writeAndFlush(wrapOutboundOut(.end(nil)), promise: nil)
+    }
+
+    private func sendUpgradeRequest(context: ChannelHandlerContext) {
+        Library.log.trace("Sending docker attach upgrade.")
+        var head = HTTPRequestHead(
+            version: .http1_1,
+            method: .POST,
+            uri: "/containers/\(containerName)/attach?stream=1&stdin=1&stdout=1&stderr=1"
+        )
+        head.headers.add(name: "Host", value: "docker")
+        head.headers.add(name: "Connection", value: "Upgrade")
+        head.headers.add(name: "Upgrade", value: "tcp")
+        head.headers.add(name: "Content-Length", value: "0")
+        context.write(wrapOutboundOut(.head(head)), promise: nil)
+        context.writeAndFlush(wrapOutboundOut(.end(nil)), promise: nil)
+    }
+
+    private func finishInspect(context: ChannelHandlerContext) {
+        let bodyBytes: [UInt8]
+        if var body = inspectBody {
+            bodyBytes = body.readBytes(length: body.readableBytes) ?? []
+        } else {
+            bodyBytes = []
+        }
+        inspectBody = nil
+
+        let inspect: ContainerInspect
+        do {
+            inspect = try JSONDecoder().decode(ContainerInspect.self, from: Data(bodyBytes))
+        } catch {
+            Library.log.error("Failed to decode docker inspect response: \(error.localizedDescription)")
+            fail(error, context: context)
+            return
+        }
+
+        guard inspect.config.openStdin || inspect.config.tty else {
+            Library.log.error("Container '\(containerName)' was not started with stdin open; cannot control this container.")
+            fail(DockerClientError.stdinUnavailable(containerName), context: context)
+            return
+        }
+
+        isTTY = inspect.config.tty
+        Library.log.debug("Container '\(containerName)' inspect: TTY=\(isTTY), OpenStdin=true")
+
+        state = .awaitingUpgradeHead
+        sendUpgradeRequest(context: context)
+    }
+
+    private func beginUpgrade(context: ChannelHandlerContext) {
+        Library.log.debug("Docker attach upgrade accepted.")
+        state = .reconfiguring
+
+        let pipeline = context.pipeline
+        let channel = context.channel
+        let encoder = self.httpEncoder
+        let decoder = self.httpDecoder
+
+        // Order matters: add the new handlers first so they're in place to receive
+        // any leftover bytes when the decoder is removed. Remove ourselves before
+        // the decoder so the forwarded raw bytes bypass us and reach the demux.
+        installPostUpgradeHandlers(channel, isTTY)
+            .flatMap { pipeline.removeHandler(encoder) }
+            .flatMap { pipeline.removeHandler(self) }
+            .flatMap { pipeline.removeHandler(decoder) }
+            .whenComplete { [weak self] result in
+                guard let self = self else { return }
+                switch result {
+                case .success:
+                    Library.log.debug("Docker attach upgrade completed.")
+                    self.state = .streaming
+                    self.connectPromise.succeed(())
+                case .failure(let error):
+                    Library.log.error("Failed to reconfigure pipeline after upgrade: \(error.localizedDescription)")
+                    self.state = .failed
+                    self.connectPromise.fail(error)
+                    context.close(promise: nil)
+                }
+            }
+    }
+
+    private func fail(_ error: Error, context: ChannelHandlerContext) {
+        guard state != .failed, state != .streaming, state != .reconfiguring else { return }
+        state = .failed
+        connectPromise.fail(error)
+        context.close(promise: nil)
+    }
+}
+
+/// Strips Docker's 8-byte stdout/stderr framing from non-TTY attach streams,
+/// forwarding only payload bytes downstream. stdin (outbound) is never framed,
+/// so writes from later handlers pass through untouched.
+final class DockerStreamDemuxHandler: ChannelInboundHandler, @unchecked Sendable {
+    typealias InboundIn = ByteBuffer
+    typealias InboundOut = ByteBuffer
+
+    private static let headerSize = 8
+
+    private var pending: ByteBuffer?
+
+    func channelRead(context: ChannelHandlerContext, data: NIOAny) {
+        var incoming = unwrapInboundIn(data)
+        if pending == nil {
+            pending = incoming
+        } else {
+            pending?.writeBuffer(&incoming)
+        }
+        drain(context: context)
+    }
+
+    private func drain(context: ChannelHandlerContext) {
+        guard var buffer = pending else { return }
+
+        while buffer.readableBytes >= Self.headerSize {
+            let lengthOffset = buffer.readerIndex + 4
+            guard let length = buffer.getInteger(at: lengthOffset, endianness: .big, as: UInt32.self) else {
+                break
+            }
+            let frameSize = Self.headerSize + Int(length)
+            guard buffer.readableBytes >= frameSize else { break }
+
+            buffer.moveReaderIndex(forwardBy: Self.headerSize)
+            if length > 0, let payload = buffer.readSlice(length: Int(length)) {
+                context.fireChannelRead(wrapInboundOut(payload))
             }
         }
-        return nil
+
+        pending = buffer.readableBytes > 0 ? buffer : nil
     }
 }

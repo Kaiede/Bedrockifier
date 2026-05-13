@@ -27,7 +27,8 @@ import Foundation
 import NIOCore
 import PTYKit
 
-final class TerminalHandler: ChannelDuplexHandler {
+
+final class TerminalHandler: ChannelDuplexHandler, @unchecked Sendable {
     typealias InboundIn = ByteBuffer
 
     typealias OutboundIn = ByteBuffer
