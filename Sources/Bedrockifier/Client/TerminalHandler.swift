@@ -27,7 +27,9 @@ import Foundation
 import NIOCore
 import PTYKit
 
-
+/// A ChannelDuplexHandler that is meant to be paired with a PseudoTerminal.
+/// By putting it at the end of a chain of handlers, it can take raw UTF-8 buffers and push them through a PTY.
+/// This means the handlers in front of it just need to convert between the line protocol and raw text buffers.
 final class TerminalHandler: ChannelDuplexHandler, @unchecked Sendable {
     typealias InboundIn = ByteBuffer
 
@@ -48,7 +50,7 @@ final class TerminalHandler: ChannelDuplexHandler, @unchecked Sendable {
             Task {
                 do {
                     try await terminalChannel.disconnect()
-                    Library.log.info("SSH Terminal disconnected from deinit.")
+                    Library.log.info("NIO Terminal disconnected from deinit.")
                 } catch {
                     Library.log.error("Failed to disconnect from Terminal during deinit. (\(error.localizedDescription)")
                 }

@@ -107,7 +107,6 @@ struct RConChannel: ContainerChannel {
     private let port: Int
     private let password: ContainerPassword
     private var client: RConClient
-    private var terminalHandler: RConTerminalHandler
     
     init(
         terminal: PseudoTerminal,
@@ -116,9 +115,8 @@ struct RConChannel: ContainerChannel {
         password: ContainerPassword
     ) {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-        let client = RConClient(group: group)
+        let client = RConClient(group: group, terminal: terminal)
         self.client = client
-        self.terminalHandler = RConTerminalHandler(terminal: terminal, client: client)
         self.host = host
         self.port = port
         self.password = password
@@ -130,7 +128,6 @@ struct RConChannel: ContainerChannel {
         do {
             try await client.connect(host: host, port: port)
             try await client.authenticate(password: password)
-            try await terminalHandler.start()
         } catch {
             Library.log.error("Failed to connect RCON channel to host. (\(error.localizedDescription))")
             Library.log.error(
@@ -141,7 +138,6 @@ struct RConChannel: ContainerChannel {
 
     func close() async throws {
         do {
-            await terminalHandler.stop()
             try await client.close()
         } catch {
             Library.log.error("Failed to close RCON channel. (\(error.localizedDescription))")
