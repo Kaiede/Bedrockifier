@@ -35,31 +35,40 @@ struct Bedrockifier: AsyncParsableCommand {
 
     static let configuration = CommandConfiguration(
         abstract: "A utility for backing up Minecraft servers.",
-        subcommands: [Service.self, Pack.self, Restore.self, Trim.self, Unpack.self],
+        subcommands: [ClearHostKeys.self, Pack.self, Restore.self, Service.self, Token.self, Trim.self, Unpack.self],
     )
-    
+
     internal static func initializeTerminal(showDetails: Bool = false) -> Terminal {
         let terminal = Terminal()
         ConsoleKitLogger.showDetails = showDetails
         LoggingSystem.bootstrap({ label in ConsoleKitLogger(label: label, terminal: terminal) })
-        
+
         return terminal
     }
-    
+
     internal static func getConfigFileUrl(environment: EnvironmentConfig, configPath: String?, configFolder: String?) -> URL {
         if let configPath {
             return URL(fileURLWithPath: configPath)
         }
-        
+
         let configDirectory = URL(fileURLWithPath: configFolder ?? environment.configDirectory)
         let defaultPath = configDirectory.appendingPathComponent(environment.configFile).path
         if FileManager.default.fileExists(atPath: defaultPath) {
             return URL(fileURLWithPath: defaultPath)
         }
-        
+
         Self.logger.notice(
             "\(environment.configFile) not found, using older default: \(EnvironmentConfig.fallbackConfigFile)"
         )
         return configDirectory.appendingPathComponent(EnvironmentConfig.fallbackConfigFile)
+    }
+
+    internal static func getHostKeyFileUrl(environment: EnvironmentConfig, hostKeysPath: String?, configFolder: String?) -> URL {
+        if let hostKeysPath {
+            return URL(fileURLWithPath: hostKeysPath)
+        }
+
+        let configDirectory = URL(fileURLWithPath: configFolder ?? environment.configDirectory)
+        return configDirectory.appendingPathComponent(environment.hostKeysFile)
     }
 }

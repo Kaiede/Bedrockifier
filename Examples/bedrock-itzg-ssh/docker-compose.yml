@@ -11,6 +11,7 @@ services:
       # Useful for making sure your logs have a proper timestamp
       TZ: ${TZ:-America/Los_Angeles}
     volumes:
+      - minecraft-backup:/config
       - ./config.yml:/config/config.yml:ro
       - minecraft-server-backups:/data
       - bedrock-public-data:/bedrock_public:ro
@@ -52,6 +53,9 @@ services:
     tty: true
 
 volumes:
+  # Allows backup to store persistent configuration for itself
+  minecraft-backup:
+    
   minecraft-server-backups:
     driver: local
     driver_opts:

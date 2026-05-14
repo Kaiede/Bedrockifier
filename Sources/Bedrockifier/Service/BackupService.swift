@@ -64,7 +64,7 @@ final class BackupService {
     }
 
     static private func configureToken(config: BackupConfig, configDir: URL) -> URL {
-        let tokenPath = makeTokenFilePath(config: config, configDir: configDir)
+        let tokenPath = config.tokenFileUrl(configDir: configDir)
         do {
             if FileManager.default.fileExists(atPath: tokenPath.path) {
                 try FileManager.default.removeItem(at: tokenPath)
@@ -77,14 +77,6 @@ final class BackupService {
         }
 
         return tokenPath
-    }
-
-    static private func makeTokenFilePath(config: BackupConfig, configDir: URL) -> URL {
-        if let tokenFile = config.tokenPath {
-            return URL(fileURLWithPath: tokenFile)
-        } else {
-            return configDir.appendingPathComponent(".bedrockifierToken")
-        }
     }
 
     private func makeHttpService() -> some ApplicationProtocol {

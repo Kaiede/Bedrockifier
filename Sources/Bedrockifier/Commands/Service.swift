@@ -88,7 +88,11 @@ extension Bedrockifier {
                 BackupService.logger.info("Docker socket not found at path \(dockerSocketPath). Using docker to control containers will fail.")
             }
             
-            let hostKeysUri = getHostKeyFileUrl(environment: environment)
+            let hostKeysUri = Bedrockifier.getHostKeyFileUrl(
+                environment: environment,
+                hostKeysPath: hostKeysPath,
+                configFolder: configFolder
+            )
             let tools = ToolConfig(
                 dockerSocketPath: dockerSocketPath,
                 hostKeyValidator: SSHHostKeyValidator(keysFile: hostKeysUri)
@@ -117,16 +121,6 @@ extension Bedrockifier {
                 BackupService.logger.error("\(error)")
                 throw error
             }
-        }
-        
-        private func getHostKeyFileUrl(environment: EnvironmentConfig) -> URL {
-            if let hostKeysPath = self.hostKeysPath {
-                return URL(fileURLWithPath: hostKeysPath)
-            }
-            
-            let configDirectory = URL(fileURLWithPath: environment.configDirectory)
-            let defaultPath = configDirectory.appendingPathComponent(environment.hostKeysFile).path
-            return URL(fileURLWithPath: defaultPath)
         }
         
         private func updateLoggingLevel(config: BackupConfig, environment: EnvironmentConfig) {
