@@ -19,100 +19,55 @@ This keeps the recommended workflow focused on one supported image and one docum
 
 ## Recommended Workflow
 
-The examples include a `restore-menu` service that reuses the normal `kaiede/minecraft-bedrock-backup` image with an entrypoint override:
+The examples include a `restore` command that reuses the backup image, but calling into Bedrockifier's restore flow:
 
 ```yaml
-restore-menu:
+restore:
   image: kaiede/minecraft-bedrock-backup
   profiles:
     - restore
-  entrypoint: ["/opt/bedrock/restore-menu.sh"]
+  entrypoint: ["/opt/bedrock/bedrockifier", "restore"]
 ```
 
 Run restores with:
 
 ```bash
-docker compose --profile restore run --rm restore-menu
+docker compose --profile restore run --rm restore
 ```
 
-The helper reads the same `config.yml` Bedrockifier uses for backups. It will:
+This tool loads your configuration, and walks you through the process. It will:
 
-1. Load configured restore targets.
-2. Ask you to choose a server/world when more than one target exists.
-3. Show backups that match that target.
-4. Confirm the selected restore target.
-5. Replace the selected world with the chosen backup.
-
-The restore helper supports the current `containers:` layout used by the examples and normal Bedrockifier configs.
-
-In interactive mode:
-
-* `Cancel` from `Select Backup` returns to target selection.
-* `No Matching Backups` returns to target selection after you acknowledge the dialog.
-
-By default, it looks for `config.yml` in these locations:
-
-* `/config/config.yml`
-* `/data/config.yml`
-* `/backups/config.yml`
-
-If `RESTORE_CONFIG_PATH` is set, that path is used first. If `CONFIG_DIR` is set, `${CONFIG_DIR}/config.yml` is also checked before the default locations.
+1. Ask you to choose a container/world when more than one target exists.
+2. Show backups that match that target.
+3. Confirm the selected restore target.
+4. Replace the selected world with the chosen backup.
+5. Reapply permissions to match the existing permissions.
 
 ### Operational Sequence
 
 Before restoring:
 
-1. Stop the Minecraft server container you are restoring.
-2. Stop the Bedrockifier backup container so no new backups are written during restore.
-3. Run the restore helper with the `restore` profile.
-4. Confirm the restored world starts correctly.
-5. Start the backup service again.
+1. Stop the Minecraft compose stack (this will stop both server and backup container)
+2. Run the restore helper with the `restore` profile.
+3. Confirm the restored world starts correctly.
+4. Start your server stack again.
 
 Example:
 
 ```bash
-docker compose stop public backup
+docker compose stop
 docker compose --profile restore run --rm restore-menu
-docker compose start public backup
+docker compose start
 ```
-
-Adjust service names for your stack.
-
-### Non-Interactive Restore
-
-The restore helper also supports a non-interactive mode:
-
-```bash
-docker compose --profile restore run --rm restore-menu \
-  --file minecraft_public.PublicSMP.2026-03-31_1200-00.zip \
-  --target minecraft_public \
-  --yes
-```
-
-Rules:
-
-* `--file` is required.
-* `--target` is optional when the selected archive maps to exactly one configured restore target.
-* `--target` is required when the selected archive could restore to more than one configured target.
-* `--target` should be the container name from `config.yml`.
-* archive filenames must match the configured target naming pattern exactly
-* if the configured destination already exists, the helper deletes it and restores in place
-* the archive is expected to match the configured target naming and restore-path expectations
-* non-interactive mode prints status to the terminal and does not clear the console on exit
 
 ### Restore Environment Variables
 
-The main restore variables are:
+A couple environment variables specific to restoring backups are provided if needed:
 
-* `BACKUP_DIR`
-* `RESTORE_CONFIG_PATH`
-* `RESTORE_UID`
-* `RESTORE_GID`
+* `RESTORE_OWNER`
 * `RESTORE_MODE`
 
-The full restore environment-variable reference is documented in:
-
-* [Docker Variables](https://github.com/Kaiede/Bedrockifier/wiki/Docker-Variables)
+These override the default logic, which should work in most cases. Details are available in [Docker Variables](https://github.com/Kaiede/Bedrockifier/wiki/Docker-Variables).
 
 ## Bedrock Notes
 
@@ -158,9 +113,17 @@ If unprefixed backup names would be ambiguous across multiple targets, the helpe
 
 The helper does not use relaxed fallback matching. If the archive name does not match the configured target naming pattern, it is not offered as a restore candidate.
 
-## Manual Fallback
+## Run Directly
 
-Manual restore remains the fallback workflow if:
+In the case that your docker compose stack doesn't already include the restore profile, you can run it using docker as a one-off. So long as you mount `/config`, `/data` and the server folder in the same way that your backup container does it, you can run the restore.
+
+As before, make sure you stop your service stack (both backup and server) before performing the restore, and start it again afterwards once confirming the restore worked.
+
+`docker run -it -rm -v ./config.yml:/config/config.yml:ro -v minecraft-server-backups:/data:ro -v minecraft-data:/minecraft --entrypoint /opt/bedrock/bedrockifier kaiede/minecraft-bedrock-backup restore`
+
+## Manual Restore
+
+Manually restoring your backup is the last resort for when:
 
 * you have not added the restore service to your stack yet
 * you cannot run the restore helper

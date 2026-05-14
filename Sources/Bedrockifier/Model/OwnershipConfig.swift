@@ -31,6 +31,12 @@ public struct OwnershipConfig: Codable {
 }
 
 extension OwnershipConfig {
+    func parsePosixConfig() throws -> OwnershipPosixConfig {
+        let (userId, groupId) = try parseOwnerAndGroup()
+        let permissions = try parsePosixPermissions()
+        return OwnershipPosixConfig(userId: userId, groupId: groupId, permissions: permissions)
+    }
+    
     func parseOwnerAndGroup() throws -> (UInt32?, UInt32?) {
         guard let chownString = self.chown else { return (nil, nil) }
         return try parse(ownership: chownString)
@@ -39,5 +45,29 @@ extension OwnershipConfig {
     func parsePosixPermissions() throws -> UInt16? {
         guard let permissionsString = self.permissions else { return nil }
         return try parse(permissions: permissionsString)
+    }
+}
+
+struct OwnershipPosixConfig {
+    var userId: UInt32?
+    var groupId: UInt32?
+    var permissions: UInt16?
+}
+
+extension OwnershipPosixConfig {
+    mutating func fillEmptyFrom(url: URL) throws {
+        let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
+
+        if userId == nil, let uid = attributes[.ownerAccountID] as? NSNumber {
+            userId = uid.uint32Value
+        }
+
+        if groupId == nil, let gid = attributes[.groupOwnerAccountID] as? NSNumber {
+            groupId = gid.uint32Value
+        }
+
+        if permissions == nil, let mode = attributes[.posixPermissions] as? NSNumber {
+            permissions = mode.uint16Value
+        }
     }
 }

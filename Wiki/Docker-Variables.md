@@ -17,13 +17,10 @@ Below is a full list of variables that can be provided as environment variables 
 
 ### Restore Variables
 
-These are primarily used by `/opt/bedrock/restore-menu.sh` when the container is run in restore mode.
+These are only used when a backup is being restored. Normally, the restore tool will examine the previous owner and group, and permissions, and then apply them to the restored world. If this behavior needs to be overridden, these environment variables will allow that.
 
-* `BACKUP_DIR`: Search directory for backup archives. Defaults to `/data`.
-* `RESTORE_CONFIG_PATH`: Explicit path to the `config.yml` file to use for restore target discovery.
-* `RESTORE_UID`: UID to apply to the restored world after unpacking.
-* `RESTORE_GID`: GID to apply to the restored world after unpacking.
-* `RESTORE_MODE`: File mode to apply recursively after restore, for example `775`.
+* `RESTORE_OWNER`: User and group to apply, in the same format as `chown`, for example `1000:1000`. 
+* `RESTORE_MODE`: File mode to apply recursively after restore, for example `775`. 
 
 ### Restore Config Lookup Variables
 

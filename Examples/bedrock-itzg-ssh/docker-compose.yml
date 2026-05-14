@@ -36,19 +36,14 @@ services:
     stdin_open: true
     tty: true
 
-  restore-menu:
+  restore:
     image: kaiede/minecraft-bedrock-backup
     profiles:
       - restore
-    entrypoint: ["/opt/bedrock/restore-menu.sh"]
+    entrypoint: ["/opt/bedrock/bedrockifier", "restore"]
     network_mode: "none"
     environment:
       TZ: ${TZ:-America/Los_Angeles}
-      TERM: "xterm-256color"
-      BACKUP_DIR: "/data"
-      RESTORE_UID: ${UID:-1000}
-      RESTORE_GID: ${GID:-1000}
-      RESTORE_MODE: ${RESTORE_MODE:-}
     volumes:
       - ./config.yml:/config/config.yml:ro
       - minecraft-server-backups:/data:ro

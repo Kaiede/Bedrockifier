@@ -46,6 +46,10 @@ struct EnvironmentConfig {
     // Data Folder Settings
     let dataDirectory: String
 
+    // Restore Settings
+    let restoreOwner: String?
+    let restoreMode: String?
+    
     // Deprecated Settings
     let backupInterval: String?
     let listenerReconnectInterval: String?
@@ -61,12 +65,16 @@ struct EnvironmentConfig {
 
         // Data Folder Settings
         self.dataDirectory = EnvironmentConfig.dataDirectory()
+        
+        // Listener Connection Monitor
+        self.listenerReconnectInterval = ProcessInfo.processInfo.environment["LISTENER_RECONNECT_INTERVAL"]
+        
+        // Restore Settings
+        self.restoreOwner = ProcessInfo.processInfo.environment["RESTORE_OWNER"]
+        self.restoreMode = ProcessInfo.processInfo.environment["RESTORE_MODE"]
 
         // Deprecated Settings
         self.backupInterval = ProcessInfo.processInfo.environment["BACKUP_INTERVAL"]
-
-        // Listener Connection Monitor
-        self.listenerReconnectInterval = ProcessInfo.processInfo.environment["LISTENER_RECONNECT_INTERVAL"]
     }
 
     private static func configDirectory() -> String {

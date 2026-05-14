@@ -67,7 +67,11 @@ extension Bedrockifier {
 
         func run() async throws {
             let environment = EnvironmentConfig()
-
+            var ownershipConfig = try OwnershipConfig(
+                chown: environment.restoreOwner,
+                permissions: environment.restoreMode
+            ).parsePosixConfig()
+            
             let configUri = getConfigFileUrl(environment: environment)
             guard FileManager.default.fileExists(atPath: configUri.path) else {
                 Self.terminal.error("Configuration file doesn't exist at path \(configUri.path)")
@@ -140,9 +144,10 @@ extension Bedrockifier {
                 return "\(backup.item.location.lastPathComponent)  [\(timestamp)]".consoleText()
             }
 
-            try restore(backup: chosenBackup, to: worldChoice.target)
+            try ownershipConfig.fillEmptyFrom(url: worldChoice.target.destination)
+            try restore(backup: chosenBackup, to: worldChoice.target, ownership: ownershipConfig)
         }
-
+        
         private func chooseTarget(from targets: [RestoreTarget]) -> RestoreTarget {
             if let target = targets.first, targets.count == 1 {
                 Self.terminal.output("Target: ".consoleText(.info) + "\(target.containerName) (\(target.displayKind))".consoleText())
@@ -240,7 +245,7 @@ extension Bedrockifier {
             return backup.item.location.lastPathComponent.hasPrefix("\(target.containerName).")
         }
 
-        private func restore(backup: Backup<World>, to target: WorldTarget) throws {
+        private func restore(backup: Backup<World>, to target: WorldTarget, ownership: OwnershipPosixConfig) throws {
             Self.terminal.output("Restore Summary", style: .info)
             Self.terminal.output("  Archive: ".consoleText(.info) + backup.item.location.path.consoleText())
             Self.terminal.output("  Target:  ".consoleText(.info) + target.destination.path.consoleText())
@@ -271,6 +276,13 @@ extension Bedrockifier {
             unpackActivity.start()
             do {
                 unpackedWorld = try backup.item.unpack(to: parentFolder)
+
+                try unpackedWorld.applyOwnership(
+                    owner: ownership.userId,
+                    group: ownership.groupId,
+                    permissions: ownership.permissions
+                )
+                
                 unpackActivity.succeed()
             } catch {
                 unpackActivity.fail()
