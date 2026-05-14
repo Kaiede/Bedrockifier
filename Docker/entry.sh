@@ -11,4 +11,4 @@ if [ -d /data ]; then
 fi
 
 # Execute
-/usr/local/bin/entrypoint-demoter --match $FOLDER_TO_MATCH --debug --stdin-on-term stop /opt/bedrock/bedrockifierd
+/usr/local/bin/entrypoint-demoter --match $FOLDER_TO_MATCH --debug --stdin-on-term stop /opt/bedrock/bedrockifier daemon

@@ -28,8 +28,6 @@ import Hummingbird
 import Logging
 import PTYKit
 
-import Bedrockifier
-
 final class BackupService {
     struct Strings {
         static let bedrockLogin = "joined the game"
@@ -342,7 +340,7 @@ final class BackupService {
         }
 
         if let interval = environment.backupInterval {
-            return try Bedrockifier.parse(interval: interval)
+            return try parse(interval: interval)
         }
 
         return nil
@@ -356,7 +354,7 @@ final class BackupService {
         let configuredInterval = config.listenerReconnectInterval ?? environment.listenerReconnectInterval
         do {
             if let interval = configuredInterval {
-                return max(5.0, try Bedrockifier.parse(interval: interval))
+                return max(5.0, try parse(interval: interval))
             }
         } catch {
             if let interval = configuredInterval {

@@ -9,17 +9,11 @@ let package = Package(
         .macOS(.v14)
     ],
     products: [
-            // The external product of our package is an importable
-            // library that has the same name as the package itself:
-            .executable(
-                name: "bedrockifier-tool",
-                targets: ["Tool"]
-            ),
-            .executable(
-                name: "bedrockifierd",
-                targets: ["Service"]
-            )
-        ],
+        .executable(
+            name: "bedrockifier",
+            targets: ["Bedrockifier"]
+        )
+    ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.7.1"),
@@ -27,33 +21,20 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.99.0"),
         .package(url: "https://github.com/apple/swift-nio-ssh.git", from: "0.13.0"),
         .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.23.0"),
+        .package(url: "https://github.com/vapor/console-kit.git", from: "4.16.0"),
         .package(url: "https://github.com/jpsim/Yams.git", from: "6.2.1"),
         .package(url: "https://github.com/Kaiede/PTYKit.git", branch: "master"),
-        .package(url: "https://github.com/vapor/console-kit.git", from: "4.16.0"),
         .package(url: "https://github.com/weichsel/ZIPFoundation.git", from: "0.9.20")
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
         // Targets can depend on other targets in this package, and on products in packages this package depends on.
         .executableTarget(
-            name: "Tool",
-            dependencies: [
-                "Bedrockifier",
-                .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "ConsoleKit", package: "console-kit")
-            ]
-        ),
-        .executableTarget(
-            name: "Service",
-            dependencies: [
-                "Bedrockifier",
-                .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "Hummingbird", package: "hummingbird")
-            ]
-        ),
-        .target(
             name: "Bedrockifier",
             dependencies: [
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "ConsoleKitTerminal", package: "console-kit"),
+                .product(name: "Hummingbird", package: "hummingbird"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "NIOHTTP1", package: "swift-nio"),
                 .product(name: "NIOSSH", package: "swift-nio-ssh"),

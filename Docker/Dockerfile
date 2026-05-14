@@ -35,7 +35,8 @@ RUN --mount=source=Docker/install-dependencies.sh,target=/tmp/install-dependenci
 
 COPY --from=deps /usr/local/bin/entrypoint-demoter /usr/local/bin/
 COPY --from=builder /project/.build/release/bedrockifier-tool /project/.build/release/bedrockifierd .
+RUN ln -s bedrockifier bedrockifierd && ln -s bedrockfier bedrockifier-tool
 COPY ./Docker/entry.sh ./Docker/trigger-backup.sh .
 
 ENTRYPOINT [ "/opt/bedrock/entry.sh" ]
-HEALTHCHECK --start-period=1m CMD curl -f http://localhost:8080/health || exit 1
+HEALTHCHECK --start-period=1m CMD curl -f http://localhost:8080/health
