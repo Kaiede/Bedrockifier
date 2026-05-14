@@ -6,10 +6,15 @@ set -euo pipefail
 
 toolPath=$(which docker)
 podmanPath=$(which podman)
+containerPath=$(which container)
 
 if [[ "$podmanPath" != "" ]]; then
     echo "Using Podman."
     toolPath=$podmanPath
+fi
+if [[ "$containerPath" != "" ]]; then
+    echo "Using Apple Containers."
+    toolPath=$containerPath
 fi
 
 tag=${1:-dev}
