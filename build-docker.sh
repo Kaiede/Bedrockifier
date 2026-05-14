@@ -6,10 +6,15 @@ set -euo pipefail
 
 toolPath=$(which docker)
 podmanPath=$(which podman)
+containerPath=$(which container)
 
 if [[ "$podmanPath" != "" ]]; then
     echo "Using Podman."
     toolPath=$podmanPath
+fi
+if [[ "$containerPath" != "" ]]; then
+    echo "Using Apple Containers."
+    toolPath=$containerPath
 fi
 
 tag=${1:-dev}
@@ -21,7 +26,6 @@ dockerBaseTag=$dockerRepo:${tag}
 TARGETOS='linux'
 TARGETARCH=`arch`
 TARGETVARIANT=''
-IMAGEVARIANT='full'
 if [ "$TARGETARCH" == "x86_64" ]; then
     TARGETARCH=amd64
 fi
@@ -38,5 +42,4 @@ $toolPath build . -f Docker/Dockerfile \
     --build-arg TARGETOS=${TARGETOS} \
     --build-arg TARGETARCH=${TARGETARCH} \
     --build-arg TARGETVARIANT="" \
-    --build-arg IMAGEVARIANT=${IMAGEVARIANT} \
 #    --build-arg swift_base=${swift_base} \

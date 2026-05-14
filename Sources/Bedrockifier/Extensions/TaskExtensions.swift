@@ -1,7 +1,7 @@
 /*
  Bedrockifier
 
- Copyright (c) 2021 Adam Thayer
+ Copyright (c) 2026 Adam Thayer
  Licensed under the MIT license, as follows:
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,27 +23,11 @@
  SOFTWARE.)
  */
 
-import ConsoleKit
 import Foundation
-import Logging
 
-import Bedrockifier
-
-// Configure Console
-let terminal = Terminal()
-var input = CommandInput(arguments: CommandLine.arguments)
-
-var commands = Commands()
-commands.use(PackCommand(), as: "pack")
-commands.use(TrimCommand(), as: "trim")
-commands.use(UnpackCommand(), as: "unpack")
-var allCommands = commands.group(help: "Minecraft Bedrock Backup Tool")
-
-LoggingSystem.bootstrap(console: terminal, level: .trace, metadata: .init())
-
-do {
-    try terminal.run(allCommands, input: input)
-} catch let error {
-    terminal.error(error.localizedDescription)
-    exit(1)
+extension Task {
+    static func sleep(until target: Date) async throws where Success == Never, Failure == Never {
+        let duration = target.timeIntervalSinceNow
+        try await Self.sleep(for: .seconds(duration))
+    }
 }
