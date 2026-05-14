@@ -28,13 +28,11 @@ RUN easy-add --var version=${ENTRYPOINT_DEMOTER_VERSION} --var app=entrypoint-de
 FROM $swift_image-slim
 WORKDIR /opt/bedrock
 
-ARG IMAGEVARIANT
-
 RUN --mount=source=Docker/install-dependencies.sh,target=/tmp/install-dependencies.sh \
-    /tmp/install-dependencies.sh ${IMAGEVARIANT}
+    /tmp/install-dependencies.sh
 
 COPY --from=deps /usr/local/bin/entrypoint-demoter /usr/local/bin/
-COPY --from=builder /project/.build/release/bedrockifier-tool /project/.build/release/bedrockifierd .
+COPY --from=builder /project/.build/release/bedrockifier .
 RUN ln -s bedrockifier bedrockifierd && ln -s bedrockfier bedrockifier-tool
 COPY ./Docker/entry.sh ./Docker/trigger-backup.sh .
 
