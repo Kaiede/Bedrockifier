@@ -30,8 +30,6 @@ import ConsoleKitTerminal
 
 extension Bedrockifier {
     struct Unpack: ParsableCommand {
-        fileprivate static let terminal = Terminal()
-
         static let configuration = CommandConfiguration(
             commandName: "unpack",
             abstract: "Unpacks an exported world into a given folder. Useful for unpacking a backup into a server's worlds folder."
@@ -47,9 +45,10 @@ extension Bedrockifier {
         var overwrite = false
         
         func run() throws {
+            let terminal = initializeTerminal()
             let world = try World(url: URL(fileURLWithPath: mcworld))
             guard world.type != .folder else {
-                Self.terminal.error("Archive is not a Bedrock or Java world.")
+                terminal.error("Archive is not a Bedrock or Java world.")
                 return
             }
             
@@ -57,35 +56,35 @@ extension Bedrockifier {
             let worldFolder = targetFolder.appendingPathComponent(world.name)
             
             guard try !worldFolder.checkResourceIsReachable() || overwrite else {
-                Self.terminal.error("World already exists at output folder.")
+                terminal.error("World already exists at output folder.")
                 return
             }
             
             if try worldFolder.checkResourceIsReachable() {
-                let activity = Self.terminal.loadingBar(title: "Removing existing world")
+                let activity = terminal.loadingBar(title: "Removing existing world")
                 do {
                     activity.start()
                     try FileManager.default.removeItem(at: worldFolder)
                     activity.succeed()
                 } catch {
                     activity.fail()
-                    Self.terminal.error("Could not remove existing world: \(error.localizedDescription)")
+                    terminal.error("Could not remove existing world: \(error.localizedDescription)")
                     return
                 }
             }
             
-            Self.terminal.output("World Name: \(world.name)")
-            Self.terminal.output("Unpacking to: \(outputFolderPath)")
-            Self.terminal.output("")
+            terminal.output("World Name: \(world.name)")
+            terminal.output("Unpacking to: \(outputFolderPath)")
+            terminal.output("")
             
-            let activity = Self.terminal.loadingBar(title: "Unpacking")
+            let activity = terminal.loadingBar(title: "Unpacking")
             do {
                 activity.start()
                 _ = try world.unpack(to: URL(fileURLWithPath: outputFolderPath))
                 activity.succeed()
             } catch {
                 activity.fail()
-                Self.terminal.error("Could not unpack world: \(error.localizedDescription)")
+                terminal.error("Could not unpack world: \(error.localizedDescription)")
             }
         }
     }

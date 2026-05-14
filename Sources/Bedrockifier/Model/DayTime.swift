@@ -108,7 +108,7 @@ public extension DayTime {
             matchingPolicy: .nextTime,
             repeatedTimePolicy: .first,
             direction: direction)
-    }
+    }    
 }
 
 // MARK: Internal Helper Functions

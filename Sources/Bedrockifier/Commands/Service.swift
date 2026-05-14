@@ -29,9 +29,7 @@ import Logging
 import PTYKit
 
 extension Bedrockifier {
-    struct Service: ParsableCommand {
-        fileprivate static let logger = Logger(label: "bedrockifier")
-        
+    struct Service: AsyncParsableCommand {
         static let configuration = CommandConfiguration(
             commandName: "daemon",
             abstract: "Runs the backup service as a daemon in the foreground."
@@ -58,33 +56,36 @@ extension Bedrockifier {
         @Flag(help: "Log trace level information, overriding --debug")
         var trace = false
         
-        mutating func run() {
-            ConsoleLogger.showDetails = true
-            LoggingSystem.bootstrap(ConsoleLogger.init)
-            
-            Self.logger.info("Configuring Bedrockifier Daemon")
+        mutating func run() async throws {
+            let _ = Bedrockifier.initializeTerminal(showDetails: true)
+            BackupService.logger.info("Configuring Bedrockifier Daemon")
             let environment = EnvironmentConfig()
             
-            let configUri = getConfigFileUrl(environment: environment)
+            let configUri = Bedrockifier.getConfigFileUrl(
+                environment: environment,
+                configPath: configPath,
+                configFolder: configFolder
+            )
+            
             guard FileManager.default.fileExists(atPath: configUri.path) else {
-                Self.logger.error("Configuration file doesn't exist at path \(configUri.path)")
+                BackupService.logger.error("Configuration file doesn't exist at path \(configUri.path)")
                 return
             }
             
             guard let config = try? getConfig(from: configUri) else {
-                Self.logger.error("Unable to read configuration file, fix the above errors and try again")
+                BackupService.logger.error("Unable to read configuration file, fix the above errors and try again")
                 return
             }
             
             let backupPath = self.backupPath ?? config.backupPath ?? environment.dataDirectory
             guard FileManager.default.fileExists(atPath: backupPath) else {
-                Self.logger.error("Backup folder not found at path \(backupPath)")
+                BackupService.logger.error("Backup folder not found at path \(backupPath)")
                 return
             }
             
             let dockerSocketPath = self.dockerSocketPath ?? config.dockerSocketPath ?? environment.dockerSocketPath
             if !FileManager.default.fileExists(atPath: dockerSocketPath) {
-                Self.logger.info("Docker socket not found at path \(dockerSocketPath). Using docker to control containers will fail.")
+                BackupService.logger.info("Docker socket not found at path \(dockerSocketPath). Using docker to control containers will fail.")
             }
             
             let hostKeysUri = getHostKeyFileUrl(environment: environment)
@@ -97,47 +98,25 @@ extension Bedrockifier {
             
             updateLoggingLevel(config: config, environment: environment)
             
-            Self.logger.info("Configuration Loaded, Running Service...")
-            do {
-                let service = BackupService(
-                    config: config,
-                    configDir: URL(fileURLWithPath: environment.configDirectory),
-                    dataUrl: backupUrl,
-                    tools: tools
-                )
-                
-                try service.run()
-            } catch let error {
-                Self.logger.error("Starting Service Failed")
-                Self.logger.error("\(error.localizedDescription)")
-            }
+            BackupService.logger.info("Configuration Loaded, Running Service...")
+            let service = BackupService(
+                config: config,
+                configDir: URL(fileURLWithPath: environment.configDirectory),
+                dataUrl: backupUrl,
+                tools: tools
+            )
+            
+            try await service.run()
         }
         
         private func getConfig(from configUri: URL) throws -> BackupConfig {
             do {
-                Self.logger.info("Loading Configuration From: \(configUri.path)")
+                BackupService.logger.info("Loading Configuration From: \(configUri.path)")
                 return try BackupConfig.getYaml(from: configUri)
             } catch let error {
-                Self.logger.error("\(error)")
+                BackupService.logger.error("\(error)")
                 throw error
             }
-        }
-        
-        private func getConfigFileUrl(environment: EnvironmentConfig) -> URL {
-            if let configPath = self.configPath {
-                return URL(fileURLWithPath: configPath)
-            }
-            
-            let configDirectory = URL(fileURLWithPath: self.configFolder ?? environment.configDirectory)
-            let defaultPath = configDirectory.appendingPathComponent(environment.configFile).path
-            if FileManager.default.fileExists(atPath: defaultPath) {
-                return URL(fileURLWithPath: defaultPath)
-            }
-            
-            Self.logger.warning(
-                "\(environment.configFile) not found, using older default: \(EnvironmentConfig.fallbackConfigFile)"
-            )
-            return configDirectory.appendingPathComponent(EnvironmentConfig.fallbackConfigFile)
         }
         
         private func getHostKeyFileUrl(environment: EnvironmentConfig) -> URL {
@@ -152,11 +131,11 @@ extension Bedrockifier {
         
         private func updateLoggingLevel(config: BackupConfig, environment: EnvironmentConfig) {
             if trace || config.loggingLevel == .trace {
-                ConsoleLogger.logLevelOverride = .trace
-                ConsoleLogger.showFilePosition = true
+                ConsoleKitLogger.logLevelOverride = .trace
+                ConsoleKitLogger.showFilePosition = true
             } else if debug || config.loggingLevel == .debug {
-                ConsoleLogger.logLevelOverride = .debug
-                ConsoleLogger.showFilePosition = true
+                ConsoleKitLogger.logLevelOverride = .debug
+                ConsoleKitLogger.showFilePosition = true
             }
         }
         
@@ -164,7 +143,7 @@ extension Bedrockifier {
             do {
                 return try BackupConfig.getYaml(from: uri)
             } catch let error {
-                Self.logger.error("\(error.localizedDescription)")
+                BackupService.logger.error("\(error.localizedDescription)")
             }
             
             return nil

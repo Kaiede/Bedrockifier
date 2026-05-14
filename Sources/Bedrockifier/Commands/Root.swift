@@ -23,13 +23,43 @@
  SOFTWARE.)
  */
 
+import Foundation
+
 import ArgumentParser
+import ConsoleKitTerminal
 import Logging
 
 @main
 struct Bedrockifier: AsyncParsableCommand {
+    fileprivate static let logger = Logger(label: "bedrockifier")
+
     static let configuration = CommandConfiguration(
         abstract: "A utility for backing up Minecraft servers.",
         subcommands: [Service.self, Pack.self, Trim.self, Unpack.self],
     )
+    
+    internal static func initializeTerminal(showDetails: Bool = false) -> Terminal {
+        let terminal = Terminal()
+        ConsoleKitLogger.showDetails = showDetails
+        LoggingSystem.bootstrap({ label in ConsoleKitLogger(label: label, terminal: terminal) })
+        
+        return terminal
+    }
+    
+    internal static func getConfigFileUrl(environment: EnvironmentConfig, configPath: String?, configFolder: String?) -> URL {
+        if let configPath {
+            return URL(fileURLWithPath: configPath)
+        }
+        
+        let configDirectory = URL(fileURLWithPath: configFolder ?? environment.configDirectory)
+        let defaultPath = configDirectory.appendingPathComponent(environment.configFile).path
+        if FileManager.default.fileExists(atPath: defaultPath) {
+            return URL(fileURLWithPath: defaultPath)
+        }
+        
+        Self.logger.notice(
+            "\(environment.configFile) not found, using older default: \(EnvironmentConfig.fallbackConfigFile)"
+        )
+        return configDirectory.appendingPathComponent(EnvironmentConfig.fallbackConfigFile)
+    }
 }

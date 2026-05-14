@@ -30,8 +30,6 @@ import ConsoleKitTerminal
 
 extension Bedrockifier {
     struct Trim: AsyncParsableCommand {
-        fileprivate static let terminal = Terminal()
-
         static let configuration = CommandConfiguration(
             commandName: "trim",
             abstract: "Trims backups."
@@ -53,11 +51,12 @@ extension Bedrockifier {
         var dryRun: Bool = false
         
         func run() async throws {
+            let terminal = initializeTerminal()
             let backupFolderUrl = URL(fileURLWithPath: backupFolderPath, isDirectory: true)
-            Self.terminal.output("Backup folder to trim: \(backupFolderUrl.path())")
-            Self.terminal.output("")
+            terminal.output("Backup folder to trim: \(backupFolderUrl.path())")
+            terminal.output("")
             
-            let activity = Self.terminal.loadingBar(title: "Trimming Backups")
+            let activity = terminal.loadingBar(title: "Trimming Backups")
             do {
                 activity.start()
                 
@@ -83,7 +82,7 @@ extension Bedrockifier {
                 activity.succeed()
             } catch {
                 activity.fail()
-                Self.terminal.error("Failed to trim backups: \(error.localizedDescription)")
+                terminal.error("Failed to trim backups: \(error.localizedDescription)")
             }
         }
     }

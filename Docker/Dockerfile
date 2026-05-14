@@ -33,7 +33,8 @@ RUN --mount=source=Docker/install-dependencies.sh,target=/tmp/install-dependenci
 
 COPY --from=deps /usr/local/bin/entrypoint-demoter /usr/local/bin/
 COPY --from=builder /project/.build/release/bedrockifier .
-RUN ln -s bedrockifier bedrockifierd && ln -s bedrockfier bedrockifier-tool
+RUN ln -s bedrockifier bedrockifierd && \
+    ln -s bedrockifier bedrockifier-tool
 COPY ./Docker/entry.sh ./Docker/trigger-backup.sh .
 
 ENTRYPOINT [ "/opt/bedrock/entry.sh" ]

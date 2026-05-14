@@ -30,8 +30,6 @@ import ConsoleKitTerminal
 
 extension Bedrockifier {
     struct Pack: AsyncParsableCommand {
-        fileprivate static let terminal = Terminal()
-
         static let configuration = CommandConfiguration(
             commandName: "pack",
             abstract: "Packs a folder world into an mcworld (Bedrock) or zip archive (Java) for you."
@@ -47,14 +45,16 @@ extension Bedrockifier {
         var overwrite = false
         
         func run() async throws {
+            let terminal = Bedrockifier.initializeTerminal()
+            
             let world = try World(url: URL(fileURLWithPath: inputFolderPath))
             guard world.type == .folder else {
-                Self.terminal.error("World at path must be a folder.")
+                terminal.error("World at path must be a folder.")
                 return
             }
             
             guard !FileManager.default.fileExists(atPath: archive) || overwrite else {
-                Self.terminal.error("Cannot overwrite existing file at \(archive).")
+                terminal.error("Cannot overwrite existing file at \(archive).")
                 return
             }
             
@@ -63,22 +63,22 @@ extension Bedrockifier {
                     try FileManager.default.removeItem(atPath: archive)
                 }
             } catch {
-                Self.terminal.error("Failed to remove existing file at \(archive).")
+                terminal.error("Failed to remove existing file at \(archive).")
                 return
             }
             
-            Self.terminal.output("World Name: \(world.name)")
-            Self.terminal.output("Packing into: \(archive)")
-            Self.terminal.output("")
+            terminal.output("World Name: \(world.name)")
+            terminal.output("Packing into: \(archive)")
+            terminal.output("")
             
-            let activity = Self.terminal.loadingBar(title: "Packing")
+            let activity = terminal.loadingBar(title: "Packing")
             do {
                 activity.start()
                 _ = try world.pack(to: URL(fileURLWithPath: archive))
                 activity.succeed()
             } catch {
                 activity.fail()
-                Self.terminal.error("Could not pack world: \(error.localizedDescription)")
+                terminal.error("Could not pack world: \(error.localizedDescription)")
             }
         }
     }

@@ -24,6 +24,8 @@
  */
 
 import Foundation
+
+import AsyncAlgorithms
 import Hummingbird
 import Logging
 import PTYKit
@@ -42,7 +44,7 @@ final class BackupService {
 
     typealias ServiceContext = BasicRequestContext
 
-    static let logger = Logger(label: "bedrockifier")
+    static let logger = Logger(label: "bedrockifier.service")
     private static let backupPriority = TaskPriority.background
 
     let config: BackupConfig
@@ -51,9 +53,6 @@ final class BackupService {
     let tools: ToolConfig
     let backupActor: BackupActor
     let httpTokenFile: URL
-
-    var intervalTimer: ServiceTimer<String>?
-    var listenerReconnectTimer: ServiceTimer<String>?
 
     init(config: BackupConfig, configDir: URL, dataUrl: URL, tools: ToolConfig) {
         self.config = config
@@ -141,72 +140,76 @@ final class BackupService {
         return .notImplemented
     }
 
-    public func run() throws {
+    public func run() async throws {
+        // Do startup validation
+        try validateServerFolders()
+        if await !backupActor.markHealthy(forceWrite: true) {
+            throw ServiceError.unableToMarkHealthy
+        }
+
         Task {
-            do {
-                // Do startup validation
-                try validateServerFolders()
-                if await !backupActor.markHealthy(forceWrite: true) {
-                    throw ServiceError.unableToMarkHealthy
-                }
-
-                // Do a startup delay if asked before attempting to connect to containers.
-                // Delaying prior to connecting is required for rcon connections.
-                if let startupDelay = try getStartupDelay() {
-                    BackupService.logger.info("Delaying startup by: \(startupDelay) seconds")
-                    try await Task.sleep(nanoseconds: UInt64(startupDelay * 1_000_000_000.0))
-                }
-
-                // Start the backups
-                if let schedule = config.schedule {
-                    if schedule.interval != nil && schedule.daily != nil {
-                        BackupService.logger.error("Only 'interval' or 'daily' backup types are allowed. Not both.")
-                        throw ServiceError.onlyOneIntervalTypeAllowed
-                    }
-
-                    try await connectContainers()
-                    await self.backupActor.cleanupContainers()
-
-                    if schedule.interval != nil || environment.backupInterval != nil {
-                        try startIntervalBackups()
-                    } else if schedule.daily != nil {
-                        try startDailyBackups()
-                    }
-
-                    if await backupActor.needsListeners() {
-                        await startListenerBackups()
-                        startListenerReconnectMonitor()
-                    }
-
-                    if let minInterval = try schedule.parseMinInterval() {
-                        BackupService.logger.info("Backup Minimum Interval is \(minInterval) seconds.")
-                    }
-                } else {
-                    // Without the schedule, we have to assume the docker container specifies an interval
-                    try await connectContainers()
-                    try startIntervalBackups()
-                }
-
-                Task {
-                    BackupService.logger.info("Starting HTTP Service...")
-                    let httpService = makeHttpService()
-                    try await httpService.runService()
-                }
-
-                BackupService.logger.info("Service Started Successfully.")
-            } catch {
-                BackupService.logger.error("Encountered Error During Startup: \(error.localizedDescription)")
-                BackupService.logger.trace("Error Details: \(error)")
-                exit(-1)
+            BackupService.logger.info("Starting HTTP Service...")
+            let httpService = makeHttpService()
+            try await httpService.runService()
+        }
+        
+        // Do a startup delay if asked before attempting to connect to containers.
+        // Delaying prior to connecting is required for rcon connections.
+        if let startupDelay = try getStartupDelay() {
+            BackupService.logger.info("Delaying startup by: \(startupDelay) seconds")
+            try await Task.sleep(nanoseconds: UInt64(startupDelay * 1_000_000_000.0))
+        }
+        
+        // Start the backups
+        if let schedule = config.schedule {
+            if schedule.interval != nil && schedule.daily != nil {
+                BackupService.logger.error("Only 'interval' or 'daily' backup types are allowed. Not both.")
+                throw ServiceError.onlyOneIntervalTypeAllowed
             }
 
-            if config.schedule?.runInitialBackup == true {
+            try await connectContainers()
+            await self.backupActor.cleanupContainers()
+
+            if schedule.daily != nil {
+                Task(priority: BackupService.backupPriority) {
+                    try await runDailyBackups()
+                }
+            }
+
+            if await backupActor.needsListeners() {
+                await startListenerBackups()
+                Task(priority: BackupService.backupPriority) {
+                    await runListenerReconnectMonitor()
+                }
+            }
+
+            if let minInterval = try schedule.parseMinInterval() {
+                BackupService.logger.info("Backup Minimum Interval is \(minInterval) seconds.")
+            }
+            
+            if schedule.runInitialBackup == true {
                 BackupService.logger.info("Performing Initial Backup...")
                 await self.backupActor.backupAllContainers(isDaily: true)
             }
         }
 
-        dispatchMain()
+        let mainTask = Task(priority: BackupService.backupPriority) {
+            try await runIntervalBackups()
+        }
+        
+        let interruptSource = DispatchSource.makeSignalSource(signal: SIGINT, queue: .global())
+        interruptSource.setEventHandler {
+            BackupService.logger.warning("Received SIGINT")
+            mainTask.cancel()
+        }
+
+        let termSource = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .global())
+        termSource.setEventHandler {
+            BackupService.logger.warning("Received SIGTERM")
+            mainTask.cancel()
+        }
+
+        try await mainTask.value
     }
 
     private func connectContainers() async throws {
@@ -238,54 +241,37 @@ final class BackupService {
         }
     }
 
-    private func startIntervalBackups() throws {
+    private func runIntervalBackups() async throws {
         guard let interval = try getBackupInterval() else {
             BackupService.logger.error("Unable to Parse Backup Interval")
             throw ServiceError.noBackupInterval
         }
 
         BackupService.logger.info("Backup Interval: \(interval) seconds")
-        let timer = ServiceTimer(identifier: "interval", queue: DispatchQueue.main)
-        let startTime = Date()
-        timer.schedule(startingAt: startTime, repeating: .seconds(Int(interval)))
-        timer.setHandler(priority: BackupService.backupPriority) {
+        let timer = AsyncTimerSequence(interval: .seconds(interval), clock: .continuous)
+        for await _ in timer {
             await self.backupActor.backupAllContainers(isDaily: false)
         }
-
-        self.intervalTimer = timer
     }
-
-    private func startDailyBackups() throws {
+    
+    private func runDailyBackups() async throws {
         guard let dayTime = config.schedule?.daily else {
             BackupService.logger.error("Unable to Parse Daily Backup Time")
             throw ServiceError.noBackupInterval
         }
-
-        BackupService.logger.info("Backup Time: \(dayTime)")
-        let timer = ServiceTimer(identifier: "interval", queue: DispatchQueue.main)
-        guard let firstFiring = dayTime.calcNextDate(after: Date()) else {
-            BackupService.logger.error("Unable to calculate next daily backup date")
-            throw ServiceError.noBackupInterval
-        }
-
-        BackupService.logger.info("Next Backup: \(Library.dateFormatter.string(from: firstFiring))")
-        timer.schedule(at: firstFiring)
-        timer.setHandler {
-            await self.backupActor.backupAllContainers(isDaily: true)
-
-            guard let nextFiring = dayTime.calcNextDate(after: Date()) else {
+        
+        repeat {
+            guard let nextFiring = dayTime.calcNextDate(after: .now) else {
                 BackupService.logger.error("Unable to calculate next daily backup date")
-                await self.backupActor.markUnhealthy()
-                exit(1)
+                throw ServiceError.noBackupInterval
             }
-
-            BackupService.logger.info("Next Backup: \(Library.dateFormatter.string(from: nextFiring))")
-            timer.schedule(at: nextFiring)
-        }
-
-        self.intervalTimer = timer
+            
+            try await Task.sleep(until: nextFiring)
+            
+            await self.backupActor.backupAllContainers(isDaily: true)
+        } while true
     }
-
+    
     private func startListenerBackups() async {
         BackupService.logger.info("Starting Listeners for Containers")
         for container in await backupActor.containers {
@@ -296,18 +282,14 @@ final class BackupService {
             }
         }
     }
-
-    private func startListenerReconnectMonitor() {
+    
+    private func runListenerReconnectMonitor() async {
         let interval = getListenerReconnectInterval()
         BackupService.logger.info("Listener Reconnect Interval: \(interval) seconds")
-
-        let timer = ServiceTimer(identifier: "listener-reconnect", queue: DispatchQueue.main)
-        timer.schedule(startingAt: .now, repeating: .seconds(Int(interval)))
-        timer.setHandler(priority: BackupService.backupPriority) {
+        let timer = AsyncTimerSequence(interval: .seconds(interval), clock: .continuous)
+        for await _ in timer {
             await self.backupActor.reconnectListenersIfNeeded()
         }
-
-        self.listenerReconnectTimer = timer
     }
 
     private func onListenerEvent(container: ContainerConnection, content: String) async {
