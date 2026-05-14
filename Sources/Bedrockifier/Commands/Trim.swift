@@ -54,7 +54,7 @@ extension Bedrockifier {
             let terminal = initializeTerminal()
             let backupFolderUrl = URL(fileURLWithPath: backupFolderPath, isDirectory: true)
             terminal.output("Backup folder to trim: \(backupFolderUrl.path())")
-            terminal.output("")
+            terminal.emptyLine()
             
             let activity = terminal.loadingBar(title: "Trimming Backups")
             do {

@@ -75,7 +75,7 @@ extension Bedrockifier {
             
             terminal.output("World Name: \(world.name)")
             terminal.output("Unpacking to: \(outputFolderPath)")
-            terminal.output("")
+            terminal.emptyLine()
             
             let activity = terminal.loadingBar(title: "Unpacking")
             do {

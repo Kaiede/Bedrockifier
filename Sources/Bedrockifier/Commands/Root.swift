@@ -35,7 +35,7 @@ struct Bedrockifier: AsyncParsableCommand {
 
     static let configuration = CommandConfiguration(
         abstract: "A utility for backing up Minecraft servers.",
-        subcommands: [Service.self, Pack.self, Trim.self, Unpack.self],
+        subcommands: [Service.self, Pack.self, Restore.self, Trim.self, Unpack.self],
     )
     
     internal static func initializeTerminal(showDetails: Bool = false) -> Terminal {
