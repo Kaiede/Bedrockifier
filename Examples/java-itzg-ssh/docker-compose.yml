@@ -1,25 +1,23 @@
-version: '3.7'
-
 services:
   backup:
     image: kaiede/minecraft-bedrock-backup
     restart: always
     # Make sure the minecraft image starts before the backup
     depends_on:
-      - "public"
+      - "server"
     environment:
-      # Useful for making sure your logs have a proper timestamp
+      # Local timezone to reduce confusion
       TZ: ${TZ:-America/Los_Angeles}
     volumes:
       - minecraft-backup:/config
       - ./config.yml:/config/config.yml:ro
       - minecraft-server-backups:/data
-      - java-public-data:/public:ro
+      - minecraft-server-data:/server:ro
 
-  public:
+  server:
     image: itzg/minecraft-server
-    container_name: minecraft_public
-    # Expose the mc-server-runner's SSH port to just the backup container
+    container_name: minecraft-server
+    # Reminder that port 2222 is used inside this stack.
     expose:
       - 2222
     # Make the minecraft server port public
@@ -37,7 +35,7 @@ services:
       MOTD: "Public SMP Server"
       MEMORY: "2G"
     volumes:
-      - java-public-data:/data
+      - minecraft-server-data:/data
     restart: unless-stopped
 
   restore:
@@ -46,12 +44,10 @@ services:
       - restore
     entrypoint: ["/opt/bedrock/bedrockifier", "restore"]
     network_mode: "none"
-    environment:
-      TZ: ${TZ:-America/Los_Angeles}
     volumes:
       - ./config.yml:/config/config.yml:ro
       - minecraft-server-backups:/data:ro
-      - java-public-data:/public
+      - minecraft-server-data:/server
     stdin_open: true
     tty: true
 
@@ -59,6 +55,7 @@ volumes:
   # Allows backup to store persistent configuration for itself
   minecraft-backup:
   
+  # Volume for backup data.
   minecraft-server-backups:
     driver: local
     driver_opts:
@@ -66,9 +63,10 @@ volumes:
       o: bind
       device: ${BEDROCKIFIER_BACKUPS_DIR:-/opt/minecraft/backups}
 
-  java-public-data:
+  # Minecraft Server Data
+  minecraft-server-data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ${JAVA_PUBLIC_DATA_DIR:-/opt/minecraft/public}
+      device: ${MINECRAFT_SERVER_DATA_DIR:-/opt/minecraft/public}

@@ -1,5 +1,3 @@
-version: '3.7'
-
 services:
   backup:
     image: kaiede/minecraft-bedrock-backup
@@ -9,14 +7,14 @@ services:
       - "public"
       - "private"
     environment:
-      # Useful for making sure your logs have a proper timestamp
+      # Local timezone to reduce confusion
       TZ: ${TZ:-America/Los_Angeles}
     volumes:
       - minecraft-backup:/config
       - ./config.yml:/config/config.yml:ro
       - minecraft-server-backups:/data
-      - bedrock-private-data:/bedrock_private:ro
-      - bedrock-public-data:/bedrock_public:ro
+      - minecraft-private-data:/server/private:ro
+      - minecraft-public-data:/server/public:ro
 
   # Uses manymine to do LAN announcements for both containers
   # Does require docker access itself.
@@ -32,8 +30,8 @@ services:
   private:
     image: itzg/minecraft-bedrock-server
     restart: always
-    container_name: bedrock_private
-    # Expose the mc-server-runner's SSH port to just the backup container
+    container_name: minecraft-private
+    # Reminder that port 2222 is used inside this stack.
     expose:
       - 2222
     # Make the minecraft server port public
@@ -45,7 +43,7 @@ services:
       # Server settings
       EULA: "TRUE"
     volumes:
-      - bedrock-private-data:/data
+      - minecraft-private-data:/data
     stdin_open: true
     tty: true
     labels:
@@ -54,8 +52,8 @@ services:
   public:
     image: itzg/minecraft-bedrock-server
     restart: always
-    container_name: bedrock_public
-    # Expose the mc-server-runner's SSH port to just the backup container
+    container_name: minecraft-public
+    # Reminder that port 2222 is used inside this stack.
     expose:
       - 2222
     # Make the minecraft server port public
@@ -67,7 +65,7 @@ services:
       # Server settings
       EULA: "TRUE"
     volumes:
-      - bedrock-public-data:/data
+      - minecraft-public-data:/data
     stdin_open: true
     tty: true
     labels:
@@ -79,13 +77,11 @@ services:
       - restore
     entrypoint: ["/opt/bedrock/bedrockifier", "restore"]
     network_mode: "none"
-    environment:
-      TZ: ${TZ:-America/Los_Angeles}
     volumes:
       - ./config.yml:/config/config.yml:ro
       - minecraft-server-backups:/data:ro
-      - bedrock-private-data:/bedrock_private
-      - bedrock-public-data:/bedrock_public
+      - minecraft-private-data:/server/private
+      - minecraft-public-data:/server/public
     stdin_open: true
     tty: true
 
@@ -93,6 +89,7 @@ volumes:
   # Allows backup to store persistent configuration for itself
   minecraft-backup:
   
+  # Volume for backup data.
   minecraft-server-backups:
     driver: local
     driver_opts:
@@ -100,16 +97,18 @@ volumes:
       o: bind
       device: ${BEDROCKIFIER_BACKUPS_DIR:-/opt/minecraft/backups}
 
-  bedrock-private-data:
+  # Private/Internal Server Data
+  minecraft-private-data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ${BEDROCK_PRIVATE_DATA_DIR:-/opt/bedrock/private}
+      device: ${PRIVATE_SERVER_DATA_DIR:-/opt/bedrock/private}
 
-  bedrock-public-data:
+  # Public Server Data
+  minecraft-public-data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ${BEDROCK_PUBLIC_DATA_DIR:-/opt/bedrock/public}
+      device: ${PUBLIC_SERVER_DATA_DIR:-/opt/bedrock/public}
