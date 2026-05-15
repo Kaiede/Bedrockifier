@@ -39,14 +39,6 @@ By default, the restore helper looks for `config.yml` in these locations:
 * `/data/config.yml`
 * `/backups/config.yml`
 
-### Advanced Restore Variables
-
-These are mostly useful for troubleshooting or development.
-
-* `DIALOG_BIN`: Override the `dialog` binary path used for interactive restore mode.
-* `TOOL_BIN`: Override the Bedrockifier tool path used for archive unpacking.
-* `TERM`: Terminal type exported for dialog rendering. Defaults to `xterm-256color`.
-
 ### Deprecated Settings
 
 * `BACKUP_INTERVAL`: This configures how often the backups are run. It has been replaced by the schedule configuration in the `config.yml` file.
