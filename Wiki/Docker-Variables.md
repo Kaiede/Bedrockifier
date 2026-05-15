@@ -17,10 +17,13 @@ Below is a full list of variables that can be provided as environment variables 
 
 ### Restore Variables
 
-These are only used when a backup is being restored. Normally, the restore tool will examine the previous owner and group, and permissions, and then apply them to the restored world. If this behavior needs to be overridden, these environment variables will allow that.
+These are only used when a backup is being restored. Normally, the restore tool will examine the previous owner and group, and permissions, and then apply a matching configuration to the restored world. 
 
-* `RESTORE_OWNER`: User and group to apply, in the same format as `chown`, for example `1000:1000`. 
-* `RESTORE_MODE`: File mode to apply recursively after restore, for example `775`. 
+* `RESTORE_OWNER`: User and group to apply, in the same format as `chown`, for example `1000:1000`.
+* `RESTORE_MASK`: Permissions mask to apply when unpacking. 99% of the time when you set this, you will want one of these:
+  * `077`: Recommended. Only the user that owns the server can read/write.
+  * `022`: Common Linux default. Only the user that owns the server can write, others can read.
+  * `007` or `002`: Relaxed. The user and group that owns the server can write.
 
 ### Restore Config Lookup Variables
 

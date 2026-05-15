@@ -55,12 +55,12 @@ extension Bedrockifier {
             let targetFolder = URL(fileURLWithPath: outputFolderPath)
             let worldFolder = targetFolder.appendingPathComponent(world.name)
             
-            guard try !worldFolder.checkResourceIsReachable() || overwrite else {
+            guard FileManager.default.fileExists(atPath: worldFolder.path) || overwrite else {
                 terminal.error("World already exists at output folder.")
                 return
             }
             
-            if try worldFolder.checkResourceIsReachable() {
+            if FileManager.default.fileExists(atPath: worldFolder.path) {
                 let activity = terminal.loadingBar(title: "Removing existing world")
                 do {
                     activity.start()

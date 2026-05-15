@@ -80,34 +80,26 @@ extension Bedrockifier {
             }
             
             let environment = EnvironmentConfig()
-            var ownershipConfig = try OwnershipConfig(
-                chown: environment.restoreOwner,
-                permissions: environment.restoreMode
-            ).parsePosixConfig()
+            var ownershipConfig = try OwnershipPosixConfig(
+                ownership: environment.restoreOwner,
+                mask: environment.restoreMask
+            )
             
             let configUri = Bedrockifier.getConfigFileUrl(
                 environment: environment,
                 configPath: configPath,
                 configFolder: configFolder
             )
-            guard FileManager.default.fileExists(atPath: configUri.path) else {
-                terminal.error("Configuration file doesn't exist at path \(configUri.path)")
-                return
-            }
 
             let config: BackupConfig
             do {
                 config = try BackupConfig.getYaml(from: configUri)
             } catch {
-                terminal.error("Unable to read configuration file: \(error.localizedDescription)")
+                terminal.error("Unable to read configuration file from \(configUri.path()): \(error.localizedDescription)")
                 return
             }
 
             let backupPath = self.backupPath ?? config.backupPath ?? environment.dataDirectory
-            guard FileManager.default.fileExists(atPath: backupPath) else {
-                terminal.error("Backup folder not found at path \(backupPath)")
-                return
-            }
             let backupFolderUrl = URL(fileURLWithPath: backupPath, isDirectory: true)
 
             let targets = buildTargets(from: config)
@@ -129,7 +121,7 @@ extension Bedrockifier {
             let worldChoices = makeWorldChoices(for: target, allBackups: allBackups)
 
             guard !worldChoices.isEmpty else {
-                terminal.error("No backups were found for container \(target.containerName).")
+                terminal.error("No backups were found for container \(target.containerName) as \(backupFolderUrl.path()).")
                 return
             }
 
@@ -147,7 +139,7 @@ extension Bedrockifier {
                 worldChoice = picked
             }
 
-            let sortedBackups = worldChoice.backups.sorted(by: { $0.modificationDate > $1.modificationDate })
+            let sortedBackups = worldChoice.backups.sorted(by: { $0.modificationDate < $1.modificationDate })
             let dateFormatter = DateFormatter()
             dateFormatter.dateStyle = .medium
             dateFormatter.timeStyle = .medium
@@ -161,8 +153,19 @@ extension Bedrockifier {
                 return "\(backup.item.location.lastPathComponent)  [\(timestamp)]".consoleText()
             }
 
-            try ownershipConfig.fillEmptyFrom(url: worldChoice.target.destination)
+            
+            let ownershipSource = pickOwnershipSource(worldUrl: worldChoice.target.destination)
+            try ownershipConfig.fillEmptyOwner(from: ownershipSource)
+            try ownershipConfig.fillEmptyModes(from: ownershipSource)
             try restore(terminal: terminal, backup: chosenBackup, to: worldChoice.target, ownership: ownershipConfig)
+        }
+        
+        private func pickOwnershipSource(worldUrl: URL) -> URL {
+            if FileManager.default.fileExists(atPath: worldUrl.path) {
+                return worldUrl
+            }
+            
+            return worldUrl.deletingLastPathComponent()
         }
         
         private func chooseTarget(terminal: Terminal, from targets: [RestoreTarget]) -> RestoreTarget {
@@ -268,14 +271,13 @@ extension Bedrockifier {
             terminal.output("  Target:  ".consoleText(.info) + target.destination.path.consoleText())
             terminal.emptyLine()
 
-            guard terminal.confirm("This will overwrite the existing world. Continue?") else {
-                terminal.output("Restore cancelled.")
-                return
-            }
-
-            let parentFolder = target.destination.deletingLastPathComponent()
-
             if FileManager.default.fileExists(atPath: target.destination.path) {
+                guard terminal.confirm("This will overwrite the existing world. Continue?") else {
+                    terminal.output("Restore cancelled.")
+                    return
+                }
+                
+                terminal.emptyLine()
                 let activity = terminal.loadingBar(title: "Removing existing world")
                 activity.start()
                 do {
@@ -287,17 +289,18 @@ extension Bedrockifier {
                     return
                 }
             }
-
+            
+            let parentFolder = target.destination.deletingLastPathComponent()
             let unpackedWorld: World
             let unpackActivity = terminal.loadingBar(title: "Unpacking backup")
             unpackActivity.start()
             do {
                 unpackedWorld = try backup.item.unpack(to: parentFolder)
-
                 try unpackedWorld.applyOwnership(
                     owner: ownership.userId,
                     group: ownership.groupId,
-                    permissions: ownership.permissions
+                    folderMode: ownership.folderMode,
+                    fileMode: ownership.fileMode
                 )
                 
                 unpackActivity.succeed()

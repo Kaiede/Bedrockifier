@@ -48,7 +48,7 @@ struct EnvironmentConfig {
 
     // Restore Settings
     let restoreOwner: String?
-    let restoreMode: String?
+    let restoreMask: String?
     
     // Deprecated Settings
     let backupInterval: String?
@@ -71,7 +71,7 @@ struct EnvironmentConfig {
         
         // Restore Settings
         self.restoreOwner = ProcessInfo.processInfo.environment["RESTORE_OWNER"]
-        self.restoreMode = ProcessInfo.processInfo.environment["RESTORE_MODE"]
+        self.restoreMask = ProcessInfo.processInfo.environment["RESTORE_MASK"]
 
         // Deprecated Settings
         self.backupInterval = ProcessInfo.processInfo.environment["BACKUP_INTERVAL"]

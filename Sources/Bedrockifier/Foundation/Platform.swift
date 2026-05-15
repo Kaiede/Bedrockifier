@@ -25,20 +25,32 @@
 
 import Foundation
 
-#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
-import Darwin
-#elseif os(Linux)
-import Glibc
+#if canImport(Darwin)
+  import Darwin
+#elseif canImport(Glibc)
+  import Glibc
+#elseif canImport(Musl)
+  import Musl
 #endif
 
 struct Platform {
-    #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+    #if canImport(Darwin)
     typealias Mode = __darwin_mode_t
-    #elseif os(Linux)
+    typealias UserID = __darwin_uid_t
+    typealias GroupID = __darwin_gid_t
+    #elseif canImport(Glibc) || canImport(Musl)
     typealias Mode = __mode_t
+    typealias UserID = __uid_t
+    typealias GroupID = __gid_t
     #endif
-
-    static func changeOwner(path: String, uid: UInt32?, gid: UInt32?) throws {
+    
+    static func currentUmask() -> Mode {
+        let currentUmask = umask(0)
+        umask(currentUmask)
+        return currentUmask
+    }
+    
+    static func changeOwner(path: String, uid: UserID?, gid: GroupID?) throws {
         let realUid = uid ?? UInt32.max
         let realGid = gid ?? UInt32.max
 
@@ -50,9 +62,9 @@ struct Platform {
         })
     }
 
-    static func changePermissions(path: String, permissions: UInt16) throws {
+    static func changePermissions(path: String, permissions: Mode) throws {
         try path.withCString({ cchars in
-            let result = chmod(cchars, Mode(permissions))
+            let result = chmod(cchars, permissions)
             guard result == 0 else {
                 throw PlatformError.errno(error: errno)
             }

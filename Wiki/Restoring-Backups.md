@@ -65,7 +65,7 @@ docker compose start
 A couple environment variables specific to restoring backups are provided if needed:
 
 * `RESTORE_OWNER`
-* `RESTORE_MODE`
+* `RESTORE_MASK`
 
 These override the default logic, which should work in most cases. Details are available in [Docker Variables](https://github.com/Kaiede/Bedrockifier/wiki/Docker-Variables).
 
