@@ -1,30 +1,25 @@
-version: '3.7'
-
 services:
   backup:
     image: kaiede/minecraft-bedrock-backup
     restart: always
-    # Make sure the minecraft images start before the backup
+    container_name: minecraft-backup
+    # Make sure the minecraft image starts before the backup
     depends_on:
-      - "public"
-      - "private"
+      - "server"
     environment:
-        # Useful for making sure your logs have a proper timestamp
-        TZ: "America/Los_Angeles"
+      # Local timezone to reduce confusion
+      TZ: ${TZ:-America/Los_Angeles}
     volumes:
-      # (Optional) Map a configuration folder separately from the backups.
-      # - /opt/minecraft/backup-config:/config
-      # Map your backups folder into /data
-      - /opt/minecraft/backups:/data
-      # Map the data folders for both servers
-      - /opt/bedrock/private:/bedrock_private
-      - /opt/bedrock/public:/bedrock_public
+      - minecraft-backup:/config
+      - ./config.yml:/config/config.yml:ro
+      - minecraft-server-backups:/data
+      - bedrock-server-data:/server:ro
 
-  public:
+  server:
     image: itzg/minecraft-bedrock-server
     restart: always
-    container_name: bedrock_public
-    # Expose the mc-server-runner's SSH port to just the backup container
+    container_name: minecraft-server
+    # Reminder that port 2222 is used inside this stack.
     expose:
       - 2222
     # Make the minecraft server port public
@@ -35,7 +30,41 @@ services:
       ENABLE_SSH: "TRUE"
       # Server settings
       EULA: "TRUE"
+      LEVEL_NAME: ${LEVEL_NAME:-PublicSMP}
     volumes:
-      - /opt/bedrock/public:/data
+      - bedrock-server-data:/data
     stdin_open: true
     tty: true
+
+  restore:
+    image: kaiede/minecraft-bedrock-backup
+    profiles:
+      - restore
+    entrypoint: ["/opt/bedrock/bedrockifier", "restore"]
+    network_mode: "none"
+    volumes:
+      - ./config.yml:/config/config.yml:ro
+      - minecraft-server-backups:/data:ro
+      - bedrock-server-data:/server
+    stdin_open: true
+    tty: true
+
+volumes:
+  # Allows backup to store persistent configuration for itself
+  minecraft-backup:
+   
+  # Volume for backup data.
+  minecraft-server-backups:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${BEDROCKIFIER_BACKUPS_DIR:-/opt/minecraft/backups}
+
+  # Minecraft Server Data
+  bedrock-server-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${MINECRAFT_SERVER_DATA_DIR:-/opt/bedrock/public}
