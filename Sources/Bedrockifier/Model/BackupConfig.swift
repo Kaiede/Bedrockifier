@@ -75,6 +75,21 @@ public struct BackupConfig: Codable {
     public var sshpassPath: String?
 }
 
+extension BackupConfig {
+    static let defaultTokenFilename = ".bedrockifierToken"
+
+    static func defaultTokenFileUrl(configDir: URL) -> URL {
+        configDir.appendingPathComponent(defaultTokenFilename)
+    }
+
+    func tokenFileUrl(configDir: URL) -> URL {
+        if let tokenFile = self.tokenPath {
+            return URL(fileURLWithPath: tokenFile)
+        }
+        return BackupConfig.defaultTokenFileUrl(configDir: configDir)
+    }
+}
+
 extension BackupConfig.ContainerConfig {
     func containerPassword() -> ContainerPassword {
         if let file = passwordFile {

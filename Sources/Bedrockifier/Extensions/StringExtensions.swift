@@ -53,7 +53,7 @@ extension ParseError: CustomStringConvertible {
     var localizedDescripion: String { description }
 }
 
-func parse(ownership: String) throws -> (UInt32?, UInt32?) {
+func parse(ownership: String) throws -> (Platform.UserID?, Platform.GroupID?) {
     // Special Case: ":" Only
     if ownership == ":" {
         return (nil, nil)
@@ -76,7 +76,7 @@ func parse(ownership: String) throws -> (UInt32?, UInt32?) {
         return (nil, finalParts[0])
     }
 
-    // Special Case: Onwer Only
+    // Special Case: Owner Only
     if finalParts.count == 1 {
         return (finalParts[0], nil)
     }
@@ -84,8 +84,8 @@ func parse(ownership: String) throws -> (UInt32?, UInt32?) {
     return (finalParts[0], finalParts[1])
 }
 
-func parse(permissions: String) throws -> UInt16 {
-    guard let permissionValue = UInt16(permissions, radix: 8) else {
+func parse(permissions: String) throws -> Platform.Mode {
+    guard let permissionValue = Platform.Mode(permissions, radix: 8) else {
         throw ParseError.invalidSyntax
     }
 

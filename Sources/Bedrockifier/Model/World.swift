@@ -311,31 +311,48 @@ extension World {
 
         return false
     }
-
-    func applyOwnership(owner: UInt32?, group: UInt32?, permissions: UInt16?) throws {
+    
+    func applyOwnership(owner: Platform.UserID?, group: Platform.GroupID?, permissions: Platform.Mode?) throws {
+        try applyOwnership(owner: owner, group: group, folderMode: permissions, fileMode: permissions)
+    }
+    
+    func applyOwnership(owner: Platform.UserID?, group: Platform.GroupID?, folderMode: Platform.Mode?, fileMode: Platform.Mode?) throws {
         let path = self.location.path
         do {
             let uidStr = owner != nil ? owner!.description : "nil"
             let gidStr = group != nil ? group!.description : "nil"
-            let permsStr = permissions != nil ? String(format: "%o", permissions!) : "nil"
-            Library.log.debug("Ownership Change: \(uidStr):\(gidStr) with perms \(permsStr) at \(path)")
+            let folderPerms = folderMode != nil ? String(format: "%o", folderMode!) : "nil"
+            let filePerms = fileMode != nil ? String(format: "%o", fileMode!) : "nil"
+            Library.log.debug("Ownership Change: \(uidStr):\(gidStr) with perms \(folderPerms):\(filePerms) at \(path)")
 
             // Apply directly to the core node (folder or mcworld package)
             var isDirectory: ObjCBool = false
+            let rootUrl = URL(fileURLWithPath: path)
             if FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) {
                 Library.log.trace("Processing \(path)")
-                try World.applyOwnership(to: path, owner: owner, group: group, permissions: permissions)
+                do {
+                    let pathMode = isDirectory.boolValue ? folderMode : fileMode
+                    try World.applyOwnership(to: path, owner: owner, group: group, permissions: pathMode)
+                } catch {
+                    throw WorldError.failedToApplyOwnership(url: rootUrl, error: error)
+                }
             }
 
             // For folders, enumerate the children.
             // This can be expensive, but provided for completeness.
-            if isDirectory.boolValue, let subPaths = FileManager.default.subpaths(atPath: path) {
-                Library.log.trace("Starting Procesing Directory Childen")
-                for subPath in subPaths {
-                    Library.log.trace("Processing \(subPath)")
-                    try World.applyOwnership(to: subPath, owner: owner, group: group, permissions: permissions)
+            if isDirectory.boolValue, let enumerator = FileManager.default.enumerator(at: rootUrl, includingPropertiesForKeys: [.isDirectoryKey], options: .skipsHiddenFiles) {
+                Library.log.trace("Starting Processing World Directory")
+                for case let fileUrl as URL in enumerator {
+                    Library.log.trace("Processing \(fileUrl.path())")
+                    do {
+                        let resourceValues = try fileUrl.resourceValues(forKeys: [.isDirectoryKey])
+                        let pathMode = resourceValues.isDirectory == true ? folderMode : fileMode
+                        try World.applyOwnership(to: fileUrl.path(), owner: owner, group: group, permissions: pathMode)
+                    } catch {
+                        throw WorldError.failedToApplyOwnership(url: fileUrl, error: error)
+                    }
                 }
-                Library.log.trace("Completed Processing Directory")
+                Library.log.trace("Completed Processing World Directory")
             }
         } catch let error {
             Library.log.error("Unable to set ownership/permissions on \(path)")
@@ -343,13 +360,23 @@ extension World {
         }
     }
 
-    static func applyOwnership(to path: String, owner: UInt32?, group: UInt32?, permissions: UInt16?) throws {
+    static func applyOwnership(to path: String, owner: Platform.UserID?, group: Platform.GroupID?, permissions: Platform.Mode?) throws {
         if owner != nil || group != nil {
-            try Platform.changeOwner(path: path, uid: owner, gid: group)
+            do {
+                try Platform.changeOwner(path: path, uid: owner, gid: group)
+            } catch Platform.PlatformError.errno(let errno) {
+                Library.log.error("Couldn't change owner on \(path)")
+                throw WorldError.ownershipChangeFailure(errno: errno)
+            }
         }
 
         if let permissions = permissions {
-            try Platform.changePermissions(path: path, permissions: permissions)
+            do {
+                try Platform.changePermissions(path: path, permissions: permissions)
+            } catch Platform.PlatformError.errno(let errno) {
+                Library.log.error("Couldn't change mode on \(path)")
+                throw WorldError.ownershipChangeFailure(errno: errno)
+            }
         }
     }
 }
@@ -378,6 +405,9 @@ extension World {
         case missingLevelName
         case invalidLevelNameFile
         case archiveCreationFailed
+        case failedToApplyOwnership(url: URL, error: Error)
+        case ownershipChangeFailure(errno: Int32)
+        case permissionsChangeFailure(errno: Int32)
     }
 }
 
@@ -390,6 +420,9 @@ extension World.WorldError: LocalizedError {
         case .missingLevelName: return "Unable to determine name of the world"
         case .invalidLevelNameFile: return "Unable to read contents of levelname.txt"
         case .archiveCreationFailed: return "Failed to create file for archive"
+        case .failedToApplyOwnership(let url, let innerError): return "Unable to apply ownership to file at '\(url.path)': \(innerError)"
+        case .ownershipChangeFailure(let errno): return "Change owner returned POSIX error: \(errno)"
+        case .permissionsChangeFailure(let errno): return "Change permissions returned POSIX error: \(errno)"
         }
     }
 }

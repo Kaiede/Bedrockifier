@@ -69,7 +69,7 @@ extension Bedrockifier {
             
             terminal.output("World Name: \(world.name)")
             terminal.output("Packing into: \(archive)")
-            terminal.output("")
+            terminal.emptyLine()
             
             let activity = terminal.loadingBar(title: "Packing")
             do {
