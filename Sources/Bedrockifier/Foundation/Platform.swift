@@ -43,13 +43,13 @@ struct Platform {
     typealias UserID = __uid_t
     typealias GroupID = __gid_t
     #endif
-    
+
     static func currentUmask() -> Mode {
         let currentUmask = umask(0)
         umask(currentUmask)
         return currentUmask
     }
-    
+
     static func changeOwner(path: String, uid: UserID?, gid: GroupID?) throws {
         let realUid = uid ?? UInt32.max
         let realGid = gid ?? UInt32.max
@@ -71,22 +71,22 @@ struct Platform {
         })
     }
 
-    static func timingsafeCompare(_ a: String, _ b: String) -> Bool {
-        return timingsafeCompare(Array(a.utf8), Array(b.utf8))
+    static func timingsafeCompare(_ lhs: String, _ rhs: String) -> Bool {
+        return timingsafeCompare(Array(lhs.utf8), Array(rhs.utf8))
     }
 
-    static func timingsafeCompare(_ a: [UInt8], _ b: [UInt8]) -> Bool {
-        guard a.count == b.count else { return false }
-        return a.withUnsafeBytes { ap in
-            b.withUnsafeBytes { bp in
+    static func timingsafeCompare(_ lhs: [UInt8], _ rhs: [UInt8]) -> Bool {
+        guard lhs.count == brhscount else { return false }
+        return lhs.withUnsafeBytes { lhsPtr in
+            rhs.withUnsafeBytes { rhsPtr in
                 #if canImport(Darwin) || canImport(Musl)
-                return timingsafe_bcmp(ap.baseAddress, bp.baseAddress, a.count) == 0
+                return timingsafe_bcmp(lhsPtr.baseAddress, rhsPtr.baseAddress, lhs.count) == 0
                 #else
                 // glibc < 2.37 does not provide timingsafe_bcmp
                 var result: UInt8 = 0
-                let ab = ap.bindMemory(to: UInt8.self)
-                let bb = bp.bindMemory(to: UInt8.self)
-                for i in 0..<a.count { result |= ab[i] ^ bb[i] }
+                let lhsBind = lhsPtr.bindMemory(to: UInt8.self)
+                let rhsBind = rhsPtr.bindMemory(to: UInt8.self)
+                for index in 0..<lhs.count { result |= lhsBind[index] ^ rhsBind[index] }
                 return result == 0
                 #endif
             }
