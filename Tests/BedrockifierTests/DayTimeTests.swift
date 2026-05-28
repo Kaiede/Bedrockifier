@@ -39,136 +39,135 @@ extension JSONDecoder {
     }
 }
 
-@Suite struct DayTimeTests {
-    @Test func dayTimeAccessors() {
-        let testExpectations: [(String, Int, Int, Int)] = [
-            ("08:00", 8, 0, 0),
-            ("09:30", 9, 30, 0),
-            ("21:45", 21, 45, 0)
-        ]
+private struct SearchExpectation {
+    let start: String
+    let target: String
+    let direction: Calendar.SearchDirection
+}
 
+private struct ComponentExpectation {
+    let time: String
+    let hours: Int
+    let minutes: Int
+    let seconds: Int
+}
+
+@Suite struct DayTimeTests {
+
+    @Test(arguments: [
+        .init(time: "08:00", hours: 8, minutes: 0, seconds: 0),
+        .init(time: "09:30", hours: 9, minutes: 30, seconds: 0),
+        .init(time: "21:45", hours: 21, minutes: 45, seconds: 0),
+    ])
+    func dayTimeAccessors(_ expectation: ComponentExpectation) {
         let testTimeZone = TimeZone(abbreviation: "UTC")!
         var testCalendar = Calendar(identifier: .gregorian)
         testCalendar.timeZone = testTimeZone
 
-        for (timeString, hours, minutes, seconds) in testExpectations {
-            let timeDate = DayTimeTests.timeFormatter.date(from: timeString)!
-            let parsedTime = DayTime(from: timeDate, calendar: testCalendar)
+        let timeDate = DayTimeTests.timeFormatter.date(from: expectation.time)!
+        let parsedTime = DayTime(from: timeDate, calendar: testCalendar)
 
-            #expect(parsedTime.hour == hours)
-            #expect(parsedTime.minute == minutes)
-            #expect(parsedTime.second == seconds)
-        }
+        #expect(parsedTime.hour == expectation.hours)
+        #expect(parsedTime.minute == expectation.minutes)
+        #expect(parsedTime.second == expectation.seconds)
     }
 
-    @Test func dayTimeAccessorsDecoder() {
-        let testExpectations: [(String, Int, Int, Int)] = [
-            ("08:00", 8, 0, 0),
-            ("09:30", 9, 30, 0),
-            ("21:45", 21, 45, 0)
-        ]
-
-        for (timeString, hours, minutes, seconds) in testExpectations {
-            let jsonData: JsonArray = [ timeString ]
-            let decoder = JSONDecoder()
-            do {
-                let decodedTimeArray = try decoder.decode([DayTime].self, from: jsonData)
-                guard let decodedTime = decodedTimeArray.first else {
-                    Issue.record("Decode failed for: \(timeString)")
-                    continue
-                }
-
-                #expect(decodedTime.hour == hours)
-                #expect(decodedTime.minute == minutes)
-                #expect(decodedTime.second == seconds)
-                #expect(decodedTime.dateComponents.calendar == Calendar.current)
-                #expect(decodedTime.dateComponents.timeZone == Calendar.current.timeZone)
-            } catch {
-                Issue.record("\(error)")
+    @Test(arguments: [
+        .init(time: "08:00", hours: 8, minutes: 0, seconds: 0),
+        .init(time: "09:30", hours: 9, minutes: 30, seconds: 0),
+        .init(time: "21:45", hours: 21, minutes: 45, seconds: 0),
+    ])
+    func dayTimeAccessorsDecoder(_ expectation: ComponentExpectation) {
+        let jsonData: JsonArray = [ expectation.time ]
+        let decoder = JSONDecoder()
+        do {
+            let decodedTimeArray = try decoder.decode([DayTime].self, from: jsonData)
+            guard let decodedTime = decodedTimeArray.first else {
+                Issue.record("Decode failed for: \(expectation.time)")
+                return
             }
+
+            #expect(decodedTime.hour == expectation.hours)
+            #expect(decodedTime.minute == expectation.minutes)
+            #expect(decodedTime.second == expectation.seconds)
+            #expect(decodedTime.dateComponents.calendar == Calendar.current)
+            #expect(decodedTime.dateComponents.timeZone == Calendar.current.timeZone)
+        } catch {
+            Issue.record("\(error)")
         }
     }
 
-    @Test func calcNextDate() {
+    @Test(arguments: [
+        .init(start: "08:00", target: "08:00", direction: .forward),
+        .init(start: "08:00", target: "08:00", direction: .backward),
+        .init(start: "08:00", target: "08:30", direction: .forward),
+        .init(start: "08:00", target: "08:30", direction: .backward),
+    ])
+    func calcNextDate(_ expectation: SearchExpectation) {
         let dayInSeconds: TimeInterval = 86400
-        let testExpectations: [(String, String, Calendar.SearchDirection)] = [
-            ( "08:00", "08:00", .forward ),
-            ( "08:00", "08:00", .backward ),
-            ( "08:00", "08:30", .forward ),
-            ( "08:00", "08:30", .backward )
-        ]
+        let startDate = DayTimeTests.timeFormatter.date(from: expectation.start)!
+        let targetDate = DayTimeTests.timeFormatter.date(from: expectation.target)!
+        let targetTime = DayTime(from: targetDate)
 
-        for (startString, targetString, searchDirection) in testExpectations {
-            let startDate = DayTimeTests.timeFormatter.date(from: startString)!
-            let targetDate = DayTimeTests.timeFormatter.date(from: targetString)!
-            let targetTime = DayTime(from: targetDate)
+        let calculatedDate = targetTime.calcNextDate(after: startDate, direction: expectation.direction)!
 
-            let calculatedDate = targetTime.calcNextDate(after: startDate, direction: searchDirection)!
-
-            #expect(startDate != calculatedDate)
-            switch searchDirection {
-            case .backward:
-                #expect(calculatedDate < startDate)
-                #expect(calculatedDate > startDate - (dayInSeconds * 2.0))
-            case .forward:
-                #expect(calculatedDate > startDate)
-                #expect(calculatedDate < startDate + (dayInSeconds * 2.0))
-            @unknown default:
-                Issue.record("Unknown Search Direction")
-            }
-
-            #expect(targetTime == DayTime(from: calculatedDate))
-            #expect(targetTime.dateComponents == Calendar.current.dateComponents(DayTime.components, from: calculatedDate))
+        #expect(startDate != calculatedDate)
+        switch expectation.direction {
+        case .backward:
+            #expect(calculatedDate < startDate)
+            #expect(calculatedDate > startDate - (dayInSeconds * 2.0))
+        case .forward:
+            #expect(calculatedDate > startDate)
+            #expect(calculatedDate < startDate + (dayInSeconds * 2.0))
+        @unknown default:
+            Issue.record("Unknown Search Direction")
         }
+
+        #expect(targetTime == DayTime(from: calculatedDate))
+        #expect(targetTime.dateComponents == Calendar.current.dateComponents(DayTime.components, from: calculatedDate))
     }
 
-    @Test func calcNextDateBoundaries() {
+    @Test(arguments: [
+        .init(start: "31 Aug 09:00:00", target: "08:00", direction: .forward),
+        .init(start: "1 Sep 08:00:00", target: "09:00", direction: .backward),
+    ])
+    func calcNextDateBoundaries(_ expectation: SearchExpectation) {
         let dayInSeconds: TimeInterval = 86400
-        let testExpectations: [(String, String, Calendar.SearchDirection)] = [
-            ( "31 Aug 09:00:00", "08:00", .forward ),
-            ( "1 Sep 08:00:00", "09:00", .backward )
-        ]
+        let startDate = DayTimeTests.dateFormatter.date(from: expectation.start)!
+        let targetDate = DayTimeTests.timeFormatter.date(from: expectation.target)!
+        let targetTime = DayTime(from: targetDate)
 
-        for (startString, targetString, searchDirection) in testExpectations {
-            let startDate = DayTimeTests.dateFormatter.date(from: startString)!
-            let targetDate = DayTimeTests.timeFormatter.date(from: targetString)!
-            let targetTime = DayTime(from: targetDate)
+        let calculatedDate = targetTime.calcNextDate(after: startDate, direction: expectation.direction)!
 
-            let calculatedDate = targetTime.calcNextDate(after: startDate, direction: searchDirection)!
-
-            #expect(startDate != calculatedDate)
-            switch searchDirection {
-            case .backward:
-                #expect(calculatedDate < startDate)
-                #expect(calculatedDate > startDate - (dayInSeconds * 2.0))
-            case .forward:
-                #expect(calculatedDate > startDate)
-                #expect(calculatedDate < startDate + (dayInSeconds * 2.0))
-            @unknown default:
-                Issue.record("Unknown Search Direction")
-            }
-
-            #expect(targetTime == DayTime(from: calculatedDate))
-            #expect(targetTime.dateComponents == Calendar.current.dateComponents(DayTime.components, from: calculatedDate))
+        #expect(startDate != calculatedDate)
+        switch expectation.direction {
+        case .backward:
+            #expect(calculatedDate < startDate)
+            #expect(calculatedDate > startDate - (dayInSeconds * 2.0))
+        case .forward:
+            #expect(calculatedDate > startDate)
+            #expect(calculatedDate < startDate + (dayInSeconds * 2.0))
+        @unknown default:
+            Issue.record("Unknown Search Direction")
         }
+
+        #expect(targetTime == DayTime(from: calculatedDate))
+        #expect(targetTime.dateComponents == Calendar.current.dateComponents(DayTime.components, from: calculatedDate))
     }
 
-    @Test func calcNextDateDaylightSavings() {
-        let testExpectations: [(String, String, Calendar.SearchDirection)] = [
-            ( "2 Nov 2019 09:00:00", "3 Nov 2019 08:00:00", .forward ),
-            ( "7 Mar 2020 09:00:00", "8 Mar 2020 08:00:00", .forward )
-        ]
+    @Test(arguments: [
+        .init(start: "2 Nov 2019 09:00:00", target: "3 Nov 2019 08:00:00", direction: .forward),
+        .init(start: "7 Mar 2020 09:00:00", target: "8 Mar 2020 08:00:00", direction: .forward),
+    ])
+    func calcNextDateDaylightSavings(_ expectation: SearchExpectation) {
+        let startDate = DayTimeTests.daylightDateFormatter.date(from: expectation.start)!
+        let expectedDate = DayTimeTests.daylightDateFormatter.date(from: expectation.target)!
 
-        for (startString, expectedString, searchDirection) in testExpectations {
-            let startDate = DayTimeTests.daylightDateFormatter.date(from: startString)!
-            let expectedDate = DayTimeTests.daylightDateFormatter.date(from: expectedString)!
+        let targetTime = DayTime(from: expectedDate)
+        let calculatedDate = targetTime.calcNextDate(after: startDate, direction: expectation.direction)!
 
-            let targetTime = DayTime(from: expectedDate)
-            let calculatedDate = targetTime.calcNextDate(after: startDate, direction: searchDirection)!
-
-            #expect(targetTime == DayTime(from: calculatedDate))
-            #expect(expectedDate == calculatedDate)
-        }
+        #expect(targetTime == DayTime(from: calculatedDate))
+        #expect(expectedDate == calculatedDate)
     }
 
     public private(set) static var dateFormatter: DateFormatter = {
