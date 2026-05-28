@@ -1,0 +1,111 @@
+/*
+ Bedrockifier
+
+ Copyright (c) 2021 Adam Thayer
+ Licensed under the MIT license, as follows:
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.)
+ */
+
+import Foundation
+
+// Get configuration settings from environment for things that are supported
+public struct EnvironmentConfig {
+    public static let fallbackConfigFile = "config.json"
+
+    static let dataDirVariable = "DATA_DIR"
+
+    static let defaultConfigPath = "/config"
+    static let defaultDataPath = "/data"
+    static let defaultOldDataPath = "/backups"
+
+    // External Tools in Container
+    public let dockerSocketPath: String
+
+    // Config Folder Settings
+    public let configDirectory: String
+    public let configFile: String
+    public let hostKeysFile: String
+
+    // Data Folder Settings
+    public let dataDirectory: String
+
+    // Restore Settings
+    public let restoreOwner: String?
+    public let restoreMask: String?
+
+    // Deprecated Settings
+    public let backupInterval: String?
+    public let listenerReconnectInterval: String?
+
+    public init() {
+        // External Tools in Container
+        self.dockerSocketPath = ProcessInfo.processInfo.environment["DOCKER_SOCK"] ?? "/var/run/docker.sock"
+
+        // Config Folder Settings
+        self.configDirectory = EnvironmentConfig.configDirectory()
+        self.configFile = ProcessInfo.processInfo.environment["CONFIG_FILE"] ?? "config.yml"
+        self.hostKeysFile = ProcessInfo.processInfo.environment["HOST_KEYS_FILE"] ?? ".authorizedKeys"
+
+        // Data Folder Settings
+        self.dataDirectory = EnvironmentConfig.dataDirectory()
+
+        // Listener Connection Monitor
+        self.listenerReconnectInterval = ProcessInfo.processInfo.environment["LISTENER_RECONNECT_INTERVAL"]
+
+        // Restore Settings
+        self.restoreOwner = ProcessInfo.processInfo.environment["RESTORE_OWNER"]
+        self.restoreMask = ProcessInfo.processInfo.environment["RESTORE_MASK"]
+
+        // Deprecated Settings
+        self.backupInterval = ProcessInfo.processInfo.environment["BACKUP_INTERVAL"]
+    }
+
+    private static func configDirectory() -> String {
+        if let envPath = ProcessInfo.processInfo.environment["CONFIG_DIR"] {
+            return envPath
+        }
+
+        if FileManager.default.fileExists(atPath: defaultConfigPath) {
+            return defaultConfigPath
+        }
+
+        if let dataEnvPath = ProcessInfo.processInfo.environment[dataDirVariable] {
+            return dataEnvPath
+        }
+
+        if FileManager.default.fileExists(atPath: defaultDataPath) {
+            return defaultDataPath
+        }
+
+        return defaultOldDataPath
+    }
+
+    private static func dataDirectory() -> String {
+        if let dataEnvPath = ProcessInfo.processInfo.environment[dataDirVariable] {
+            return dataEnvPath
+        }
+
+        if FileManager.default.fileExists(atPath: defaultDataPath) {
+            return defaultDataPath
+        }
+
+        return defaultOldDataPath
+    }
+}

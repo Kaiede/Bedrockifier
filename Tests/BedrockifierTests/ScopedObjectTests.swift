@@ -1,14 +1,14 @@
 import Testing
-@testable import Bedrockifier
+@testable import BedrockifierLib
 
-fileprivate final class MockScopedObject {
+private final class MockScopedObject {
     private let deinitHandler: () -> Void
 
     init(deinitHandler: @escaping () -> Void) {
         self.deinitHandler = deinitHandler
     }
 
-    static func makeOptional(succeed: Bool, deinitHandler: @escaping () -> ()) -> MockScopedObject? {
+    static func makeOptional(succeed: Bool, deinitHandler: @escaping () -> Void) -> MockScopedObject? {
         if succeed {
             return MockScopedObject(deinitHandler: deinitHandler)
         }
@@ -22,7 +22,7 @@ fileprivate final class MockScopedObject {
     }
 }
 
-fileprivate struct MockScopedObjectError: Error {}
+private struct MockScopedObjectError: Error {}
 
 @Suite struct ScopedObjectTests {
     @Test func scopedObject() {
@@ -36,7 +36,10 @@ fileprivate struct MockScopedObjectError: Error {}
 
     @Test func tryScopedObjectSuccess() throws {
         var didDeinit = false
-        try with(scopedOptional: MockScopedObject.makeOptional(succeed: true, deinitHandler: { didDeinit = true })) { scopedObject in
+        try with(scopedOptional: MockScopedObject.makeOptional(
+            succeed: true,
+            deinitHandler: { didDeinit = true }
+        )) { scopedObject in
             scopedObject.doSomething()
             #expect(!didDeinit)
         }
@@ -54,7 +57,10 @@ fileprivate struct MockScopedObjectError: Error {}
     @Test func throwingScope() {
         var didDeinit = false
         do {
-            try with(scopedOptional: MockScopedObject.makeOptional(succeed: true, deinitHandler: { didDeinit = true })) { _ in
+            try with(scopedOptional: MockScopedObject.makeOptional(
+                succeed: true,
+                deinitHandler: { didDeinit = true }
+            )) { _ in
                 #expect(!didDeinit)
                 throw MockScopedObjectError()
             }

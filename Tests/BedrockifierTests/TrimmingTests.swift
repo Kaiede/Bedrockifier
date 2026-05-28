@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import Bedrockifier
+@testable import BedrockifierLib
 
 @Suite struct TrimmingTests {
     @Test func trimmingOfBucket() throws {
@@ -59,7 +59,12 @@ import Testing
         let startDate = Date()
         var result: [Backup<MockBackupItem>] = []
         for index in testItems.indices {
-            result.append(Backup(item: testItems[index], date: Date(timeInterval: 1.0 * TimeInterval(index), since: startDate)))
+            result.append(
+                Backup(
+                    item: testItems[index],
+                    date: Date(timeInterval: 1.0 * TimeInterval(index), since: startDate)
+                )
+            )
         }
         return result.sorted(by: { $0.modificationDate < $1.modificationDate })
     }

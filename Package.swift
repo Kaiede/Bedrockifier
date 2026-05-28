@@ -4,14 +4,14 @@
 import PackageDescription
 
 let package = Package(
-    name: "Bedrockifier",
+    name: "bedrockifier",
     platforms: [
         .macOS(.v14)
     ],
     products: [
         .executable(
             name: "bedrockifier",
-            targets: ["Bedrockifier"]
+            targets: ["bedrockifier"]
         )
     ],
     dependencies: [
@@ -24,16 +24,24 @@ let package = Package(
         .package(url: "https://github.com/jpsim/Yams.git", from: "6.2.2"),
         .package(url: "https://github.com/Kaiede/PTYKit.git", branch: "master"),
         .package(url: "https://github.com/vapor/console-kit.git", from: "4.16.0"),
+        .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins.git", from: "0.63.3"),
         .package(url: "https://github.com/weichsel/ZIPFoundation.git", from: "0.9.20")
     ],
     targets: [
-        // Targets are the basic building blocks of a package. A target can define a module or a test suite.
-        // Targets can depend on other targets in this package, and on products in packages this package depends on.
         .executableTarget(
-            name: "Bedrockifier",
+            name: "bedrockifier",
             dependencies: [
+                "BedrockifierLib",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "ConsoleKitTerminal", package: "console-kit"),
+                .product(name: "Logging", package: "swift-log"),
+                .product(name: "PTYKit", package: "PTYKit")
+            ],
+            plugins: [.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")]
+        ),
+        .target(
+            name: "BedrockifierLib",
+            dependencies: [
                 .product(name: "Hummingbird", package: "hummingbird"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "NIOHTTP1", package: "swift-nio"),
@@ -41,12 +49,16 @@ let package = Package(
                 .product(name: "PTYKit", package: "PTYKit"),
                 .product(name: "Yams", package: "Yams"),
                 .product(name: "ZIPFoundation", package: "ZIPFoundation")
-            ]),
+            ],
+            plugins: [.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")]
+        ),
         .testTarget(
-            name: "BedrockifierTests",
+            name: "BedrockifierLibTests",
             dependencies: [
-                "Bedrockifier",
+                "BedrockifierLib",
                 .product(name: "ZIPFoundation", package: "ZIPFoundation")
-            ]),
+            ],
+            plugins: [.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")]
+        ),
     ]
 )

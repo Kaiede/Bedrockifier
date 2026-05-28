@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import Bedrockifier
+@testable import BedrockifierLib
 
 @Suite struct ServerExtrasTests {
     @Test func invalidUrl() {
