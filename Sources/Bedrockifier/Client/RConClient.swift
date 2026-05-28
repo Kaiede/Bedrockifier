@@ -251,7 +251,7 @@ final class RConClientHandler: ChannelInboundHandler, RemovableChannelHandler, @
         }
         
         Library.log.trace("Sending RCON password.")
-        channel.writeAndFlush(wrapInboundOut(frame)).whenFailure { [weak self] error in
+        channel.writeAndFlush(frame).whenFailure { [weak self] error in
             Library.log.error("RCON authentication write failed: \(error)")
             guard let self = self else { return }
             if isAuth {
