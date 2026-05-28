@@ -153,7 +153,6 @@ extension Bedrockifier {
                 return "\(backup.item.location.lastPathComponent)  [\(timestamp)]".consoleText()
             }
 
-
             let ownershipSource = pickOwnershipSource(worldUrl: worldChoice.target.destination)
             try ownershipConfig.fillEmptyOwner(from: ownershipSource)
             try ownershipConfig.fillEmptyModes(from: ownershipSource)

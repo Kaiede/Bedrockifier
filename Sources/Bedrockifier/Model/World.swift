@@ -151,7 +151,6 @@ public struct World {
             throw WorldError.invalidLevelName
         }
 
-
         return worldName
     }
 }
