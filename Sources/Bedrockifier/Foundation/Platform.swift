@@ -70,6 +70,28 @@ struct Platform {
             }
         })
     }
+
+    static func timingsafeCompare(_ a: String, _ b: String) -> Bool {
+        return timingsafeCompare(Array(a.utf8), Array(b.utf8))
+    }
+
+    static func timingsafeCompare(_ a: [UInt8], _ b: [UInt8]) -> Bool {
+        guard a.count == b.count else { return false }
+        return a.withUnsafeBytes { ap in
+            b.withUnsafeBytes { bp in
+                #if canImport(Darwin) || canImport(Musl)
+                return timingsafe_bcmp(ap.baseAddress, bp.baseAddress, a.count) == 0
+                #else
+                // glibc < 2.37 does not provide timingsafe_bcmp
+                var result: UInt8 = 0
+                let ab = ap.bindMemory(to: UInt8.self)
+                let bb = bp.bindMemory(to: UInt8.self)
+                for i in 0..<a.count { result |= ab[i] ^ bb[i] }
+                return result == 0
+                #endif
+            }
+        }
+    }
 }
 
 extension Platform {
