@@ -44,6 +44,9 @@ let package = Package(
             ]),
         .testTarget(
             name: "BedrockifierTests",
-            dependencies: ["Bedrockifier"]),
+            dependencies: [
+                "Bedrockifier",
+                .product(name: "ZIPFoundation", package: "ZIPFoundation")
+            ]),
     ]
 )
