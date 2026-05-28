@@ -1,0 +1,15 @@
+{
+    "name": "Swift Dev Environment",
+    "image": "swift:6.3.2",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "sswg.swift-lang"
+            ],
+            "settings": {
+                "lldb.library": "/usr/lib/liblldb.so"
+            }
+        }
+    },
+    "forwardPorts": [8080]
+}
