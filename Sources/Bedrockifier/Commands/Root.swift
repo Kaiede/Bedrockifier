@@ -46,7 +46,11 @@ struct Bedrockifier: AsyncParsableCommand {
         return terminal
     }
 
-    internal static func getConfigFileUrl(environment: EnvironmentConfig, configPath: String?, configFolder: String?) -> URL {
+    internal static func getConfigFileUrl(
+        environment: EnvironmentConfig,
+        configPath: String?,
+        configFolder: String?
+    ) -> URL {
         if let configPath {
             return URL(fileURLWithPath: configPath)
         }
@@ -63,7 +67,11 @@ struct Bedrockifier: AsyncParsableCommand {
         return configDirectory.appendingPathComponent(EnvironmentConfig.fallbackConfigFile)
     }
 
-    internal static func getHostKeyFileUrl(environment: EnvironmentConfig, hostKeysPath: String?, configFolder: String?) -> URL {
+    internal static func getHostKeyFileUrl(
+        environment: EnvironmentConfig,
+        hostKeysPath: String?,
+        configFolder: String?
+    ) -> URL {
         if let hostKeysPath {
             return URL(fileURLWithPath: hostKeysPath)
         }

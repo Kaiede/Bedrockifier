@@ -28,6 +28,25 @@ import Foundation
 import ArgumentParser
 import ConsoleKitTerminal
 
+struct RestoreTarget {
+    let containerName: String
+    let kind: ContainerConnection.Kind
+    let prefixContainerName: Bool
+    let worlds: [URL]
+
+    var displayKind: String {
+        switch kind {
+        case .bedrock: return "Bedrock"
+        case .java: return "Java"
+        }
+    }
+}
+
+private struct WorldTarget {
+    let destination: URL
+    let worldName: String
+}
+
 extension Bedrockifier {
     struct Restore: AsyncParsableCommand {
         static let configuration = CommandConfiguration(
@@ -49,25 +68,6 @@ extension Bedrockifier {
 
         @Flag(help: "Log trace level information, overriding --debug")
         var trace = false
-
-        struct RestoreTarget {
-            let containerName: String
-            let kind: ContainerConnection.Kind
-            let prefixContainerName: Bool
-            let worlds: [URL]
-
-            var displayKind: String {
-                switch kind {
-                case .bedrock: return "Bedrock"
-                case .java: return "Java"
-                }
-            }
-        }
-
-        struct WorldTarget {
-            let destination: URL
-            let worldName: String
-        }
 
         func run() async throws {
             let terminal = initializeTerminal()
@@ -169,7 +169,10 @@ extension Bedrockifier {
 
         private func chooseTarget(terminal: Terminal, from targets: [RestoreTarget]) -> RestoreTarget {
             if let target = targets.first, targets.count == 1 {
-                terminal.output("Target: ".consoleText(.info) + "\(target.containerName) (\(target.displayKind))".consoleText())
+                terminal.output(
+                    "Target: ".consoleText(.info) +
+                    "\(target.containerName) (\(target.displayKind))".consoleText()
+                )
                 return target
             }
 
@@ -264,16 +267,11 @@ extension Bedrockifier {
             return backup.item.location.lastPathComponent.hasPrefix("\(target.containerName).")
         }
 
-        private func restore(terminal: Terminal, backup: Backup<World>, to target: WorldTarget, ownership: OwnershipPosixConfig) throws {
-            terminal.output("Restore Summary", style: .info)
-            terminal.output("  Archive: ".consoleText(.info) + backup.item.location.path.consoleText())
-            terminal.output("  Target:  ".consoleText(.info) + target.destination.path.consoleText())
-            terminal.emptyLine()
-
+        private func confirmOverwrite(terminal: Terminal, target: WorldTarget) -> Bool {
             if FileManager.default.fileExists(atPath: target.destination.path) {
                 guard terminal.confirm("This will overwrite the existing world. Continue?") else {
                     terminal.output("Restore cancelled.")
-                    return
+                    return false
                 }
 
                 terminal.emptyLine()
@@ -285,8 +283,26 @@ extension Bedrockifier {
                 } catch {
                     activity.fail()
                     terminal.error("Failed to remove existing world: \(error.localizedDescription)")
-                    return
+                    return false
                 }
+            }
+
+            return true
+        }
+
+        private func restore(
+            terminal: Terminal,
+            backup: Backup<World>,
+            to target: WorldTarget,
+            ownership: OwnershipPosixConfig
+        ) throws {
+            terminal.output("Restore Summary", style: .info)
+            terminal.output("  Archive: ".consoleText(.info) + backup.item.location.path.consoleText())
+            terminal.output("  Target:  ".consoleText(.info) + target.destination.path.consoleText())
+            terminal.emptyLine()
+
+            guard confirmOverwrite(terminal: terminal, target: target) else {
+                return
             }
 
             let parentFolder = target.destination.deletingLastPathComponent()

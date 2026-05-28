@@ -27,7 +27,7 @@ import Foundation
 
 import PTYKit
 
-public struct ToolConfig {
+public struct ToolConfig: Sendable {
     let dockerSocketPath: String
     let hostKeyValidator: SSHHostKeyValidator
 
@@ -85,10 +85,6 @@ public protocol ContainerConnectionConfig {
     var newline: TerminalNewline { get }
     var password: ContainerPassword { get }
     func makeChannelConfig() throws -> ContainerChannelConfig
-}
-
-extension ContainerConnectionConfig {
-    //var processUrl: URL { URL(fileURLWithPath: processPath) }
 }
 
 public struct DockerConnectionConfig: ContainerConnectionConfig {

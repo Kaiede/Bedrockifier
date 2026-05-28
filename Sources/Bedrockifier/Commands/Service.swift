@@ -57,7 +57,7 @@ extension Bedrockifier {
         var trace = false
 
         mutating func run() async throws {
-            let _ = Bedrockifier.initializeTerminal(showDetails: true)
+            _ = Bedrockifier.initializeTerminal(showDetails: true)
             BackupService.logger.info("Configuring Bedrockifier Daemon")
             let environment = EnvironmentConfig()
 

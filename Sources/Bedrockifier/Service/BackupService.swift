@@ -108,13 +108,19 @@ final class BackupService {
     }
 
     @Sendable
-    private func handleHealthStatus(to request: Request, context: ServiceContext) async throws -> HTTPResponse.Status {
+    private func handleHealthStatus(
+        to request: Request,
+        context: ServiceContext
+    ) async throws -> HTTPResponse.Status {
         let isHealthy = await backupActor.checkHealth()
         return isHealthy ? .ok : .serviceUnavailable
     }
 
     @Sendable
-    private func handleServerStatus(to request: Request, context: ServiceContext) async throws -> ServiceState {
+    private func handleServerStatus(
+        to request: Request,
+        context: ServiceContext
+    ) async throws -> ServiceState {
         let lastResult = await backupActor.lastBackupResult()
         let response = ServiceState(lastBackup: lastResult)
 
@@ -122,13 +128,19 @@ final class BackupService {
     }
 
     @Sendable
-    private func handleStartBackup(to request: Request, context: ServiceContext) async throws -> HTTPResponse.Status {
+    private func handleStartBackup(
+        to request: Request,
+        context: ServiceContext
+    ) async throws -> HTTPResponse.Status {
         await backupActor.backupAllContainers(isDaily: true)
         return .ok
     }
 
     @Sendable
-    private func handleNotImplemented(to request: Request, context: ServiceContext) async throws -> HTTPResponse.Status {
+    private func handleNotImplemented(
+        to request: Request,
+        context: ServiceContext
+    ) async throws -> HTTPResponse.Status {
         return .notImplemented
     }
 

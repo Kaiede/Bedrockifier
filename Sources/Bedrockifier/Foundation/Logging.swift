@@ -69,8 +69,7 @@ extension Logger {
                 let isWritable = markerCharacter(for: values.isWritable ?? false, char: "w")
                 self.trace(" - \(url.path) [\(isReadable)\(isWritable)]")
             }
-        }
-        catch {
+        } catch {
             self.trace("Unable to trace contents of folder: \(folder.path), \(error)")
         }
     }

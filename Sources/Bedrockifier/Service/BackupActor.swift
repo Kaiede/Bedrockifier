@@ -240,7 +240,7 @@ actor BackupActor {
                 BackupService.logger.error("Container \(container.name) failed to reset after backup")
             }
 
-            backedUpContainers[container.name] = backupSize;
+            backedUpContainers[container.name] = backupSize
         }
 
         do {

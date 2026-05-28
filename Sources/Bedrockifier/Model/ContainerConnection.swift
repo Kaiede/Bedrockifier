@@ -24,10 +24,18 @@
  */
 
 import Foundation
+
+import AsyncAlgorithms
 import NIOCore
 import NIOPosix
 import PTYKit
 import ZIPFoundation
+
+extension AsyncSequence {
+    func collect() async throws -> [Element] {
+        try await reduce(into: [Element]()) { $0.append($1) }
+    }
+}
 
 public class ContainerConnection {
     public enum Kind {
@@ -309,34 +317,13 @@ public class ContainerConnection {
 }
 
 extension ContainerConnection {
-    public static func loadContainers(from config: BackupConfig, tools: ToolConfig) async throws -> [ContainerConnection] {
-        let prefixAllContainerNames = config.prefixContainerName ?? false
-        var containers: [ContainerConnection] = []
-        for container in config.containers?.bedrock ?? [] {
-            Library.log.debug("Creating Bedrock Container Connection. (container: \(container.name))")
-            let config = containerConfig(container: container, tools: tools, prefixAllContainerNames: prefixAllContainerNames)
-            let connection = try await ContainerConnection(
-                containerName: container.name,
-                config: config,
-                kind: .bedrock,
-                worlds: container.worlds,
-                extras: container.extras
-            )
-            containers.append(connection)
-        }
-
-        for container in config.containers?.java ?? [] {
-            Library.log.debug("Creating Java Container Connection. (container: \(container.name)")
-            let config = containerConfig(container: container, tools: tools, prefixAllContainerNames: prefixAllContainerNames)
-            let connection = try await ContainerConnection(
-                containerName: container.name,
-                config: config,
-                kind: .java,
-                worlds: container.worlds,
-                extras: container.extras
-            )
-            containers.append(connection)
-        }
+    public static func loadContainers(
+        from config: BackupConfig,
+        tools: ToolConfig
+    ) async throws -> [ContainerConnection] {
+        let bedrockContainers = try await ContainerConnection.loadBedrockContainers(from: config, tools: tools)
+        let javaContainers = try await ContainerConnection.loadJavaContainers(from: config, tools: tools)
+        var containers = bedrockContainers + javaContainers
 
         // Offer Backwards Compatibility for Older Installs
         for container in config.servers ?? [:] {
@@ -362,6 +349,54 @@ extension ContainerConnection {
         }
 
         return containers
+    }
+
+    private static func loadBedrockContainers(
+        from config: BackupConfig,
+        tools: ToolConfig,
+    ) async throws -> [ContainerConnection] {
+        let prefixAllContainerNames = config.prefixContainerName ?? false
+        guard let containers = config.containers?.bedrock else { return [] }
+
+        return try await containers.async.map { container in
+            Library.log.debug("Creating Bedrock Container Connection. (container: \(container.name))")
+            let config = containerConfig(
+                container: container,
+                tools: tools,
+                prefixAllContainerNames: prefixAllContainerNames
+            )
+            return try await ContainerConnection(
+                containerName: container.name,
+                config: config,
+                kind: .bedrock,
+                worlds: container.worlds,
+                extras: container.extras
+            )
+        }.collect()
+    }
+
+    private static func loadJavaContainers(
+        from config: BackupConfig,
+        tools: ToolConfig,
+    ) async throws -> [ContainerConnection] {
+        let prefixAllContainerNames = config.prefixContainerName ?? false
+        guard let containers = config.containers?.java else { return [] }
+
+        return try await containers.async.map { container in
+            Library.log.debug("Creating Java Container Connection. (container: \(container.name)")
+            let config = containerConfig(
+                container: container,
+                tools: tools,
+                prefixAllContainerNames: prefixAllContainerNames
+            )
+            return try await ContainerConnection(
+                containerName: container.name,
+                config: config,
+                kind: .java,
+                worlds: container.worlds,
+                extras: container.extras
+            )
+        }.collect()
     }
 
     private static func containerConfig(

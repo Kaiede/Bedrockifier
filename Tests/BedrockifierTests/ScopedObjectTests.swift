@@ -8,7 +8,7 @@ private final class MockScopedObject {
         self.deinitHandler = deinitHandler
     }
 
-    static func makeOptional(succeed: Bool, deinitHandler: @escaping () -> ()) -> MockScopedObject? {
+    static func makeOptional(succeed: Bool, deinitHandler: @escaping () -> Void) -> MockScopedObject? {
         if succeed {
             return MockScopedObject(deinitHandler: deinitHandler)
         }
@@ -36,7 +36,10 @@ private struct MockScopedObjectError: Error {}
 
     @Test func tryScopedObjectSuccess() throws {
         var didDeinit = false
-        try with(scopedOptional: MockScopedObject.makeOptional(succeed: true, deinitHandler: { didDeinit = true })) { scopedObject in
+        try with(scopedOptional: MockScopedObject.makeOptional(
+            succeed: true,
+            deinitHandler: { didDeinit = true }
+        )) { scopedObject in
             scopedObject.doSomething()
             #expect(!didDeinit)
         }
@@ -54,7 +57,10 @@ private struct MockScopedObjectError: Error {}
     @Test func throwingScope() {
         var didDeinit = false
         do {
-            try with(scopedOptional: MockScopedObject.makeOptional(succeed: true, deinitHandler: { didDeinit = true })) { _ in
+            try with(scopedOptional: MockScopedObject.makeOptional(
+                succeed: true,
+                deinitHandler: { didDeinit = true }
+            )) { _ in
                 #expect(!didDeinit)
                 throw MockScopedObjectError()
             }

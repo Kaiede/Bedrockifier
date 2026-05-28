@@ -40,6 +40,20 @@ public enum RConError: Error {
     case connectionClosed
 }
 
+final class RequestIDProvider {
+    private var nextRequestID: Int32 = 1
+
+    internal func nextID() -> Int32 {
+        // Avoid -1 which is reserved by the protocol to indicate auth failure.
+        var next = nextRequestID
+        if next == -1 || next == 0 {
+            next = 1
+        }
+        nextRequestID = next &+ 1
+        return next
+    }
+}
+
 final class RConClient {
     // Maximum allowed body size on an inbound packet. The Source RCON spec caps
     // responses at 4096 bytes; we allow a little extra slack for non-conforming servers.
@@ -50,11 +64,12 @@ final class RConClient {
 
     private var channel: Channel?
     private var handler: RConClientHandler?
-    private var nextRequestID: Int32 = 1
+    private let idProvider: RequestIDProvider
 
     public init(group: EventLoopGroup, terminal: PseudoTerminal) {
         self.group = group
         self.terminal = terminal
+        self.idProvider = .init()
     }
 
     public var isConnected: Bool {
@@ -101,7 +116,7 @@ final class RConClient {
             throw RConError.notConnected
         }
 
-        let requestID = nextID()
+        let requestID = idProvider.nextID()
         let response = try await sendFrame(
             RConFrame(id: requestID, type: RConFrame.typeAuth, body: password),
             isAuth: true
@@ -118,7 +133,7 @@ final class RConClient {
         // Successful authenticate means we can convert into streaming mode
         try await channel.pipeline.removeHandler(handler)
         try await channel.pipeline.addHandlers([
-            StreamHandler(client: self),
+            StreamHandler(idProvider: self.idProvider),
             TerminalHandler(terminal: self.terminal)
         ], position: .last)
     }
@@ -128,16 +143,6 @@ final class RConClient {
         self.channel = nil
         self.handler = nil
         try await channel.close()
-    }
-
-    private func nextID() -> Int32 {
-        // Avoid -1 which is reserved by the protocol to indicate auth failure.
-        var next = nextRequestID
-        if next == -1 || next == 0 {
-            next = 1
-        }
-        nextRequestID = next &+ 1
-        return next
     }
 
     private func sendFrame(_ frame: RConFrame, isAuth: Bool) async throws -> RConFrame {
@@ -309,41 +314,39 @@ final class RConClientHandler: ChannelInboundHandler, RemovableChannelHandler, @
 }
 
 /// Handles conversion between the TerminalHandler, and RCon frames
-extension RConClient {
-    final class StreamHandler: ChannelDuplexHandler, @unchecked Sendable {
-        typealias InboundIn = RConFrame
-        typealias InboundOut = ByteBuffer
+private final class StreamHandler: ChannelDuplexHandler, @unchecked Sendable {
+    typealias InboundIn = RConFrame
+    typealias InboundOut = ByteBuffer
 
-        typealias OutboundIn = ByteBuffer
-        typealias OutboundOut = RConFrame
+    typealias OutboundIn = ByteBuffer
+    typealias OutboundOut = RConFrame
 
-        private let client: RConClient
+    private let idProvider: RequestIDProvider
 
-        init(client: RConClient) {
-            self.client = client
+    init(idProvider: RequestIDProvider) {
+        self.idProvider = idProvider
+    }
+
+    func channelRead(context: ChannelHandlerContext, data: NIOAny) {
+        let frame = unwrapInboundIn(data)
+        guard frame.type == RConFrame.typeResponseValue else {
+            Library.log.error("Unexpected RCON frame type encountered after authentication: \(frame.type)")
+            return
         }
 
-        func channelRead(context: ChannelHandlerContext, data: NIOAny) {
-            let frame = unwrapInboundIn(data)
-            guard frame.type == RConFrame.typeResponseValue else {
-                Library.log.error("Unexpected RCON frame type encountered after authentication: \(frame.type)")
-                return
-            }
+        let byteBuffer = ByteBuffer(string: frame.body)
+        context.fireChannelRead(wrapInboundOut(byteBuffer))
+    }
 
-            let byteBuffer = ByteBuffer(string: frame.body)
-            context.fireChannelRead(wrapInboundOut(byteBuffer))
+    func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
+        var byteBuffer = unwrapOutboundIn(data)
+        guard var body = byteBuffer.readString(length: byteBuffer.readableBytes) else {
+            return
         }
 
-        func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
-            var byteBuffer = unwrapOutboundIn(data)
-            guard var body = byteBuffer.readString(length: byteBuffer.readableBytes) else {
-                return
-            }
-
-            body = body.trimmingCharacters(in: .newlines)
-            let id = client.nextID()
-            let frame = RConFrame(id: id, type: RConFrame.typeExecCommand, body: body)
-            context.write(self.wrapOutboundOut(frame), promise: promise)
-        }
+        body = body.trimmingCharacters(in: .newlines)
+        let id = idProvider.nextID()
+        let frame = RConFrame(id: id, type: RConFrame.typeExecCommand, body: body)
+        context.write(self.wrapOutboundOut(frame), promise: promise)
     }
 }

@@ -27,7 +27,6 @@ import Foundation
 import Testing
 @testable import Bedrockifier
 
-// swiftlint:disable trailing_comma
 typealias JsonArray = [Any]
 
 extension JSONDecoder {
@@ -57,7 +56,7 @@ private struct ComponentExpectation {
     @Test(arguments: [
         .init(time: "08:00", hours: 8, minutes: 0, seconds: 0),
         .init(time: "09:30", hours: 9, minutes: 30, seconds: 0),
-        .init(time: "21:45", hours: 21, minutes: 45, seconds: 0),
+        .init(time: "21:45", hours: 21, minutes: 45, seconds: 0)
     ])
     func dayTimeAccessors(_ expectation: ComponentExpectation) {
         let testTimeZone = TimeZone(abbreviation: "UTC")!
@@ -75,7 +74,7 @@ private struct ComponentExpectation {
     @Test(arguments: [
         .init(time: "08:00", hours: 8, minutes: 0, seconds: 0),
         .init(time: "09:30", hours: 9, minutes: 30, seconds: 0),
-        .init(time: "21:45", hours: 21, minutes: 45, seconds: 0),
+        .init(time: "21:45", hours: 21, minutes: 45, seconds: 0)
     ])
     func dayTimeAccessorsDecoder(_ expectation: ComponentExpectation) {
         let jsonData: JsonArray = [ expectation.time ]
@@ -101,7 +100,7 @@ private struct ComponentExpectation {
         .init(start: "08:00", target: "08:00", direction: .forward),
         .init(start: "08:00", target: "08:00", direction: .backward),
         .init(start: "08:00", target: "08:30", direction: .forward),
-        .init(start: "08:00", target: "08:30", direction: .backward),
+        .init(start: "08:00", target: "08:30", direction: .backward)
     ])
     func calcNextDate(_ expectation: SearchExpectation) {
         let dayInSeconds: TimeInterval = 86400
@@ -129,7 +128,7 @@ private struct ComponentExpectation {
 
     @Test(arguments: [
         .init(start: "31 Aug 09:00:00", target: "08:00", direction: .forward),
-        .init(start: "1 Sep 08:00:00", target: "09:00", direction: .backward),
+        .init(start: "1 Sep 08:00:00", target: "09:00", direction: .backward)
     ])
     func calcNextDateBoundaries(_ expectation: SearchExpectation) {
         let dayInSeconds: TimeInterval = 86400
@@ -157,7 +156,7 @@ private struct ComponentExpectation {
 
     @Test(arguments: [
         .init(start: "2 Nov 2019 09:00:00", target: "3 Nov 2019 08:00:00", direction: .forward),
-        .init(start: "7 Mar 2020 09:00:00", target: "8 Mar 2020 08:00:00", direction: .forward),
+        .init(start: "7 Mar 2020 09:00:00", target: "8 Mar 2020 08:00:00", direction: .forward)
     ])
     func calcNextDateDaylightSavings(_ expectation: SearchExpectation) {
         let startDate = DayTimeTests.daylightDateFormatter.date(from: expectation.start)!

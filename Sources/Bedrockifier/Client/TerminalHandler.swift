@@ -46,14 +46,16 @@ final class TerminalHandler: ChannelDuplexHandler, @unchecked Sendable {
     }
 
     deinit {
-        if let terminalChannel {
-            Task {
-                do {
-                    try await terminalChannel.disconnect()
-                    Library.log.info("NIO Terminal disconnected from deinit.")
-                } catch {
-                    Library.log.error("Failed to disconnect from Terminal during deinit. (\(error.localizedDescription)")
-                }
+        guard let terminalChannel else { return }
+
+        Task {
+            do {
+                try await terminalChannel.disconnect()
+                Library.log.info("NIO Terminal disconnected from deinit.")
+            } catch {
+                Library.log.error(
+                    "Failed to disconnect from Terminal during deinit. (\(error.localizedDescription))"
+                )
             }
         }
     }

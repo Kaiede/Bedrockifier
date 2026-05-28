@@ -55,7 +55,11 @@ struct TokenCheckingMiddleware<Context>: RouterMiddleware {
         return tokenData.base64EncodedString()
     }
 
-    public func handle(_ request: Request, context: Context, next: (Request, Context) async throws -> Response) async throws -> Response {
+    public func handle(
+        _ request: Request,
+        context: Context,
+        next: (Request, Context) async throws -> Response
+    ) async throws -> Response {
         guard let currentToken = try? String(contentsOf: tokenFile) else {
             throw HTTPError(.internalServerError, message: "Cannot accept requests at this time.")
         }

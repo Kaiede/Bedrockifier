@@ -64,7 +64,10 @@ extension Bedrockifier {
                 return
             }
 
-            terminal.output("HTTP Token: ".consoleText(.info) + token.trimmingCharacters(in: .whitespacesAndNewlines).consoleText())
+            terminal.output(
+                "HTTP Token: ".consoleText(.info) +
+                token.trimmingCharacters(in: .whitespacesAndNewlines).consoleText()
+            )
         }
     }
 }

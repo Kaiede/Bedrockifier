@@ -28,8 +28,6 @@ import Foundation
 import ConsoleKitTerminal
 import Logging
 
-// swiftlint:disable function_parameter_count
-
 public final class ConsoleKitLogger: LogHandler {
     public static var logLevelOverride: Logger.Level?
     public static var showDetails: Bool = false

@@ -62,17 +62,15 @@ public struct World {
     public let type: WorldType
     public let location: URL
     public var size: UInt64 {
-        get {
-            do {
-                let possibleSize = try FileManager.default.attributesOfItem(atPath: location.path)[.size]
-                guard let size = possibleSize as? UInt64 else {
-                    return 0
-                }
-
-                return size
-            } catch {
+        do {
+            let possibleSize = try FileManager.default.attributesOfItem(atPath: location.path)[.size]
+            guard let size = possibleSize as? UInt64 else {
                 return 0
             }
+
+            return size
+        } catch {
+            return 0
         }
     }
 
@@ -329,11 +327,20 @@ extension World {
         return false
     }
 
-    func applyOwnership(owner: Platform.UserID?, group: Platform.GroupID?, permissions: Platform.Mode?) throws {
+    func applyOwnership(
+        owner: Platform.UserID?,
+        group: Platform.GroupID?,
+        permissions: Platform.Mode?
+    ) throws {
         try applyOwnership(owner: owner, group: group, folderMode: permissions, fileMode: permissions)
     }
 
-    func applyOwnership(owner: Platform.UserID?, group: Platform.GroupID?, folderMode: Platform.Mode?, fileMode: Platform.Mode?) throws {
+    func applyOwnership(
+        owner: Platform.UserID?,
+        group: Platform.GroupID?,
+        folderMode: Platform.Mode?,
+        fileMode: Platform.Mode?
+    ) throws {
         let path = self.location.path
         do {
             let uidStr = owner != nil ? owner!.description : "nil"
@@ -357,7 +364,12 @@ extension World {
 
             // For folders, enumerate the children.
             // This can be expensive, but provided for completeness.
-            if isDirectory.boolValue, let enumerator = FileManager.default.enumerator(at: rootUrl, includingPropertiesForKeys: [.isDirectoryKey], options: .skipsHiddenFiles) {
+            if isDirectory.boolValue,
+                let enumerator = FileManager.default.enumerator(
+                    at: rootUrl,
+                    includingPropertiesForKeys: [.isDirectoryKey],
+                    options: .skipsHiddenFiles
+                ) {
                 Library.log.trace("Starting Processing World Directory")
                 for case let fileUrl as URL in enumerator {
                     Library.log.trace("Processing \(fileUrl.path())")
@@ -377,7 +389,12 @@ extension World {
         }
     }
 
-    static func applyOwnership(to path: String, owner: Platform.UserID?, group: Platform.GroupID?, permissions: Platform.Mode?) throws {
+    static func applyOwnership(
+        to path: String,
+        owner: Platform.UserID?,
+        group: Platform.GroupID?,
+        permissions: Platform.Mode?
+    ) throws {
         if owner != nil || group != nil {
             do {
                 try Platform.changeOwner(path: path, uid: owner, gid: group)
@@ -432,16 +449,26 @@ extension World {
 extension World.WorldError: LocalizedError {
     var errorDescription: String? {
         switch self {
-        case .invalidWorldType: return "World isn't a zip file, mcworld file, or valid Minecraft world folder"
-        case .invalidUrl(let url, let innerError): return "Unable to access world path at '\(url.path)': \(innerError)"
-        case .invalidLevelArchive: return "World archive is not a valid zip or mcworld file"
-        case .missingLevelName: return "Unable to determine name of the world"
-        case .invalidLevelName: return "Level name contains prohibited strings"
-        case .invalidLevelNameFile: return "Unable to read contents of levelname.txt"
-        case .archiveCreationFailed: return "Failed to create file for archive"
-        case .failedToApplyOwnership(let url, let innerError): return "Unable to apply ownership to file at '\(url.path)': \(innerError)"
-        case .ownershipChangeFailure(let errno): return "Change owner returned POSIX error: \(errno)"
-        case .permissionsChangeFailure(let errno): return "Change permissions returned POSIX error: \(errno)"
+        case .invalidWorldType:
+            return "World isn't a zip file, mcworld file, or valid Minecraft world folder"
+        case .invalidUrl(let url, let innerError):
+            return "Unable to access world path at '\(url.path)': \(innerError)"
+        case .invalidLevelArchive:
+            return "World archive is not a valid zip or mcworld file"
+        case .missingLevelName:
+            return "Unable to determine name of the world"
+        case .invalidLevelName:
+            return "Level name contains prohibited strings"
+        case .invalidLevelNameFile:
+            return "Unable to read contents of levelname.txt"
+        case .archiveCreationFailed:
+            return "Failed to create file for archive"
+        case .failedToApplyOwnership(let url, let innerError):
+            return "Unable to apply ownership to file at '\(url.path)': \(innerError)"
+        case .ownershipChangeFailure(let errno):
+            return "Change owner returned POSIX error: \(errno)"
+        case .permissionsChangeFailure(let errno):
+            return "Change permissions returned POSIX error: \(errno)"
         }
     }
 }
