@@ -11,6 +11,26 @@
       "matchStrings": [
         "# renovate: datasource=(?<datasource>[a-z-]+?)(?: packageName=(?<packageName>.+?))?(?: versioning=(?<versioning>[a-z-]+))?\\s(?:ENV|ARG) .+?_VERSION=(?<currentValue>.+?)\\s"
       ]
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/swift\\.yml$/",
+        "/^README\\.md$/"
+      ],
+      "matchStrings": [
+        "swift-version: \\[(?<currentValue>[0-9.]+)\\]",
+        "Swift-(?<currentValue>[0-9.]+)-brightgreen"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "swift"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchDatasources": ["docker"],
+      "matchDepNames": ["swift"],
+      "groupName": "Swift version"
     }
   ],
   "ignorePaths": ["**/examples/**"]
