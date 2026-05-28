@@ -1,8 +1,9 @@
-import XCTest
+import Foundation
+import Testing
 @testable import Bedrockifier
 
-final class TrimmingTests: XCTestCase {
-    func testTrimmingOfBucket() {
+@Suite struct TrimmingTests {
+    @Test func trimmingOfBucket() throws {
         let testBackupItems = [
             MockBackupItem("file:///backups/first.zip"),
             MockBackupItem("file:///backups/second.zip"),
@@ -11,21 +12,17 @@ final class TrimmingTests: XCTestCase {
         ]
 
         let testBackupArray = createBackupArray(testBackupItems)
-        guard let newest = testBackupArray.last else {
-            XCTFail("Getting newest item from array failed")
-            return
-        }
+        let newest = try #require(testBackupArray.last)
 
-        // Do trim and confirm
         testBackupArray.trimBucket()
         let keep = testBackupArray.filter({ $0.action == .keep })
         let trim = testBackupArray.filter({ $0.action == .trim })
-        XCTAssertEqual(keep.count, 1) // One should be kept by default.
-        XCTAssertEqual(trim.count, 3) // All others should be marked trim.
-        XCTAssertEqual(keep.first?.item.name, newest.item.name) // The one kept should be the newest one in the bucket.
+        #expect(keep.count == 1)
+        #expect(trim.count == 3)
+        #expect(keep.first?.item.name == newest.item.name)
     }
 
-    func testTrimmingWithKeepLast() {
+    @Test func trimmingWithKeepLast() {
         let testBackupItems = [
             MockBackupItem("file:///backups/first.zip"),
             MockBackupItem("file:///backups/second.zip"),
@@ -43,10 +40,9 @@ final class TrimmingTests: XCTestCase {
             testBackupArray.trimBucket(keepLast: 3)
             let keep = testBackupArray.filter({ $0.action == .keep })
             let keepNames = keep.map({ $0.item.name })
-            XCTAssertEqual(keep.count, 3)
-            XCTAssertEqual(keepNames, testBackupArray.suffix(3).map({ $0.item.name }))
+            #expect(keep.count == 3)
+            #expect(keepNames == testBackupArray.suffix(3).map({ $0.item.name }))
         }
-
 
         // Case 2: Keep 6
         do {
@@ -54,8 +50,8 @@ final class TrimmingTests: XCTestCase {
             testBackupArray.trimBucket(keepLast: 6)
             let keep = testBackupArray.filter({ $0.action == .keep })
             let keepNames = keep.map({ $0.item.name })
-            XCTAssertEqual(keep.count, 6)
-            XCTAssertEqual(keepNames, testBackupArray.suffix(6).map({ $0.item.name }))
+            #expect(keep.count == 6)
+            #expect(keepNames == testBackupArray.suffix(6).map({ $0.item.name }))
         }
     }
 
@@ -65,7 +61,7 @@ final class TrimmingTests: XCTestCase {
         for index in testItems.indices {
             result.append(Backup(item: testItems[index], date: Date(timeInterval: 1.0 * TimeInterval(index), since: startDate)))
         }
-        return result.sorted(by: { $0.modificationDate < $1.modificationDate})
+        return result.sorted(by: { $0.modificationDate < $1.modificationDate })
     }
 }
 

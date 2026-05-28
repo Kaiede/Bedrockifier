@@ -1,7 +1,7 @@
-import XCTest
+import Testing
 @testable import Bedrockifier
 
-final class MockScopedObject {
+fileprivate final class MockScopedObject {
     private let deinitHandler: () -> Void
 
     init(deinitHandler: @escaping () -> Void) {
@@ -12,7 +12,6 @@ final class MockScopedObject {
         if succeed {
             return MockScopedObject(deinitHandler: deinitHandler)
         }
-
         return nil
     }
 
@@ -23,58 +22,45 @@ final class MockScopedObject {
     }
 }
 
-struct MockScopedObjectError: Error {}
+fileprivate struct MockScopedObjectError: Error {}
 
-final class ScopedObjectTests: XCTestCase {
-
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-    }
-
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
-    }
-
-    func testScopedObject() throws {
+@Suite struct ScopedObjectTests {
+    @Test func scopedObject() {
         var didDeinit = false
-        with(scopedObject: MockScopedObject(deinitHandler: { didDeinit = true }) ) { scopedObject in
+        with(scopedObject: MockScopedObject(deinitHandler: { didDeinit = true })) { scopedObject in
             scopedObject.doSomething()
-            XCTAssertFalse(didDeinit)
+            #expect(!didDeinit)
         }
-        XCTAssertTrue(didDeinit)
+        #expect(didDeinit)
     }
 
-    func testTryScopedObject_Success() throws {
+    @Test func tryScopedObjectSuccess() throws {
         var didDeinit = false
-        try with(scopedOptional: MockScopedObject.makeOptional(succeed: true, deinitHandler: { didDeinit = true }) ) { scopedObject in
+        try with(scopedOptional: MockScopedObject.makeOptional(succeed: true, deinitHandler: { didDeinit = true })) { scopedObject in
             scopedObject.doSomething()
-            XCTAssertFalse(didDeinit)
+            #expect(!didDeinit)
         }
-        XCTAssertTrue(didDeinit)
+        #expect(didDeinit)
     }
 
-    func testTryScopedObject_Failure() throws {
-        do {
-            try with(scopedOptional: MockScopedObject.makeOptional(succeed: false, deinitHandler: {})) { scopedObject in
-                XCTFail("Should not be able to act on anything")
+    @Test func tryScopedObjectFailure() {
+        #expect(throws: NullScopedObjectError.self) {
+            try with(scopedOptional: MockScopedObject.makeOptional(succeed: false, deinitHandler: {})) { _ in
+                Issue.record("Should not be able to act on anything")
             }
-            XCTFail("Should have thrown here")
-        } catch is NullScopedObjectError {
-        } catch {
-            XCTFail("Wrong Error Thrown")
         }
     }
 
-    func testThrowingScope() throws {
+    @Test func throwingScope() {
         var didDeinit = false
         do {
-            try with(scopedOptional: MockScopedObject.makeOptional(succeed: true, deinitHandler: { didDeinit = true }) ) { scopedObject in
-                XCTAssertFalse(didDeinit)
+            try with(scopedOptional: MockScopedObject.makeOptional(succeed: true, deinitHandler: { didDeinit = true })) { _ in
+                #expect(!didDeinit)
                 throw MockScopedObjectError()
             }
         } catch is NullScopedObjectError {
-            XCTFail("Wrong Error Thrown")
+            Issue.record("Wrong Error Thrown")
         } catch {}
-        XCTAssertTrue(didDeinit)
+        #expect(didDeinit)
     }
 }

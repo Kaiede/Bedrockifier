@@ -1,215 +1,109 @@
-import XCTest
+import Testing
 @testable import Bedrockifier
 
-final class BackupConfigYamlTests: XCTestCase {
-    func testMinimalConfig() {
-        guard let yamlData = minimalYamlConfigString.data(using: .utf8) else {
-            XCTFail("couldn't get data for test YAML")
-            return
-        }
-
-        do {
-            let config = try BackupConfig.getYaml(from: yamlData)
-            XCTAssertNil(config.backupPath)
-            XCTAssertNil(config.dockerPath)
-            XCTAssertEqual(config.servers?.count, 2)
-            XCTAssertNil(config.trim)
-            XCTAssertNil(config.loggingLevel)
-        } catch(let error) {
-            XCTFail("Unable to decode valid YAML: \(error)")
-        }
+@Suite struct BackupConfigYamlTests {
+    @Test func minimalConfig() throws {
+        let data = try #require(minimalYamlConfigString.data(using: .utf8))
+        let config = try BackupConfig.getYaml(from: data)
+        #expect(config.backupPath == nil)
+        #expect(config.dockerPath == nil)
+        #expect(config.servers?.count == 2)
+        #expect(config.trim == nil)
+        #expect(config.loggingLevel == nil)
     }
 
-    func testMinimalConfigWithSpaces() {
-        guard let yamlData = minimalYamlConfigWithSpacesString.data(using: .utf8) else {
-            XCTFail("couldn't get data for test YAML")
-            return
-        }
-
-        do {
-            let config = try BackupConfig.getYaml(from: yamlData)
-            XCTAssertNil(config.backupPath)
-            XCTAssertNil(config.dockerPath)
-            XCTAssertEqual(config.servers?.count, 2)
-            XCTAssertNil(config.trim)
-            XCTAssertNil(config.loggingLevel)
-            XCTAssertEqual(config.servers?["bedrock_public"], "/bedrock public/worlds")
-            XCTAssertEqual(config.servers?["bedrock_private"], "/bedrock private/worlds")
-        } catch(let error) {
-            XCTFail("Unable to decode valid YAML: \(error)")
-        }
+    @Test func minimalConfigWithSpaces() throws {
+        let data = try #require(minimalYamlConfigWithSpacesString.data(using: .utf8))
+        let config = try BackupConfig.getYaml(from: data)
+        #expect(config.backupPath == nil)
+        #expect(config.dockerPath == nil)
+        #expect(config.servers?.count == 2)
+        #expect(config.trim == nil)
+        #expect(config.loggingLevel == nil)
+        #expect(config.servers?["bedrock_public"] == "/bedrock public/worlds")
+        #expect(config.servers?["bedrock_private"] == "/bedrock private/worlds")
     }
 
-    func testDockerConfig() {
-        guard let yamlData = dockerYamlConfigString.data(using: .utf8) else {
-            XCTFail("couldn't get data for test YAML")
-            return
-        }
-
-        do {
-            let config = try BackupConfig.getYaml(from: yamlData)
-            XCTAssertNil(config.backupPath)
-            XCTAssertNil(config.dockerPath)
-            XCTAssertEqual(config.servers?.count, 2)
-            XCTAssertNotNil(config.trim)
-        } catch(let error) {
-            XCTFail("Unable to decode valid YAML: \(error)")
-        }
+    @Test func dockerConfig() throws {
+        let data = try #require(dockerYamlConfigString.data(using: .utf8))
+        let config = try BackupConfig.getYaml(from: data)
+        #expect(config.backupPath == nil)
+        #expect(config.dockerPath == nil)
+        #expect(config.servers?.count == 2)
+        #expect(config.trim != nil)
     }
 
-    func testGoodConfig() {
-        guard let yamlData = goodYamlConfigString.data(using: .utf8) else {
-            XCTFail("couldn't get data for test YAML")
-            return
-        }
-
-        do {
-            let config = try BackupConfig.getYaml(from: yamlData)
-            XCTAssertNotNil(config.backupPath)
-            XCTAssertNotNil(config.dockerPath)
-            XCTAssertEqual(config.servers?.count, 2)
-            XCTAssertNotNil(config.trim)
-            XCTAssertEqual(config.loggingLevel, .trace)
-        } catch(let error) {
-            XCTFail("Unable to decode valid YAML: \(error)")
-        }
+    @Test func goodConfig() throws {
+        let data = try #require(goodYamlConfigString.data(using: .utf8))
+        let config = try BackupConfig.getYaml(from: data)
+        #expect(config.backupPath != nil)
+        #expect(config.dockerPath != nil)
+        #expect(config.servers?.count == 2)
+        #expect(config.trim != nil)
+        #expect(config.loggingLevel == .trace)
     }
 
-    func testOwnershipConfig() {
-        guard let yamlData = ownershipYamlConfigString.data(using: .utf8) else {
-            XCTFail("couldn't get data for test YAML")
-            return
-        }
-
-        do {
-            let config = try BackupConfig.getYaml(from: yamlData)
-            guard let ownershipConfig = config.ownership else {
-                XCTFail("Ownership config missing.")
-                return
-            }
-
-            let (uid, gid) = try ownershipConfig.parseOwnerAndGroup()
-            let permissions = try ownershipConfig.parsePosixPermissions()
-            XCTAssertEqual(uid, 100)
-            XCTAssertEqual(gid, 200)
-            XCTAssertEqual(permissions, 0o666)
-        } catch(let error) {
-            XCTFail("Unable to decode valid YAML: \(error)")
-        }
+    @Test func ownershipConfig() throws {
+        let data = try #require(ownershipYamlConfigString.data(using: .utf8))
+        let config = try BackupConfig.getYaml(from: data)
+        let ownershipConfig = try #require(config.ownership)
+        let (uid, gid) = try ownershipConfig.parseOwnerAndGroup()
+        let permissions = try ownershipConfig.parsePosixPermissions()
+        #expect(uid == 100)
+        #expect(gid == 200)
+        #expect(permissions == 0o666)
     }
 
-    func testScheduleConfig() {
-        guard let yamlData = scheduleYamlConfigString.data(using: .utf8) else {
-            XCTFail("couldn't get data for test YAML")
-            return
-        }
-
-        do {
-            let config = try BackupConfig.getYaml(from: yamlData)
-            guard let scheduleConfig = config.schedule else {
-                XCTFail("Schedule config missing.")
-                return
-            }
-
-            XCTAssertEqual(scheduleConfig.interval, "3h")
-            XCTAssertEqual(scheduleConfig.onPlayerLogin, true)
-            XCTAssertEqual(scheduleConfig.onPlayerLogout, nil)
-        } catch(let error) {
-            XCTFail("Unable to decode valid YAML: \(error)")
-        }
+    @Test func scheduleConfig() throws {
+        let data = try #require(scheduleYamlConfigString.data(using: .utf8))
+        let config = try BackupConfig.getYaml(from: data)
+        let scheduleConfig = try #require(config.schedule)
+        #expect(scheduleConfig.interval == "3h")
+        #expect(scheduleConfig.onPlayerLogin == true)
+        #expect(scheduleConfig.onPlayerLogout == nil)
     }
 
-    func testModernContainerPartialConfig() {
-        guard let data = modernContainersPartialYamlConfigString.data(using: .utf8) else {
-            XCTFail("couldn't get test data")
-            return
-        }
+    @Test func modernContainerPartialConfig() throws {
+        let data = try #require(modernContainersPartialYamlConfigString.data(using: .utf8))
+        let config = try BackupConfig.getYaml(from: data)
 
-        do {
-            let config = try BackupConfig.getYaml(from: data)
+        #expect(config.servers == nil)
+        #expect(config.containers?.java == nil)
 
-            XCTAssertNil(config.servers)
-            XCTAssertNil(config.containers?.java)
-
-            guard let bedrockContainers = config.containers?.bedrock else {
-                XCTFail("Bedrock containers should decode")
-                return
-            }
-
-            XCTAssertEqual(bedrockContainers.count, 1)
-            XCTAssertEqual(bedrockContainers[0].name, "minecraft_bedrock")
-            XCTAssertEqual(bedrockContainers[0].worlds, ["/bedrock/worlds/FirstWorld", "/bedrock/worlds/SecondWorld"])
-
-        } catch(let error) {
-            XCTFail("Unable to decode valid config: \(error)")
-        }
+        let bedrockContainers = try #require(config.containers?.bedrock)
+        #expect(bedrockContainers.count == 1)
+        #expect(bedrockContainers[0].name == "minecraft_bedrock")
+        #expect(bedrockContainers[0].worlds == ["/bedrock/worlds/FirstWorld", "/bedrock/worlds/SecondWorld"])
     }
 
-    func testModernContainerConfig() {
-        guard let data = modernContainersYamlConfigString.data(using: .utf8) else {
-            XCTFail("couldn't get test data")
-            return
-        }
+    @Test func modernContainerConfig() throws {
+        let data = try #require(modernContainersYamlConfigString.data(using: .utf8))
+        let config = try BackupConfig.getYaml(from: data)
 
-        do {
-            let config = try BackupConfig.getYaml(from: data)
+        #expect(config.servers == nil)
+        let javaContainers = try #require(config.containers?.java)
+        let bedrockContainers = try #require(config.containers?.bedrock)
 
-            XCTAssertNil(config.servers)
-            guard let javaContainers = config.containers?.java else {
-                XCTFail("Java containers should decode")
-                return
-            }
+        #expect(javaContainers.count == 1)
+        #expect(javaContainers[0].name == "minecraft_java")
+        #expect(javaContainers[0].worlds == ["/java/TheWorld"])
 
-            guard let bedrockContainers = config.containers?.bedrock else {
-                XCTFail("Bedrock containers should decode")
-                return
-            }
-
-            XCTAssertEqual(javaContainers.count, 1)
-            XCTAssertEqual(javaContainers[0].name, "minecraft_java")
-            XCTAssertEqual(javaContainers[0].worlds, ["/java/TheWorld"])
-
-
-            XCTAssertEqual(bedrockContainers.count, 1)
-            XCTAssertEqual(bedrockContainers[0].name, "minecraft_bedrock")
-            XCTAssertEqual(bedrockContainers[0].worlds, ["/bedrock/worlds/FirstWorld", "/bedrock/worlds/SecondWorld"])
-
-        } catch(let error) {
-            XCTFail("Unable to decode valid config: \(error)")
-        }
+        #expect(bedrockContainers.count == 1)
+        #expect(bedrockContainers[0].name == "minecraft_bedrock")
+        #expect(bedrockContainers[0].worlds == ["/bedrock/worlds/FirstWorld", "/bedrock/worlds/SecondWorld"])
     }
 
-    func spacesInPathYamlConfigString() {
-        guard let data = modernContainersYamlConfigString.data(using: .utf8) else {
-            XCTFail("couldn't get test data")
-            return
-        }
+    @Test func spacesInPathYamlConfig() throws {
+        let data = try #require(spacesInPathYamlConfigString.data(using: .utf8))
+        let config = try BackupConfig.getYaml(from: data)
 
-        do {
-            let config = try BackupConfig.getYaml(from: data)
+        #expect(config.servers == nil)
+        let bedrockContainers = try #require(config.containers?.bedrock)
 
-            XCTAssertNil(config.servers)
-            guard let bedrockContainers = config.containers?.bedrock else {
-                XCTFail("Bedrock containers should decode")
-                return
-            }
-
-            XCTAssertEqual(bedrockContainers.count, 1)
-            XCTAssertEqual(bedrockContainers[0].name, "minecraft_bedrock")
-            XCTAssertEqual(bedrockContainers[0].worlds, ["/bedrock/worlds/First World", "/bedrock/worlds/Second World"])
-
-        } catch(let error) {
-            XCTFail("Unable to decode valid config: \(error)")
-        }
+        #expect(bedrockContainers.count == 1)
+        #expect(bedrockContainers[0].name == "minecraft_bedrock")
+        #expect(bedrockContainers[0].worlds == ["/bedrock/worlds/First World", "/bedrock/worlds/Second World"])
     }
-
-    static var allTests = [
-        ("testMinimalConfig", testMinimalConfig),
-        ("testDockerConfig", testDockerConfig),
-        ("testGoodConfig", testGoodConfig),
-        ("testOwnershipConfig", testOwnershipConfig),
-        ("testScheduleConfig", testScheduleConfig)
-    ]
 }
 
 // MARK: Test Data

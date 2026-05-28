@@ -23,7 +23,8 @@
  SOFTWARE.)
  */
 
-import XCTest
+import Foundation
+import Testing
 @testable import Bedrockifier
 
 // swiftlint:disable trailing_comma
@@ -38,10 +39,9 @@ extension JSONDecoder {
     }
 }
 
-class DayTimeTests: XCTestCase {
-    func testDayTimeAccessors() {
-        let testExpectations = [
-            // Time String, Hours, Minutes, Seconds
+@Suite struct DayTimeTests {
+    @Test func dayTimeAccessors() {
+        let testExpectations: [(String, Int, Int, Int)] = [
             ("08:00", 8, 0, 0),
             ("09:30", 9, 30, 0),
             ("21:45", 21, 45, 0)
@@ -55,17 +55,14 @@ class DayTimeTests: XCTestCase {
             let timeDate = DayTimeTests.timeFormatter.date(from: timeString)!
             let parsedTime = DayTime(from: timeDate, calendar: testCalendar)
 
-            // Sanity Check:
-            // - The components should match what we expect to find.
-            XCTAssertEqual(parsedTime.hour, hours)
-            XCTAssertEqual(parsedTime.minute, minutes)
-            XCTAssertEqual(parsedTime.second, seconds)
+            #expect(parsedTime.hour == hours)
+            #expect(parsedTime.minute == minutes)
+            #expect(parsedTime.second == seconds)
         }
     }
 
-    func testDayTimeAccessors_Decoder() {
-        let testExpectations = [
-            // Time String, Hours, Minutes, Seconds
+    @Test func dayTimeAccessorsDecoder() {
+        let testExpectations: [(String, Int, Int, Int)] = [
             ("08:00", 8, 0, 0),
             ("09:30", 9, 30, 0),
             ("21:45", 21, 45, 0)
@@ -77,31 +74,28 @@ class DayTimeTests: XCTestCase {
             do {
                 let decodedTimeArray = try decoder.decode([DayTime].self, from: jsonData)
                 guard let decodedTime = decodedTimeArray.first else {
-                    XCTFail("Decode failed for: \(timeString)")
+                    Issue.record("Decode failed for: \(timeString)")
                     continue
                 }
 
-                // Sanity Check:
-                // - The components should match what we expect to find.
-                XCTAssertEqual(decodedTime.hour, hours)
-                XCTAssertEqual(decodedTime.minute, minutes)
-                XCTAssertEqual(decodedTime.second, seconds)
-                XCTAssertEqual(decodedTime.dateComponents.calendar, Calendar.current)
-                XCTAssertEqual(decodedTime.dateComponents.timeZone, Calendar.current.timeZone)
+                #expect(decodedTime.hour == hours)
+                #expect(decodedTime.minute == minutes)
+                #expect(decodedTime.second == seconds)
+                #expect(decodedTime.dateComponents.calendar == Calendar.current)
+                #expect(decodedTime.dateComponents.timeZone == Calendar.current.timeZone)
             } catch {
-                XCTFail("\(error)")
+                Issue.record("\(error)")
             }
         }
     }
 
-    func testCalcNextDate() {
+    @Test func calcNextDate() {
         let dayInSeconds: TimeInterval = 86400
-        let testExpectations = [
-            // Start Time, Target Time, Search Direction
-            ( "08:00", "08:00", Calendar.SearchDirection.forward ),
-            ( "08:00", "08:00", Calendar.SearchDirection.backward ),
-            ( "08:00", "08:30", Calendar.SearchDirection.forward ),
-            ( "08:00", "08:30", Calendar.SearchDirection.backward )
+        let testExpectations: [(String, String, Calendar.SearchDirection)] = [
+            ( "08:00", "08:00", .forward ),
+            ( "08:00", "08:00", .backward ),
+            ( "08:00", "08:30", .forward ),
+            ( "08:00", "08:30", .backward )
         ]
 
         for (startString, targetString, searchDirection) in testExpectations {
@@ -111,38 +105,28 @@ class DayTimeTests: XCTestCase {
 
             let calculatedDate = targetTime.calcNextDate(after: startDate, direction: searchDirection)!
 
-            // Sanity Check #1:
-            // - Date should not be equal
-            // - Date should be on the right "side" of the start date
-            // - Date is expected to be less than 48 hours away.
-            XCTAssertNotEqual(startDate, calculatedDate)
+            #expect(startDate != calculatedDate)
             switch searchDirection {
             case .backward:
-                XCTAssertLessThan(calculatedDate, startDate)
-                XCTAssertGreaterThan(calculatedDate, startDate - (dayInSeconds * 2.0))
+                #expect(calculatedDate < startDate)
+                #expect(calculatedDate > startDate - (dayInSeconds * 2.0))
             case .forward:
-                XCTAssertGreaterThan(calculatedDate, startDate)
-                XCTAssertLessThan(calculatedDate, startDate + (dayInSeconds * 2.0))
+                #expect(calculatedDate > startDate)
+                #expect(calculatedDate < startDate + (dayInSeconds * 2.0))
             @unknown default:
-                XCTFail("Unknown Search Direction")
+                Issue.record("Unknown Search Direction")
             }
 
-            // Sanity Check #2:
-            // - DayTimes should be equal
-            // - Calendar's idea of what equal is should also hold true.
-            XCTAssertEqual(targetTime, DayTime(from: calculatedDate))
-            XCTAssertEqual(
-                targetTime.dateComponents,
-                Calendar.current.dateComponents(DayTime.components, from: calculatedDate))
+            #expect(targetTime == DayTime(from: calculatedDate))
+            #expect(targetTime.dateComponents == Calendar.current.dateComponents(DayTime.components, from: calculatedDate))
         }
     }
 
-    func testCalcNextDate_Boundaries() {
+    @Test func calcNextDateBoundaries() {
         let dayInSeconds: TimeInterval = 86400
-        let testExpectations = [
-            // Start Time, Target Time, Search Direction
-            ( "31 Aug 09:00:00", "08:00", Calendar.SearchDirection.forward ),
-            ( "1 Sep 08:00:00", "09:00", Calendar.SearchDirection.backward )
+        let testExpectations: [(String, String, Calendar.SearchDirection)] = [
+            ( "31 Aug 09:00:00", "08:00", .forward ),
+            ( "1 Sep 08:00:00", "09:00", .backward )
         ]
 
         for (startString, targetString, searchDirection) in testExpectations {
@@ -152,37 +136,27 @@ class DayTimeTests: XCTestCase {
 
             let calculatedDate = targetTime.calcNextDate(after: startDate, direction: searchDirection)!
 
-            // Sanity Check #1:
-            // - Date should not be equal
-            // - Date should be on the right "side" of the start date
-            // - Date is expected to be less than 48 hours away.
-            XCTAssertNotEqual(startDate, calculatedDate)
+            #expect(startDate != calculatedDate)
             switch searchDirection {
             case .backward:
-                XCTAssertLessThan(calculatedDate, startDate)
-                XCTAssertGreaterThan(calculatedDate, startDate - (dayInSeconds * 2.0))
+                #expect(calculatedDate < startDate)
+                #expect(calculatedDate > startDate - (dayInSeconds * 2.0))
             case .forward:
-                XCTAssertGreaterThan(calculatedDate, startDate)
-                XCTAssertLessThan(calculatedDate, startDate + (dayInSeconds * 2.0))
+                #expect(calculatedDate > startDate)
+                #expect(calculatedDate < startDate + (dayInSeconds * 2.0))
             @unknown default:
-                XCTFail("Unknown Search Direction")
+                Issue.record("Unknown Search Direction")
             }
 
-            // Sanity Check #2:
-            // - DayTimes should be equal
-            // - Calendar's idea of what equal is should also hold true.
-            XCTAssertEqual(targetTime, DayTime(from: calculatedDate))
-            XCTAssertEqual(
-                targetTime.dateComponents,
-                Calendar.current.dateComponents(DayTime.components, from: calculatedDate))
+            #expect(targetTime == DayTime(from: calculatedDate))
+            #expect(targetTime.dateComponents == Calendar.current.dateComponents(DayTime.components, from: calculatedDate))
         }
     }
 
-    func testCalcNextDate_DaylightSavings() {
-        let testExpectations = [
-            // Start Date, Expected Date, Search Direction
-            ( "2 Nov 2019 09:00:00", "3 Nov 2019 08:00:00", Calendar.SearchDirection.forward ),
-            ( "7 Mar 2020 09:00:00", "8 Mar 2020 08:00:00", Calendar.SearchDirection.forward )
+    @Test func calcNextDateDaylightSavings() {
+        let testExpectations: [(String, String, Calendar.SearchDirection)] = [
+            ( "2 Nov 2019 09:00:00", "3 Nov 2019 08:00:00", .forward ),
+            ( "7 Mar 2020 09:00:00", "8 Mar 2020 08:00:00", .forward )
         ]
 
         for (startString, expectedString, searchDirection) in testExpectations {
@@ -192,11 +166,8 @@ class DayTimeTests: XCTestCase {
             let targetTime = DayTime(from: expectedDate)
             let calculatedDate = targetTime.calcNextDate(after: startDate, direction: searchDirection)!
 
-            // Sanity Check:
-            // - DayTimes should be equal
-            // - Calendar's idea of what equal is should also hold true.
-            XCTAssertEqual(targetTime, DayTime(from: calculatedDate))
-            XCTAssertEqual(expectedDate, calculatedDate)
+            #expect(targetTime == DayTime(from: calculatedDate))
+            #expect(expectedDate == calculatedDate)
         }
     }
 
@@ -216,7 +187,7 @@ class DayTimeTests: XCTestCase {
         return formatter
     }()
 
-    static private let daylightTimeFormatter: DateFormatter = {
+    private static let daylightTimeFormatter: DateFormatter = {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "HH:mm"
         dateFormatter.timeZone = TimeZone(abbreviation: "PDT")!
@@ -224,7 +195,7 @@ class DayTimeTests: XCTestCase {
         return dateFormatter
     }()
 
-    static private let timeFormatter: DateFormatter = {
+    private static let timeFormatter: DateFormatter = {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "HH:mm"
         dateFormatter.timeZone = TimeZone(abbreviation: "UTC")!
