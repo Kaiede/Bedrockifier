@@ -1,145 +1,72 @@
-import XCTest
+import Testing
 @testable import Bedrockifier
 
-final class BackupConfigJsonTests: XCTestCase {
-    func testMinimalConfig() {
-        guard let jsonData = minimalJsonConfigString.data(using: .utf8) else {
-            XCTFail("couldn't get data for test JSON")
-            return
-        }
-
-        do {
-            let config = try BackupConfig.getYaml(from: jsonData)
-            XCTAssertNil(config.backupPath)
-            XCTAssertNil(config.dockerPath)
-            XCTAssertEqual(config.servers?.count, 2)
-            XCTAssertNil(config.trim)
-            XCTAssertNil(config.loggingLevel)
-        } catch(let error) {
-            XCTFail("Unable to decode valid JSON: \(error)")
-        }
+@Suite struct BackupConfigJsonTests {
+    @Test func minimalConfig() throws {
+        let data = try #require(minimalJsonConfigString.data(using: .utf8))
+        let config = try BackupConfig.getYaml(from: data)
+        #expect(config.backupPath == nil)
+        #expect(config.dockerPath == nil)
+        #expect(config.servers?.count == 2)
+        #expect(config.trim == nil)
+        #expect(config.loggingLevel == nil)
     }
 
-    func testDockerConfig() {
-        guard let jsonData = dockerJsonConfigString.data(using: .utf8) else {
-            XCTFail("couldn't get data for test JSON")
-            return
-        }
-
-        do {
-            let config = try BackupConfig.getYaml(from: jsonData)
-            XCTAssertNil(config.backupPath)
-            XCTAssertNil(config.dockerPath)
-            XCTAssertEqual(config.servers?.count, 2)
-            XCTAssertNotNil(config.trim)
-        } catch(let error) {
-            XCTFail("Unable to decode valid JSON: \(error)")
-        }
+    @Test func dockerConfig() throws {
+        let data = try #require(dockerJsonConfigString.data(using: .utf8))
+        let config = try BackupConfig.getYaml(from: data)
+        #expect(config.backupPath == nil)
+        #expect(config.dockerPath == nil)
+        #expect(config.servers?.count == 2)
+        #expect(config.trim != nil)
     }
 
-    func testGoodConfig() {
-        guard let jsonData = goodJsonConfigString.data(using: .utf8) else {
-            XCTFail("couldn't get data for test JSON")
-            return
-        }
-
-        do {
-            let config = try BackupConfig.getYaml(from: jsonData)
-            XCTAssertNotNil(config.backupPath)
-            XCTAssertNotNil(config.dockerPath)
-            XCTAssertEqual(config.servers?.count, 2)
-            XCTAssertNotNil(config.trim)
-            XCTAssertEqual(config.loggingLevel, .debug)
-        } catch(let error) {
-            XCTFail("Unable to decode valid JSON: \(error)")
-        }
-    }
-    
-    func testOwnershipConfig() {
-        guard let jsonData = ownershipJsonConfigString.data(using: .utf8) else {
-            XCTFail("couldn't get data for test JSON")
-            return
-        }
-
-        do {
-            let config = try BackupConfig.getYaml(from: jsonData)
-            guard let ownershipConfig = config.ownership else {
-                XCTFail("Ownership config missing.")
-                return
-            }
-
-            let (uid, gid) = try ownershipConfig.parseOwnerAndGroup()
-            let permissions = try ownershipConfig.parsePosixPermissions()
-            XCTAssertEqual(uid, 100)
-            XCTAssertEqual(gid, 200)
-            XCTAssertEqual(permissions, 0o666)
-        } catch(let error) {
-            XCTFail("Unable to decode valid JSON: \(error)")
-        }
+    @Test func goodConfig() throws {
+        let data = try #require(goodJsonConfigString.data(using: .utf8))
+        let config = try BackupConfig.getYaml(from: data)
+        #expect(config.backupPath != nil)
+        #expect(config.dockerPath != nil)
+        #expect(config.servers?.count == 2)
+        #expect(config.trim != nil)
+        #expect(config.loggingLevel == .debug)
     }
 
-    func testScheduleConfig() {
-        guard let jsonData = scheduleJsonConfigString.data(using: .utf8) else {
-            XCTFail("couldn't get data for test JSON")
-            return
-        }
-
-        do {
-            let config = try BackupConfig.getYaml(from: jsonData)
-            guard let scheduleConfig = config.schedule else {
-                XCTFail("Schedule config missing.")
-                return
-            }
-
-            XCTAssertEqual(scheduleConfig.interval, "3h")
-            XCTAssertEqual(scheduleConfig.onPlayerLogin, true)
-            XCTAssertEqual(scheduleConfig.onPlayerLogout, nil)
-        } catch(let error) {
-            XCTFail("Unable to decode valid JSON: \(error)")
-        }
+    @Test func ownershipConfig() throws {
+        let data = try #require(ownershipJsonConfigString.data(using: .utf8))
+        let config = try BackupConfig.getYaml(from: data)
+        let ownershipConfig = try #require(config.ownership)
+        let (uid, gid) = try ownershipConfig.parseOwnerAndGroup()
+        let permissions = try ownershipConfig.parsePosixPermissions()
+        #expect(uid == 100)
+        #expect(gid == 200)
+        #expect(permissions == 0o666)
     }
 
-    func testModernContainerConfig() {
-        guard let data = modernContainersJsonConfigString.data(using: .utf8) else {
-            XCTFail("couldn't get test data")
-            return
-        }
-
-        do {
-            let config = try BackupConfig.getYaml(from: data)
-
-            XCTAssertNil(config.servers)
-            guard let javaContainers = config.containers?.java else {
-                XCTFail("Java containers should decode")
-                return
-            }
-
-            guard let bedrockContainers = config.containers?.bedrock else {
-                XCTFail("Bedrock containers should decode")
-                return
-            }
-
-            XCTAssertEqual(javaContainers.count, 1)
-            XCTAssertEqual(javaContainers[0].name, "minecraft_java")
-            XCTAssertEqual(javaContainers[0].worlds, ["/java/TheWorld"])
-
-
-            XCTAssertEqual(bedrockContainers.count, 1)
-            XCTAssertEqual(bedrockContainers[0].name, "minecraft_bedrock")
-            XCTAssertEqual(bedrockContainers[0].worlds, ["/bedrock/worlds/FirstWorld", "/bedrock/worlds/SecondWorld"])
-
-        } catch(let error) {
-            XCTFail("Unable to decode valid config: \(error)")
-        }
+    @Test func scheduleConfig() throws {
+        let data = try #require(scheduleJsonConfigString.data(using: .utf8))
+        let config = try BackupConfig.getYaml(from: data)
+        let scheduleConfig = try #require(config.schedule)
+        #expect(scheduleConfig.interval == "3h")
+        #expect(scheduleConfig.onPlayerLogin == true)
+        #expect(scheduleConfig.onPlayerLogout == nil)
     }
 
-    static var allTests = [
-        ("testMinimalConfig", testMinimalConfig),
-        ("testDockerConfig", testDockerConfig),
-        ("testGoodConfig", testGoodConfig),
-        ("testOwnershipConfig", testOwnershipConfig),
-        ("testScheduleConfig", testScheduleConfig),
-    ]
+    @Test func modernContainerConfig() throws {
+        let data = try #require(modernContainersJsonConfigString.data(using: .utf8))
+        let config = try BackupConfig.getYaml(from: data)
+
+        #expect(config.servers == nil)
+        let javaContainers = try #require(config.containers?.java)
+        let bedrockContainers = try #require(config.containers?.bedrock)
+
+        #expect(javaContainers.count == 1)
+        #expect(javaContainers[0].name == "minecraft_java")
+        #expect(javaContainers[0].worlds == ["/java/TheWorld"])
+
+        #expect(bedrockContainers.count == 1)
+        #expect(bedrockContainers[0].name == "minecraft_bedrock")
+        #expect(bedrockContainers[0].worlds == ["/bedrock/worlds/FirstWorld", "/bedrock/worlds/SecondWorld"])
+    }
 }
 
 // MARK: Test Data

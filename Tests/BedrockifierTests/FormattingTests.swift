@@ -1,13 +1,14 @@
-import XCTest
+import Foundation
+import Testing
 @testable import Bedrockifier
 
-final class FormattingTests: XCTestCase {
-    func testLibraryFormatter() {
+@Suite struct FormattingTests {
+    @Test func libraryFormatter() {
         let date = Date()
         print("\(Library.dateFormatter.string(from: date))")
     }
 
-    func testDayTimeFormatter() {
+    @Test func dayTimeFormatter() {
         let date = Date()
         let dayTime = DayTime(from: date)
         print("Day Time: \(dayTime)")

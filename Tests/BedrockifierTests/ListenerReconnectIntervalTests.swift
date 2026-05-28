@@ -1,8 +1,8 @@
-import XCTest
+import Testing
 @testable import Bedrockifier
 
-final class ListenerReconnectIntervalTests: XCTestCase {
-    func testYamlConfigSupportsListenerReconnectInterval() throws {
+@Suite struct ListenerReconnectIntervalTests {
+    @Test func yamlConfigSupportsListenerReconnectInterval() throws {
         let yaml = """
             backupPath: /backups
             servers:
@@ -10,13 +10,12 @@ final class ListenerReconnectIntervalTests: XCTestCase {
             listenerReconnectInterval: 45s
             """
 
-        let data = try XCTUnwrap(yaml.data(using: .utf8))
+        let data = try #require(yaml.data(using: .utf8))
         let config = try BackupConfig.getYaml(from: data)
-
-        XCTAssertEqual(config.listenerReconnectInterval, "45s")
+        #expect(config.listenerReconnectInterval == "45s")
     }
 
-    func testJsonConfigSupportsListenerReconnectInterval() throws {
+    @Test func jsonConfigSupportsListenerReconnectInterval() throws {
         let json = """
             {
                 "backupPath": "/backups",
@@ -27,13 +26,12 @@ final class ListenerReconnectIntervalTests: XCTestCase {
             }
             """
 
-        let data = try XCTUnwrap(json.data(using: .utf8))
+        let data = try #require(json.data(using: .utf8))
         let config = try BackupConfig.getYaml(from: data)
-
-        XCTAssertEqual(config.listenerReconnectInterval, "2m")
+        #expect(config.listenerReconnectInterval == "2m")
     }
 
-    func testListenerReconnectIntervalIsNilWhenMissing() throws {
+    @Test func listenerReconnectIntervalIsNilWhenMissing() throws {
         let json = """
             {
                 "backupPath": "/backups",
@@ -43,9 +41,8 @@ final class ListenerReconnectIntervalTests: XCTestCase {
             }
             """
 
-        let data = try XCTUnwrap(json.data(using: .utf8))
+        let data = try #require(json.data(using: .utf8))
         let config = try BackupConfig.getYaml(from: data)
-
-        XCTAssertNil(config.listenerReconnectInterval)
+        #expect(config.listenerReconnectInterval == nil)
     }
 }

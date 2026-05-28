@@ -1,41 +1,35 @@
-import XCTest
+import Testing
 @testable import Bedrockifier
 
-final class SSHReconnectStateTests: XCTestCase {
-    func testDisconnectStartsReconnectCycle() {
+@Suite struct SSHReconnectStateTests {
+    @Test func disconnectStartsReconnectCycle() {
         var state = SSHReconnectState()
-
-        XCTAssertTrue(state.shouldStartReconnectCycle(onDisconnectFromActiveChannel: true))
+        #expect(state.shouldStartReconnectCycle(onDisconnectFromActiveChannel: true) == true)
     }
 
-    func testDuplicateDisconnectDoesNotStartSecondReconnectCycle() {
+    @Test func duplicateDisconnectDoesNotStartSecondReconnectCycle() {
         var state = SSHReconnectState()
-
-        XCTAssertTrue(state.shouldStartReconnectCycle(onDisconnectFromActiveChannel: true))
-        XCTAssertFalse(state.shouldStartReconnectCycle(onDisconnectFromActiveChannel: true))
+        #expect(state.shouldStartReconnectCycle(onDisconnectFromActiveChannel: true) == true)
+        #expect(state.shouldStartReconnectCycle(onDisconnectFromActiveChannel: true) == false)
     }
 
-    func testReconnectCycleCanStartAgainAfterCompletion() {
+    @Test func reconnectCycleCanStartAgainAfterCompletion() {
         var state = SSHReconnectState()
-
-        XCTAssertTrue(state.shouldStartReconnectCycle(onDisconnectFromActiveChannel: true))
+        #expect(state.shouldStartReconnectCycle(onDisconnectFromActiveChannel: true) == true)
         state.reconnectCycleCompleted()
-        XCTAssertTrue(state.shouldStartReconnectCycle(onDisconnectFromActiveChannel: true))
+        #expect(state.shouldStartReconnectCycle(onDisconnectFromActiveChannel: true) == true)
     }
 
-    func testDisconnectFromInactiveChannelDoesNotStartReconnectCycle() {
+    @Test func disconnectFromInactiveChannelDoesNotStartReconnectCycle() {
         var state = SSHReconnectState()
-
-        XCTAssertFalse(state.shouldStartReconnectCycle(onDisconnectFromActiveChannel: false))
+        #expect(state.shouldStartReconnectCycle(onDisconnectFromActiveChannel: false) == false)
     }
 
-    func testExplicitCloseSuppressesReconnectStart() {
+    @Test func explicitCloseSuppressesReconnectStart() {
         var state = SSHReconnectState()
-
         state.beginExplicitClose()
-        XCTAssertFalse(state.shouldStartReconnectCycle(onDisconnectFromActiveChannel: true))
-
+        #expect(state.shouldStartReconnectCycle(onDisconnectFromActiveChannel: true) == false)
         state.endExplicitClose()
-        XCTAssertTrue(state.shouldStartReconnectCycle(onDisconnectFromActiveChannel: true))
+        #expect(state.shouldStartReconnectCycle(onDisconnectFromActiveChannel: true) == true)
     }
 }
