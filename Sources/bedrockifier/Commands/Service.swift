@@ -23,10 +23,13 @@
  SOFTWARE.)
  */
 
-import ArgumentParser
 import Foundation
+
+import ArgumentParser
 import Logging
 import PTYKit
+
+import BedrockifierLib
 
 extension Bedrockifier {
     struct Service: AsyncParsableCommand {

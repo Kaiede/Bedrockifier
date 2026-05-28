@@ -28,6 +28,8 @@ import Foundation
 import ArgumentParser
 import ConsoleKitTerminal
 
+import BedrockifierLib
+
 extension Bedrockifier {
     struct Pack: AsyncParsableCommand {
         static let configuration = CommandConfiguration(

@@ -1,5 +1,5 @@
 import Testing
-@testable import Bedrockifier
+@testable import BedrockifierLib
 
 @Suite struct OwnershipStringTests {
     @Test(arguments: ["helloworld", "hello:world", "123:world", "hello:456"])

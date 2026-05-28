@@ -1,5 +1,5 @@
 import Testing
-@testable import Bedrockifier
+@testable import BedrockifierLib
 
 @Suite struct BackupConfigJsonTests {
     @Test func minimalConfig() throws {

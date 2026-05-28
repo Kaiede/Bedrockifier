@@ -42,16 +42,16 @@ extension OwnershipConfig {
     }
 }
 
-struct OwnershipPosixConfig {
+public struct OwnershipPosixConfig {
     private static let folderDefaultMode: Platform.Mode = 0o777
     private static let fileDefaultMode: Platform.Mode = 0o666
 
-    var userId: Platform.UserID?
-    var groupId: Platform.GroupID?
-    var folderMode: Platform.Mode?
-    var fileMode: Platform.Mode?
+    public var userId: Platform.UserID?
+    public var groupId: Platform.GroupID?
+    public var folderMode: Platform.Mode?
+    public var fileMode: Platform.Mode?
 
-    init(ownership: String?, mask: String?) throws {
+    public init(ownership: String?, mask: String?) throws {
         if let ownership {
             let (userId, groupId) = try parse(ownership: ownership)
             self.userId = userId
@@ -67,7 +67,7 @@ struct OwnershipPosixConfig {
 }
 
 extension OwnershipPosixConfig {
-    mutating func fillEmptyOwner(
+    public mutating func fillEmptyOwner(
         from url: URL,
         fillUserId: Bool = true,
         fillGroupId: Bool = true,
@@ -83,7 +83,7 @@ extension OwnershipPosixConfig {
         }
     }
 
-    mutating func fillEmptyModes(from url: URL) throws {
+    public mutating func fillEmptyModes(from url: URL) throws {
         guard folderMode == nil || fileMode == nil else { return }
 
         let attributes = try FileManager.default.attributesOfItem(atPath: url.path)

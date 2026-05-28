@@ -28,15 +28,17 @@ import Foundation
 import ArgumentParser
 import ConsoleKitTerminal
 
+import BedrockifierLib
+
 extension Bedrockifier {
-    struct ClearHostKeys: AsyncParsableCommand {
+    struct Token: AsyncParsableCommand {
         static let configuration = CommandConfiguration(
-            commandName: "clear-host-keys",
-            abstract: "Clears the authorized host keys file."
+            commandName: "token",
+            abstract: "Prints the HTTP token to access the running service."
         )
 
-        @Option(help: "Path to the host keys file")
-        var hostKeysPath: String?
+        @Option(help: "Path to the config file")
+        var configPath: String?
 
         @Option(name: .shortAndLong, help: "Folder to read config from")
         var configFolder: String?
@@ -44,23 +46,30 @@ extension Bedrockifier {
         func run() async throws {
             let terminal = initializeTerminal()
             let environment = EnvironmentConfig()
-            let hostKeysUri = Bedrockifier.getHostKeyFileUrl(
+            let configUri = Bedrockifier.getConfigFileUrl(
                 environment: environment,
-                hostKeysPath: hostKeysPath,
+                configPath: configPath,
                 configFolder: configFolder
             )
+            let configDir = URL(fileURLWithPath: configFolder ?? environment.configDirectory)
 
-            guard FileManager.default.fileExists(atPath: hostKeysUri.path) else {
-                terminal.output("Host keys file already empty: \(hostKeysUri.path)")
+            let tokenUrl: URL
+            if FileManager.default.fileExists(atPath: configUri.path),
+               let config = try? BackupConfig.getYaml(from: configUri) {
+                tokenUrl = config.tokenFileUrl(configDir: configDir)
+            } else {
+                tokenUrl = BackupConfig.defaultTokenFileUrl(configDir: configDir)
+            }
+
+            guard let token = try? String(contentsOf: tokenUrl, encoding: .utf8) else {
+                terminal.error("Could not read token at \(tokenUrl.path). Is the service running?")
                 return
             }
 
-            do {
-                try FileManager.default.removeItem(at: hostKeysUri)
-                terminal.output("Cleared host keys file: \(hostKeysUri.path)")
-            } catch {
-                terminal.error("Failed to clear host keys file: \(error.localizedDescription)")
-            }
+            terminal.output(
+                "HTTP Token: ".consoleText(.info) +
+                token.trimmingCharacters(in: .whitespacesAndNewlines).consoleText()
+            )
         }
     }
 }

@@ -28,6 +28,8 @@ import Foundation
 import ArgumentParser
 import ConsoleKitTerminal
 
+import BedrockifierLib
+
 struct RestoreTarget {
     let containerName: String
     let kind: ContainerConnection.Kind

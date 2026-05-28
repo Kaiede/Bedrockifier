@@ -26,8 +26,8 @@
 import Foundation
 
 // Get configuration settings from environment for things that are supported
-struct EnvironmentConfig {
-    static let fallbackConfigFile = "config.json"
+public struct EnvironmentConfig {
+    public static let fallbackConfigFile = "config.json"
 
     static let dataDirVariable = "DATA_DIR"
 
@@ -36,25 +36,25 @@ struct EnvironmentConfig {
     static let defaultOldDataPath = "/backups"
 
     // External Tools in Container
-    let dockerSocketPath: String
+    public let dockerSocketPath: String
 
     // Config Folder Settings
-    let configDirectory: String
-    let configFile: String
-    let hostKeysFile: String
+    public let configDirectory: String
+    public let configFile: String
+    public let hostKeysFile: String
 
     // Data Folder Settings
-    let dataDirectory: String
+    public let dataDirectory: String
 
     // Restore Settings
-    let restoreOwner: String?
-    let restoreMask: String?
+    public let restoreOwner: String?
+    public let restoreMask: String?
 
     // Deprecated Settings
-    let backupInterval: String?
-    let listenerReconnectInterval: String?
+    public let backupInterval: String?
+    public let listenerReconnectInterval: String?
 
-    init() {
+    public init() {
         // External Tools in Container
         self.dockerSocketPath = ProcessInfo.processInfo.environment["DOCKER_SOCK"] ?? "/var/run/docker.sock"
 

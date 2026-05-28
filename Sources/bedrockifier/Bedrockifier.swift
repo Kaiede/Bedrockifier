@@ -29,6 +29,8 @@ import ArgumentParser
 import ConsoleKitTerminal
 import Logging
 
+import BedrockifierLib
+
 @main
 struct Bedrockifier: AsyncParsableCommand {
     private static let logger = Logger(label: "bedrockifier")

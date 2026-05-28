@@ -1,5 +1,5 @@
 import Testing
-@testable import Bedrockifier
+@testable import BedrockifierLib
 
 private final class MockScopedObject {
     private let deinitHandler: () -> Void

@@ -1,5 +1,5 @@
 import Testing
-@testable import Bedrockifier
+@testable import BedrockifierLib
 
 @Suite struct ListenerReconnectIntervalTests {
     @Test func yamlConfigSupportsListenerReconnectInterval() throws {

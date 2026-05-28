@@ -327,7 +327,7 @@ extension World {
         return false
     }
 
-    func applyOwnership(
+    public func applyOwnership(
         owner: Platform.UserID?,
         group: Platform.GroupID?,
         permissions: Platform.Mode?
@@ -335,7 +335,7 @@ extension World {
         try applyOwnership(owner: owner, group: group, folderMode: permissions, fileMode: permissions)
     }
 
-    func applyOwnership(
+    public func applyOwnership(
         owner: Platform.UserID?,
         group: Platform.GroupID?,
         folderMode: Platform.Mode?,

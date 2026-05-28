@@ -30,7 +30,7 @@ import Hummingbird
 import Logging
 import PTYKit
 
-final class BackupService {
+public final class BackupService {
     struct Strings {
         static let bedrockLogin = "joined the game"
         static let bedrockLogout = "left the game"
@@ -44,7 +44,7 @@ final class BackupService {
 
     typealias ServiceContext = BasicRequestContext
 
-    static let logger = Logger(label: "bedrockifier.service")
+    public static let logger = Logger(label: "bedrockifier.service")
     private static let backupPriority = TaskPriority.background
 
     let config: BackupConfig
@@ -54,7 +54,7 @@ final class BackupService {
     let backupActor: BackupActor
     let httpTokenFile: URL
 
-    init(config: BackupConfig, configDir: URL, dataUrl: URL, tools: ToolConfig) {
+    public init(config: BackupConfig, configDir: URL, dataUrl: URL, tools: ToolConfig) {
         self.config = config
         self.environment = EnvironmentConfig()
         self.dataUrl = dataUrl

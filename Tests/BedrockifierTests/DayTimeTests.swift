@@ -25,7 +25,7 @@
 
 import Foundation
 import Testing
-@testable import Bedrockifier
+@testable import BedrockifierLib
 
 typealias JsonArray = [Any]
 

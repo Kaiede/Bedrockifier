@@ -30,7 +30,7 @@ import PTYKit
 private let usePty = false
 private let logger = Logger(label: "BedrockifierCLI:WorldBackup")
 
-enum BackupAction {
+public enum BackupAction {
     case keep
     case trim
     case purge
@@ -52,9 +52,9 @@ protocol BackupProtocol: AnyObject {
 }
 
 public class Backup<Element>: BackupProtocol where Element: BackupItem {
-    var action: BackupAction = .keep
-    let modificationDate: Date
-    let item: Element
+    public var action: BackupAction = .keep
+    public let modificationDate: Date
+    public let item: Element
 
     init(item: Element, date: Date) {
         self.modificationDate = date
@@ -111,7 +111,7 @@ public struct Backups {
         }
     }
 
-    static func getBackups<ItemType>(_ type: ItemType.Type, at folder: URL) throws -> [String: [Backup<ItemType>]] {
+    public static func getBackups<ItemType>(_ type: ItemType.Type, at folder: URL) throws -> [String: [Backup<ItemType>]] {
         var results: [String: [Backup<ItemType>]] = [:]
 
         let keys: [URLResourceKey] = [.contentModificationDateKey]

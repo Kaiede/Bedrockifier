@@ -33,15 +33,15 @@ import Foundation
   import Musl
 #endif
 
-struct Platform {
+public struct Platform {
     #if canImport(Darwin)
-    typealias Mode = __darwin_mode_t
-    typealias UserID = __darwin_uid_t
-    typealias GroupID = __darwin_gid_t
+    public typealias Mode = __darwin_mode_t
+    public typealias UserID = __darwin_uid_t
+    public typealias GroupID = __darwin_gid_t
     #elseif canImport(Glibc) || canImport(Musl)
-    typealias Mode = __mode_t
-    typealias UserID = __uid_t
-    typealias GroupID = __gid_t
+    public typealias Mode = __mode_t
+    public typealias UserID = __uid_t
+    public typealias GroupID = __gid_t
     #endif
 
     static func currentUmask() -> Mode {

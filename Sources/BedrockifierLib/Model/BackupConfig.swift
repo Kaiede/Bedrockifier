@@ -78,11 +78,11 @@ public struct BackupConfig: Codable {
 extension BackupConfig {
     static let defaultTokenFilename = ".bedrockifierToken"
 
-    static func defaultTokenFileUrl(configDir: URL) -> URL {
+    public static func defaultTokenFileUrl(configDir: URL) -> URL {
         configDir.appendingPathComponent(defaultTokenFilename)
     }
 
-    func tokenFileUrl(configDir: URL) -> URL {
+    public func tokenFileUrl(configDir: URL) -> URL {
         if let tokenFile = self.tokenPath {
             return URL(fileURLWithPath: tokenFile)
         }

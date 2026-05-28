@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 import ZIPFoundation
-@testable import Bedrockifier
+@testable import BedrockifierLib
 
 private func makeTempDir() throws -> URL {
     let tempDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

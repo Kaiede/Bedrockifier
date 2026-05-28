@@ -28,6 +28,8 @@ import Foundation
 import ArgumentParser
 import ConsoleKitTerminal
 
+import BedrockifierLib
+
 extension Bedrockifier {
     struct Unpack: ParsableCommand {
         static let configuration = CommandConfiguration(
