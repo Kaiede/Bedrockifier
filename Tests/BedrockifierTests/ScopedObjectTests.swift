@@ -1,7 +1,7 @@
 import Testing
 @testable import Bedrockifier
 
-fileprivate final class MockScopedObject {
+private final class MockScopedObject {
     private let deinitHandler: () -> Void
 
     init(deinitHandler: @escaping () -> Void) {
@@ -22,7 +22,7 @@ fileprivate final class MockScopedObject {
     }
 }
 
-fileprivate struct MockScopedObjectError: Error {}
+private struct MockScopedObjectError: Error {}
 
 @Suite struct ScopedObjectTests {
     @Test func scopedObject() {

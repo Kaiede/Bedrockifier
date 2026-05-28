@@ -31,7 +31,7 @@ import Logging
 
 @main
 struct Bedrockifier: AsyncParsableCommand {
-    fileprivate static let logger = Logger(label: "bedrockifier")
+    private static let logger = Logger(label: "bedrockifier")
 
     static let configuration = CommandConfiguration(
         abstract: "A utility for backing up Minecraft servers.",

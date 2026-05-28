@@ -118,7 +118,7 @@ final class RConClient {
         // Successful authenticate means we can convert into streaming mode
         try await channel.pipeline.removeHandler(handler)
         try await channel.pipeline.addHandlers([
-            RConStreamHandler(client: self),
+            StreamHandler(client: self),
             TerminalHandler(terminal: self.terminal)
         ], position: .last)
     }
@@ -130,7 +130,7 @@ final class RConClient {
         try await channel.close()
     }
 
-    fileprivate func nextID() -> Int32 {
+    private func nextID() -> Int32 {
         // Avoid -1 which is reserved by the protocol to indicate auth failure.
         var next = nextRequestID
         if next == -1 || next == 0 {
@@ -309,39 +309,41 @@ final class RConClientHandler: ChannelInboundHandler, RemovableChannelHandler, @
 }
 
 /// Handles conversion between the TerminalHandler, and RCon frames
-final class RConStreamHandler: ChannelDuplexHandler, @unchecked Sendable {
-    typealias InboundIn = RConFrame
-    typealias InboundOut = ByteBuffer
+extension RConClient {
+    final class StreamHandler: ChannelDuplexHandler, @unchecked Sendable {
+        typealias InboundIn = RConFrame
+        typealias InboundOut = ByteBuffer
 
-    typealias OutboundIn = ByteBuffer
-    typealias OutboundOut = RConFrame
+        typealias OutboundIn = ByteBuffer
+        typealias OutboundOut = RConFrame
 
-    private let client: RConClient
+        private let client: RConClient
 
-    init(client: RConClient) {
-        self.client = client
-    }
-
-    func channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        let frame = unwrapInboundIn(data)
-        guard frame.type == RConFrame.typeResponseValue else {
-            Library.log.error("Unexpected RCON frame type encountered after authentication: \(frame.type)")
-            return
+        init(client: RConClient) {
+            self.client = client
         }
 
-        let byteBuffer = ByteBuffer(string: frame.body)
-        context.fireChannelRead(wrapInboundOut(byteBuffer))
-    }
+        func channelRead(context: ChannelHandlerContext, data: NIOAny) {
+            let frame = unwrapInboundIn(data)
+            guard frame.type == RConFrame.typeResponseValue else {
+                Library.log.error("Unexpected RCON frame type encountered after authentication: \(frame.type)")
+                return
+            }
 
-    func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
-        var byteBuffer = unwrapOutboundIn(data)
-        guard var body = byteBuffer.readString(length: byteBuffer.readableBytes) else {
-            return
+            let byteBuffer = ByteBuffer(string: frame.body)
+            context.fireChannelRead(wrapInboundOut(byteBuffer))
         }
 
-        body = body.trimmingCharacters(in: .newlines)
-        let id = client.nextID()
-        let frame = RConFrame(id: id, type: RConFrame.typeExecCommand, body: body)
-        context.write(self.wrapOutboundOut(frame), promise: promise)
+        func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
+            var byteBuffer = unwrapOutboundIn(data)
+            guard var body = byteBuffer.readString(length: byteBuffer.readableBytes) else {
+                return
+            }
+
+            body = body.trimmingCharacters(in: .newlines)
+            let id = client.nextID()
+            let frame = RConFrame(id: id, type: RConFrame.typeExecCommand, body: body)
+            context.write(self.wrapOutboundOut(frame), promise: promise)
+        }
     }
 }

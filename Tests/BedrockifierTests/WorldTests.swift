@@ -3,14 +3,14 @@ import Testing
 import ZIPFoundation
 @testable import Bedrockifier
 
-fileprivate func makeTempDir() throws -> URL {
+private func makeTempDir() throws -> URL {
     let tempDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
     return tempDirectory
 }
 
 // Creates a .mcworld archive whose levelname.txt contains the given string.
-fileprivate func makeBedrockArchive(levelName: String) throws -> (tempDir: URL, archive: URL) {
+private func makeBedrockArchive(levelName: String) throws -> (tempDir: URL, archive: URL) {
     let tempDir = try makeTempDir()
     let levelNameFile = tempDir.appendingPathComponent("levelname.txt")
     try (levelName.data(using: .utf8) ?? Data()).write(to: levelNameFile)
@@ -22,7 +22,7 @@ fileprivate func makeBedrockArchive(levelName: String) throws -> (tempDir: URL, 
 }
 
 // Creates a .zip archive with a single level.dat entry at the given path inside the ZIP.
-fileprivate func makeJavaArchive(levelDatPath: String) throws -> (tempDir: URL, archive: URL) {
+private func makeJavaArchive(levelDatPath: String) throws -> (tempDir: URL, archive: URL) {
     let tempDir = try makeTempDir()
     let levelDatFile = tempDir.appendingPathComponent("level.dat")
     try Data([0]).write(to: levelDatFile)

@@ -43,8 +43,8 @@ extension OwnershipConfig {
 }
 
 struct OwnershipPosixConfig {
-    fileprivate static let folderDefaultMode: Platform.Mode = 0o777
-    fileprivate static let fileDefaultMode: Platform.Mode = 0o666
+    private static let folderDefaultMode: Platform.Mode = 0o777
+    private static let fileDefaultMode: Platform.Mode = 0o666
 
     var userId: Platform.UserID?
     var groupId: Platform.GroupID?
@@ -104,7 +104,7 @@ extension OwnershipPosixConfig {
     }
 }
 
-fileprivate func buildMaskOctet(from mode: Platform.Mode) -> Platform.Mode {
+private func buildMaskOctet(from mode: Platform.Mode) -> Platform.Mode {
     if mode & 0o006 == 0 {
         // No read or write, so mask execute too.
         return 0o007

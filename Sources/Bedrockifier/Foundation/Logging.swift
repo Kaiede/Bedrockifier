@@ -51,7 +51,7 @@ public struct Library {
 }
 
 extension Logger {
-    fileprivate func markerCharacter(for value: Bool, char: String) -> String {
+    private func markerCharacter(for value: Bool, char: String) -> String {
         value ? char : "-"
     }
 

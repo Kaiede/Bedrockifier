@@ -113,7 +113,7 @@ public extension DayTime {
 
 // MARK: Internal Helper Functions
 
-fileprivate extension DateComponents {
+private extension DateComponents {
     func asTimeOfDay() -> DateComponents {
         return DateComponents(calendar: self.calendar,
                               timeZone: self.timeZone,
