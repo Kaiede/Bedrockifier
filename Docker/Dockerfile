@@ -35,7 +35,7 @@ COPY --from=deps /usr/local/bin/entrypoint-demoter /usr/local/bin/
 COPY --from=builder /project/.build/release/bedrockifier .
 RUN ln -s bedrockifier bedrockifierd && \
     ln -s bedrockifier bedrockifier-tool
-COPY ./Docker/entry.sh ./Docker/trigger-backup.sh .
+COPY ./Docker/entry.sh .
 
 ENTRYPOINT [ "/opt/bedrock/entry.sh" ]
-HEALTHCHECK --start-period=1m CMD curl -f http://localhost:8080/health
+HEALTHCHECK --start-period=1m CMD /opt/bedrock/bedrockifier-tool healthcheck
