@@ -36,4 +36,4 @@ You will need to provide the appropriate address depending on how you've configu
 
 This triggers a full backup of all containers. Can be used to create one-off backups. Useful when wanting to trim chunks or do other administrative tasks.
 
-Alternatively, an admin can access the docker container shell and execute `./trigger-backup.sh [tokenFile]`. This will read the local token from `/config/.bedrockifierToken` if a token file path isn't provided.
+Alternatively, an admin that can execute commands in the container can run `docker run <container name> /opt/bedrock/bedrockifier-tool trigger-backup` to trigger a backup manually. This will read the local token from `/config/.bedrockifierToken` by default; use `--token-path` to override.
