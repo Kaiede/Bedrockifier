@@ -97,7 +97,7 @@ public struct DockerConnectionConfig: ContainerConnectionConfig {
     public let password: ContainerPassword = .none
     public let validator: SSHHostKeyValidator? = nil
     public let prefixContainerName: Bool
-    
+
     init(socketPath: String, config: BackupConfig.ContainerConfig, prefixAllContainerNames: Bool) {
         self.socketPath = socketPath
         self.containerName = config.name
@@ -112,7 +112,7 @@ public struct DockerConnectionConfig: ContainerConnectionConfig {
 
     public var kind: ContainerConnectionConfigKind { .docker }
     public var newline: TerminalNewline { .default }
-    
+
     public func makeChannelConfig() throws -> ContainerChannelConfig {
         return .docker(socket: socketPath, container: containerName)
     }
@@ -141,7 +141,7 @@ public struct RCONConnectionConfig: ContainerConnectionConfig {
 
     public var kind: ContainerConnectionConfigKind { .rcon }
     public var newline: TerminalNewline { .ssh }
-    
+
     public func makeChannelConfig() throws -> ContainerChannelConfig {
         let parts = address.split(whereSeparator: { $0 == ":" })
         guard parts.count == 2 else {
@@ -150,7 +150,7 @@ public struct RCONConnectionConfig: ContainerConnectionConfig {
         guard let port = Int(parts[1]) else {
             throw ParseError.invalidHostname(address)
         }
-        
+
         return .rcon(host: String(parts[0]), port: port)
     }
 }
@@ -179,7 +179,7 @@ public struct SSHConnectionConfig: ContainerConnectionConfig {
 
     public var kind: ContainerConnectionConfigKind { .ssh }
     public var newline: TerminalNewline { .ssh }
-    
+
     public func makeChannelConfig() throws -> ContainerChannelConfig {
         let parts = address.split(whereSeparator: { $0 == ":" })
         guard parts.count == 2 else {
@@ -191,7 +191,7 @@ public struct SSHConnectionConfig: ContainerConnectionConfig {
         guard let validator else {
             throw ParseError.invalidSyntax
         }
-        
+
         return .ssh(host: String(parts[0]), port: port, validator: validator)
     }
 }

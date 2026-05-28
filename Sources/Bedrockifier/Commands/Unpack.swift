@@ -34,16 +34,16 @@ extension Bedrockifier {
             commandName: "unpack",
             abstract: "Unpacks an exported world into a given folder. Useful for unpacking a backup into a server's worlds folder."
         )
-        
+
         @Argument(help: "World to unpack (as .mcworld or .zip)")
         var mcworld: String
-        
+
         @Argument(help: "Folder to unpack into")
         var outputFolderPath: String
-        
+
         @Flag(help: "Overwrite existing world folder; deletes everything in the folder")
         var overwrite = false
-        
+
         func run() throws {
             let terminal = initializeTerminal()
             let world = try World(url: URL(fileURLWithPath: mcworld))
@@ -51,15 +51,15 @@ extension Bedrockifier {
                 terminal.error("Archive is not a Bedrock or Java world.")
                 return
             }
-            
+
             let targetFolder = URL(fileURLWithPath: outputFolderPath)
             let worldFolder = targetFolder.appendingPathComponent(world.name)
-            
+
             guard FileManager.default.fileExists(atPath: worldFolder.path) || overwrite else {
                 terminal.error("World already exists at output folder.")
                 return
             }
-            
+
             if FileManager.default.fileExists(atPath: worldFolder.path) {
                 let activity = terminal.loadingBar(title: "Removing existing world")
                 do {
@@ -72,11 +72,11 @@ extension Bedrockifier {
                     return
                 }
             }
-            
+
             terminal.output("World Name: \(world.name)")
             terminal.output("Unpacking to: \(outputFolderPath)")
             terminal.emptyLine()
-            
+
             let activity = terminal.loadingBar(title: "Unpacking")
             do {
                 activity.start()

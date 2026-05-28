@@ -88,7 +88,7 @@ final class SSHClient {
             }
             Library.log.warning("SSH connection closed.")
         }
-        
+
         Library.log.info("SSH connection to \(host):\(port) established.")
     }
 

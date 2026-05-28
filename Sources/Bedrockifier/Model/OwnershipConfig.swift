@@ -45,19 +45,19 @@ extension OwnershipConfig {
 struct OwnershipPosixConfig {
     fileprivate static let folderDefaultMode: Platform.Mode = 0o777
     fileprivate static let fileDefaultMode: Platform.Mode = 0o666
-    
+
     var userId: Platform.UserID?
     var groupId: Platform.GroupID?
     var folderMode: Platform.Mode?
     var fileMode: Platform.Mode?
-    
+
     init(ownership: String?, mask: String?) throws {
         if let ownership {
             let (userId, groupId) = try parse(ownership: ownership)
             self.userId = userId
             self.groupId = groupId
         }
-        
+
         if let mask {
             let mask = try parse(permissions: mask)
             folderMode = Self.folderDefaultMode & ~mask
@@ -82,18 +82,18 @@ extension OwnershipPosixConfig {
             groupId = gid.uint32Value
         }
     }
-    
+
     mutating func fillEmptyModes(from url: URL) throws {
         guard folderMode == nil || fileMode == nil else { return }
-        
+
         let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
         if let modeNumber = attributes[.posixPermissions] as? NSNumber {
             let mode = Platform.Mode(modeNumber.uint16Value)
             var mask = Platform.Mode(0o000)
-            
+
             mask |= buildMaskOctet(from: mode)
             mask |= buildMaskOctet(from: mode >> 3) << 3
-            
+
             if folderMode == nil {
                 self.folderMode = Self.folderDefaultMode & ~mask
             }
@@ -112,6 +112,6 @@ fileprivate func buildMaskOctet(from mode: Platform.Mode) -> Platform.Mode {
         // No write, so mask write.
         return 0o002
     }
-    
+
     return 0o000
 }

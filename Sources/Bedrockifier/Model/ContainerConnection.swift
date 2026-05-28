@@ -73,7 +73,7 @@ public class ContainerConnection {
         case .java:
             self.terminal = JavaTerminal(terminal: terminal)
         }
-        
+
         switch try connectionConfig.makeChannelConfig() {
         case .process(let url, let arguments):
             self.channel = try await ProcessChannel(terminal: terminal, processUrl: url, processArgs: arguments)

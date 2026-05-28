@@ -144,14 +144,14 @@ final class BackupService {
             let httpService = makeHttpService()
             try await httpService.runService()
         }
-        
+
         // Do a startup delay if asked before attempting to connect to containers.
         // Delaying prior to connecting is required for rcon connections.
         if let startupDelay = try getStartupDelay() {
             BackupService.logger.info("Delaying startup by: \(startupDelay) seconds")
             try await Task.sleep(nanoseconds: UInt64(startupDelay * 1_000_000_000.0))
         }
-        
+
         // Start the backups
         if let schedule = config.schedule {
             if schedule.interval != nil && schedule.daily != nil {
@@ -178,7 +178,7 @@ final class BackupService {
             if let minInterval = try schedule.parseMinInterval() {
                 BackupService.logger.info("Backup Minimum Interval is \(minInterval) seconds.")
             }
-            
+
             if schedule.runInitialBackup == true {
                 BackupService.logger.info("Performing Initial Backup...")
                 await self.backupActor.backupAllContainers(isDaily: true)
@@ -188,7 +188,7 @@ final class BackupService {
         let mainTask = Task(priority: BackupService.backupPriority) {
             try await runIntervalBackups()
         }
-        
+
         let interruptSource = DispatchSource.makeSignalSource(signal: SIGINT, queue: .global())
         interruptSource.setEventHandler {
             BackupService.logger.warning("Received SIGINT")
@@ -245,25 +245,25 @@ final class BackupService {
             await self.backupActor.backupAllContainers(isDaily: false)
         }
     }
-    
+
     private func runDailyBackups() async throws {
         guard let dayTime = config.schedule?.daily else {
             BackupService.logger.error("Unable to Parse Daily Backup Time")
             throw ServiceError.noBackupInterval
         }
-        
+
         repeat {
             guard let nextFiring = dayTime.calcNextDate(after: .now) else {
                 BackupService.logger.error("Unable to calculate next daily backup date")
                 throw ServiceError.noBackupInterval
             }
-            
+
             try await Task.sleep(until: nextFiring)
-            
+
             await self.backupActor.backupAllContainers(isDaily: true)
         } while true
     }
-    
+
     private func startListenerBackups() async {
         BackupService.logger.info("Starting Listeners for Containers")
         for container in await backupActor.containers {
@@ -274,7 +274,7 @@ final class BackupService {
             }
         }
     }
-    
+
     private func runListenerReconnectMonitor() async {
         let interval = getListenerReconnectInterval()
         BackupService.logger.info("Listener Reconnect Interval: \(interval) seconds")

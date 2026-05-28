@@ -112,7 +112,7 @@ final class DockerClient {
             httpDecoder: httpDecoder
         ) { channel, isTTY in
             let terminalHandler = TerminalHandler(terminal: terminal, convertNewlines: !isTTY)
-            
+
             if isTTY {
                 return channel.pipeline.addHandler(terminalHandler)
             }

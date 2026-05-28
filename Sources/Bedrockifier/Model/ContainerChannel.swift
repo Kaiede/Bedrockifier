@@ -76,7 +76,7 @@ struct DockerChannel: ContainerChannel {
         self.client = DockerClient(group: group, terminal: terminal, socketPath: socketPath)
         self.containerName = containerName
     }
-    
+
     var isConnected: Bool { client.isConnected }
 
     func start() async throws {
@@ -89,7 +89,7 @@ struct DockerChannel: ContainerChannel {
             )
         }
     }
-    
+
     func close() async throws {
         do {
             try await client.close()
@@ -107,7 +107,7 @@ struct RConChannel: ContainerChannel {
     private let port: Int
     private let password: ContainerPassword
     private var client: RConClient
-    
+
     init(
         terminal: PseudoTerminal,
         host: String,
@@ -121,7 +121,7 @@ struct RConChannel: ContainerChannel {
         self.port = port
         self.password = password
     }
-    
+
     var isConnected: Bool { client.isConnected }
 
     func start() async throws {

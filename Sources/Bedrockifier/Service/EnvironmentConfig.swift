@@ -49,7 +49,7 @@ struct EnvironmentConfig {
     // Restore Settings
     let restoreOwner: String?
     let restoreMask: String?
-    
+
     // Deprecated Settings
     let backupInterval: String?
     let listenerReconnectInterval: String?
@@ -65,10 +65,10 @@ struct EnvironmentConfig {
 
         // Data Folder Settings
         self.dataDirectory = EnvironmentConfig.dataDirectory()
-        
+
         // Listener Connection Monitor
         self.listenerReconnectInterval = ProcessInfo.processInfo.environment["LISTENER_RECONNECT_INTERVAL"]
-        
+
         // Restore Settings
         self.restoreOwner = ProcessInfo.processInfo.environment["RESTORE_OWNER"]
         self.restoreMask = ProcessInfo.processInfo.environment["RESTORE_MASK"]

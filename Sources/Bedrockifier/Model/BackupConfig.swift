@@ -67,7 +67,7 @@ public struct BackupConfig: Codable {
     public var ownership: OwnershipConfig?
     public var schedule: ScheduleConfig?
     public var loggingLevel: LoggingConfig?
-    
+
     // Deprecated - Not Used Anymore
     // Kept here because removal would regress existing users
     public var dockerPath: String?

@@ -68,7 +68,7 @@ final class TerminalHandler: ChannelDuplexHandler, @unchecked Sendable {
                         Library.log.error("Failed to read terminal data as UTF8 for NIO.")
                         return
                     }
-                    
+
                     if self.convertNewlines {
                         string = string.convertNewlinesForSSH()
                     }
@@ -78,7 +78,7 @@ final class TerminalHandler: ChannelDuplexHandler, @unchecked Sendable {
                         Library.log.error("Failed to write to Channel. (\(error.localizedDescription))")
                     }
                 }
-                
+
                 self.terminalChannel = channel
                 Library.log.info("NIO terminal connected.")
             } catch {

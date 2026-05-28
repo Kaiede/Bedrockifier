@@ -43,10 +43,10 @@ extension Bedrockifier {
 
         @Option(name: .shortAndLong, help: "Folder containing backups")
         var backupPath: String?
-        
+
         @Flag(help: "Log debug level information")
         var debug = false
-        
+
         @Flag(help: "Log trace level information, overriding --debug")
         var trace = false
 
@@ -78,13 +78,13 @@ extension Bedrockifier {
                 ConsoleKitLogger.logLevelOverride = .debug
                 ConsoleKitLogger.showFilePosition = true
             }
-            
+
             let environment = EnvironmentConfig()
             var ownershipConfig = try OwnershipPosixConfig(
                 ownership: environment.restoreOwner,
                 mask: environment.restoreMask
             )
-            
+
             let configUri = Bedrockifier.getConfigFileUrl(
                 environment: environment,
                 configPath: configPath,
@@ -107,10 +107,10 @@ extension Bedrockifier {
                 terminal.error("No containers were found in the configuration.")
                 return
             }
-            
+
             terminal.output("Config: ".consoleText(.info) + configUri.path.consoleText())
             terminal.output("Backups: ".consoleText(.info) + backupFolderUrl.path.consoleText())
-            
+
             let target = chooseTarget(terminal: terminal, from: targets)
             guard !target.worlds.isEmpty else {
                 terminal.error("Container \(target.containerName) has no configured worlds.")
@@ -153,33 +153,33 @@ extension Bedrockifier {
                 return "\(backup.item.location.lastPathComponent)  [\(timestamp)]".consoleText()
             }
 
-            
+
             let ownershipSource = pickOwnershipSource(worldUrl: worldChoice.target.destination)
             try ownershipConfig.fillEmptyOwner(from: ownershipSource)
             try ownershipConfig.fillEmptyModes(from: ownershipSource)
             try restore(terminal: terminal, backup: chosenBackup, to: worldChoice.target, ownership: ownershipConfig)
         }
-        
+
         private func pickOwnershipSource(worldUrl: URL) -> URL {
             if FileManager.default.fileExists(atPath: worldUrl.path) {
                 return worldUrl
             }
-            
+
             return worldUrl.deletingLastPathComponent()
         }
-        
+
         private func chooseTarget(terminal: Terminal, from targets: [RestoreTarget]) -> RestoreTarget {
             if let target = targets.first, targets.count == 1 {
                 terminal.output("Target: ".consoleText(.info) + "\(target.containerName) (\(target.displayKind))".consoleText())
                 return target
             }
-            
+
             terminal.emptyLine()
             return terminal.choose("Which container do you want to restore?", from: targets) { target in
                 "\(target.containerName) (\(target.displayKind))".consoleText()
             }
         }
-        
+
         private func buildTargets(from config: BackupConfig) -> [RestoreTarget] {
             let prefixAll = config.prefixContainerName ?? false
             var targets: [RestoreTarget] = []
@@ -276,7 +276,7 @@ extension Bedrockifier {
                     terminal.output("Restore cancelled.")
                     return
                 }
-                
+
                 terminal.emptyLine()
                 let activity = terminal.loadingBar(title: "Removing existing world")
                 activity.start()
@@ -289,7 +289,7 @@ extension Bedrockifier {
                     return
                 }
             }
-            
+
             let parentFolder = target.destination.deletingLastPathComponent()
             let unpackedWorld: World
             let unpackActivity = terminal.loadingBar(title: "Unpacking backup")
@@ -302,7 +302,7 @@ extension Bedrockifier {
                     folderMode: ownership.folderMode,
                     fileMode: ownership.fileMode
                 )
-                
+
                 unpackActivity.succeed()
             } catch {
                 unpackActivity.fail()

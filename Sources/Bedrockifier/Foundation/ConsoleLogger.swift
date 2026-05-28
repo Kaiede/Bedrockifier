@@ -34,7 +34,7 @@ public final class ConsoleKitLogger: LogHandler {
     public static var logLevelOverride: Logger.Level?
     public static var showDetails: Bool = false
     public static var showFilePosition: Bool = false
-    
+
     private static var timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.timeZone = TimeZone.current
@@ -42,7 +42,7 @@ public final class ConsoleKitLogger: LogHandler {
         formatter.dateFormat = "HH:mm:ss.SSS"
         return formatter
     }()
-    
+
     public let label: String
     public var metadata: Logging.Logger.Metadata
     public var logLevel: Logger.Level {
@@ -52,18 +52,18 @@ public final class ConsoleKitLogger: LogHandler {
 
     private let terminal: Terminal
     private var handlerLogLevel: Logger.Level = .info
-    
+
     public init(label: String, terminal: Terminal) {
         self.label = label
         self.terminal = terminal
         self.metadata = [:]
     }
-    
+
     public subscript(metadataKey key: String) -> Logger.Metadata.Value? {
         get { return metadata[key] }
         set(newValue) { metadata[key] = newValue }
     }
-    
+
     public func log(event: LogEvent) {
         switch event.level {
         case .trace: fallthrough
@@ -78,7 +78,7 @@ public final class ConsoleKitLogger: LogHandler {
             terminal.error(formatMessage(event.message, level: event.level, file: event.file, line: event.line))
         }
     }
-    
+
     private func formatMessage(_ message: Logger.Message, level: Logger.Level, file: String, line: UInt) -> String {
         var components: [String] = []
 

@@ -34,38 +34,38 @@ extension Bedrockifier {
             commandName: "trim",
             abstract: "Trims backups."
         )
-        
+
         @Argument(help: "Folder to Trim")
         var backupFolderPath: String
-        
+
         @Option(name: .shortAndLong, help: "How many days back to start trimming backups (default = 3)")
         var trimDays: Int?
-        
+
         @Option(name: .shortAndLong, help: "How many days back to keep any backups (default = 14)")
         var keepDays: Int?
-        
+
         @Option(name: .shortAndLong, help: "Minimum count of backups to keep for a single world (default = 1)")
         var minKeep: Int?
-        
+
         @Flag(name: [.customShort("n"), .long], help: "Don't delete, only perform a dry run")
         var dryRun: Bool = false
-        
+
         func run() async throws {
             let terminal = initializeTerminal()
             let backupFolderUrl = URL(fileURLWithPath: backupFolderPath, isDirectory: true)
             terminal.output("Backup folder to trim: \(backupFolderUrl.path())")
             terminal.emptyLine()
-            
+
             let activity = terminal.loadingBar(title: "Trimming Backups")
             do {
                 activity.start()
-                
+
                 let trimAsk = Backups.Trim(
                     trimDays: trimDays,
                     keepDays: keepDays,
                     minKeep: minKeep
                 )
-                
+
                 try Backups.trimBackups(
                     World.self,
                     at: backupFolderUrl,
@@ -78,7 +78,7 @@ extension Bedrockifier {
                     dryRun: dryRun,
                     trim: trimAsk
                 )
-                
+
                 activity.succeed()
             } catch {
                 activity.fail()

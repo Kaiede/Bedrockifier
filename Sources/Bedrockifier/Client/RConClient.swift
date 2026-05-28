@@ -89,7 +89,7 @@ final class RConClient {
             Library.log.debug("RCON connection closed.")
         }
     }
-    
+
     public func authenticate(password: ContainerPassword) async throws {
         try await authenticate(password: password.readPassword())
     }
@@ -100,7 +100,7 @@ final class RConClient {
         guard let channel = channel, let handler = handler else {
             throw RConError.notConnected
         }
-        
+
         let requestID = nextID()
         let response = try await sendFrame(
             RConFrame(id: requestID, type: RConFrame.typeAuth, body: password),
@@ -113,7 +113,7 @@ final class RConClient {
         guard response.id == requestID else {
             throw RConError.unexpectedResponse
         }
-        
+
         Library.log.trace("Authentication complete.")
         // Successful authenticate means we can convert into streaming mode
         try await channel.pipeline.removeHandler(handler)
@@ -185,7 +185,7 @@ struct RConFrameDecoder: ByteToMessageDecoder {
         guard frameSize >= 10 else {
             throw RConError.invalidFrameSize(frameSize)
         }
-        guard 
+        guard
             frameSize <= maxBodyBytes + 10 else {
             throw RConError.frameTooLarge(frameSize)
         }
@@ -218,7 +218,7 @@ struct RConFrameEncoder: MessageToByteEncoder {
     typealias OutboundIn = RConFrame
 
     func encode(data: RConFrame, out: inout ByteBuffer) throws {
-        
+
         let bodyBytes = Array(data.body.utf8)
         let size = Int32(10 + bodyBytes.count)
         out.writeInteger(size, endianness: .little)
@@ -239,7 +239,7 @@ final class RConClientHandler: ChannelInboundHandler, RemovableChannelHandler, @
 
     func send(frame: RConFrame, isAuth: Bool, on channel: Channel) -> EventLoopFuture<RConFrame> {
         channel.eventLoop.preconditionInEventLoop()
-        
+
         let promise = channel.eventLoop.makePromise(of: RConFrame.self)
         if isAuth {
             // Remove previous auth attempt if one exists.
@@ -249,7 +249,7 @@ final class RConClientHandler: ChannelInboundHandler, RemovableChannelHandler, @
             pending[frame.id]?.fail(RConError.unexpectedResponse)
             pending[frame.id] = promise
         }
-        
+
         Library.log.trace("Sending RCON password.")
         channel.writeAndFlush(frame).whenFailure { [weak self] error in
             Library.log.error("RCON authentication write failed: \(error)")
@@ -266,7 +266,7 @@ final class RConClientHandler: ChannelInboundHandler, RemovableChannelHandler, @
 
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         let frame = unwrapInboundIn(data)
-        
+
         // During an auth handshake the server sends an empty SERVERDATA_RESPONSE_VALUE
         // immediately before the SERVERDATA_AUTH_RESPONSE — drop it.
         if let promise = authPromise, frame.type == RConFrame.typeAuthResponse {
@@ -315,30 +315,30 @@ final class RConStreamHandler: ChannelDuplexHandler, @unchecked Sendable {
 
     typealias OutboundIn = ByteBuffer
     typealias OutboundOut = RConFrame
-    
+
     private let client: RConClient
-    
+
     init(client: RConClient) {
         self.client = client
     }
-    
+
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         let frame = unwrapInboundIn(data)
         guard frame.type == RConFrame.typeResponseValue else {
             Library.log.error("Unexpected RCON frame type encountered after authentication: \(frame.type)")
             return
         }
-        
+
         let byteBuffer = ByteBuffer(string: frame.body)
         context.fireChannelRead(wrapInboundOut(byteBuffer))
     }
-        
+
     func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
         var byteBuffer = unwrapOutboundIn(data)
         guard var body = byteBuffer.readString(length: byteBuffer.readableBytes) else {
             return
         }
-        
+
         body = body.trimmingCharacters(in: .newlines)
         let id = client.nextID()
         let frame = RConFrame(id: id, type: RConFrame.typeExecCommand, body: body)
