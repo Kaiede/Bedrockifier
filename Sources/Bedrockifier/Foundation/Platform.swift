@@ -76,7 +76,7 @@ struct Platform {
     }
 
     static func timingsafeCompare(_ lhs: [UInt8], _ rhs: [UInt8]) -> Bool {
-        guard lhs.count == brhscount else { return false }
+        guard lhs.count == rhs.count else { return false }
         return lhs.withUnsafeBytes { lhsPtr in
             rhs.withUnsafeBytes { rhsPtr in
                 #if canImport(Darwin) || canImport(Musl)
