@@ -43,13 +43,13 @@ struct Platform {
     typealias UserID = __uid_t
     typealias GroupID = __gid_t
     #endif
-    
+
     static func currentUmask() -> Mode {
         let currentUmask = umask(0)
         umask(currentUmask)
         return currentUmask
     }
-    
+
     static func changeOwner(path: String, uid: UserID?, gid: GroupID?) throws {
         let realUid = uid ?? UInt32.max
         let realGid = gid ?? UInt32.max
@@ -69,6 +69,28 @@ struct Platform {
                 throw PlatformError.errno(error: errno)
             }
         })
+    }
+
+    static func timingsafeCompare(_ lhs: String, _ rhs: String) -> Bool {
+        return timingsafeCompare(Array(lhs.utf8), Array(rhs.utf8))
+    }
+
+    static func timingsafeCompare(_ lhs: [UInt8], _ rhs: [UInt8]) -> Bool {
+        guard lhs.count == rhs.count else { return false }
+        return lhs.withUnsafeBytes { lhsPtr in
+            rhs.withUnsafeBytes { rhsPtr in
+                #if canImport(Darwin) || canImport(Musl)
+                return timingsafe_bcmp(lhsPtr.baseAddress, rhsPtr.baseAddress, lhs.count) == 0
+                #else
+                // glibc < 2.37 does not provide timingsafe_bcmp
+                var result: UInt8 = 0
+                let lhsBind = lhsPtr.bindMemory(to: UInt8.self)
+                let rhsBind = rhsPtr.bindMemory(to: UInt8.self)
+                for index in 0..<lhs.count { result |= lhsBind[index] ^ rhsBind[index] }
+                return result == 0
+                #endif
+            }
+        }
     }
 }
 

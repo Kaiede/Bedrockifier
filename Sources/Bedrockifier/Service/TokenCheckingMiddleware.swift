@@ -60,12 +60,12 @@ struct TokenCheckingMiddleware<Context>: RouterMiddleware {
             throw HTTPError(.internalServerError, message: "Cannot accept requests at this time.")
         }
 
-        guard let token = request.headers[.authorization], token == "Bearer \(currentToken)" else {
+        guard let token = request.headers[.authorization],
+              Platform.timingsafeCompare(token, "Bearer \(currentToken)")
+        else {
             throw HTTPError(.badRequest, message: "Invalid authorization.")
         }
 
         return try await next(request, context)
     }
-
-
 }

@@ -1,4 +1,5 @@
 import XCTest
+import ZIPFoundation
 @testable import Bedrockifier
 
 fileprivate func makeTempDir() throws -> URL {
@@ -7,7 +8,33 @@ fileprivate func makeTempDir() throws -> URL {
     return tempDirectory
 }
 
+// Creates a .mcworld archive whose levelname.txt contains the given string.
+fileprivate func makeBedrockArchive(levelName: String) throws -> (tempDir: URL, archive: URL) {
+    let tempDir = try makeTempDir()
+    let levelNameFile = tempDir.appendingPathComponent("levelname.txt")
+    try (levelName.data(using: .utf8) ?? Data()).write(to: levelNameFile)
+
+    let archiveURL = tempDir.appendingPathComponent("test.mcworld")
+    let archive = try Archive(url: archiveURL, accessMode: .create)
+    try archive.addEntry(with: "levelname.txt", fileURL: levelNameFile)
+    return (tempDir, archiveURL)
+}
+
+// Creates a .zip archive with a single level.dat entry at the given path inside the ZIP.
+fileprivate func makeJavaArchive(levelDatPath: String) throws -> (tempDir: URL, archive: URL) {
+    let tempDir = try makeTempDir()
+    let levelDatFile = tempDir.appendingPathComponent("level.dat")
+    try Data([0]).write(to: levelDatFile)
+
+    let archiveURL = tempDir.appendingPathComponent("test.zip")
+    let archive = try Archive(url: archiveURL, accessMode: .create)
+    try archive.addEntry(with: levelDatPath, fileURL: levelDatFile)
+    return (tempDir, archiveURL)
+}
+
 final class WorldTests: XCTestCase {
+    
+    
     func testInvalidUrl() {
         let homePath = "\"\(FileManager.default.homeDirectoryForCurrentUser.path)\""
         let homeUrl = URL(fileURLWithPath: homePath)
@@ -74,6 +101,100 @@ final class WorldTests: XCTestCase {
             XCTFail("\(error.localizedDescription)")
         }
     }
+
+    // MARK: - Path Traversal (Bedrock .mcworld)
+
+    func testBedrockBackupValidName() throws {
+        let (tempDir, archiveURL) = try makeBedrockArchive(levelName: "My World")
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let world = try World(url: archiveURL)
+        XCTAssertEqual(world.name, "My World")
+    }
+
+    func testBedrockBackupDotDotName() throws {
+        let (tempDir, archiveURL) = try makeBedrockArchive(levelName: "..")
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        do {
+            _ = try World(url: archiveURL)
+            XCTFail("Expected invalidLevelName to be thrown")
+        } catch World.WorldError.invalidLevelName {
+            // expected
+        }
+    }
+
+    func testBedrockBackupSlashTraversalName() throws {
+        let (tempDir, archiveURL) = try makeBedrockArchive(levelName: "../../etc/passwd")
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        do {
+            _ = try World(url: archiveURL)
+            XCTFail("Expected invalidLevelName to be thrown")
+        } catch World.WorldError.invalidLevelName {
+            // expected
+        }
+    }
+
+    func testBedrockBackupBackslashName() throws {
+        let (tempDir, archiveURL) = try makeBedrockArchive(levelName: "..\\..\\windows\\system32")
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        do {
+            _ = try World(url: archiveURL)
+            XCTFail("Expected invalidLevelName to be thrown")
+        } catch World.WorldError.invalidLevelName {
+            // expected
+        }
+    }
+
+    func testBedrockBackupEmptyName() throws {
+        let (tempDir, archiveURL) = try makeBedrockArchive(levelName: "")
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        do {
+            _ = try World(url: archiveURL)
+            XCTFail("Expected invalidLevelName to be thrown")
+        } catch World.WorldError.invalidLevelName {
+            // expected
+        }
+    }
+
+    // MARK: - Path Traversal (Java .zip)
+
+    func testJavaBackupValidPath() throws {
+        let (tempDir, archiveURL) = try makeJavaArchive(levelDatPath: "worldname/level.dat")
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let world = try World(url: archiveURL)
+        XCTAssertEqual(world.name, "worldname")
+    }
+
+    func testJavaBackupDotDotPath() throws {
+        let (tempDir, archiveURL) = try makeJavaArchive(levelDatPath: "../evil/level.dat")
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        do {
+            _ = try World(url: archiveURL)
+            XCTFail("Expected invalidLevelName to be thrown")
+        } catch World.WorldError.invalidLevelName {
+            // expected
+        }
+    }
+
+    func testJavaBackupDeepTraversalPath() throws {
+        let (tempDir, archiveURL) = try makeJavaArchive(levelDatPath: "../../etc/level.dat")
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        do {
+            _ = try World(url: archiveURL)
+            XCTFail("Expected invalidLevelName to be thrown")
+        } catch World.WorldError.invalidLevelName {
+            // expected
+        }
+    }
+
+    // MARK: -
 
     func testFetchNameFailure() {
         let tempDirectory = URL(fileURLWithPath: NSTemporaryDirectory())

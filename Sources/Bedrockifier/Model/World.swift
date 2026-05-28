@@ -108,6 +108,15 @@ public struct World {
         return location.lastPathComponent
     }
 
+    private static func backupNameIsSanitary(_ name: String) -> Bool {
+        let restrictedCharacters = CharacterSet(charactersIn: "\\/:*?\"<>|")
+
+        return
+            !name.isEmpty &&
+            name.rangeOfCharacter(from: restrictedCharacters) == nil &&
+            !name.contains("..")
+    }
+
     private static func fetchBedrockBackupName(location: URL) throws -> String {
         let archive = try Archive(url: location, accessMode: .read)
         guard let levelnameEntry = archive["levelname.txt"] else {
@@ -119,6 +128,10 @@ public struct World {
 
         guard let finalResult = result else {
             throw WorldError.missingLevelName
+        }
+
+        guard backupNameIsSanitary(finalResult) else {
+            throw WorldError.invalidLevelName
         }
 
         return finalResult
@@ -133,6 +146,11 @@ public struct World {
         guard let worldName = NSString(string: levelDat.path).pathComponents.first else {
             throw WorldError.missingLevelName
         }
+
+        guard backupNameIsSanitary(worldName) else {
+            throw WorldError.invalidLevelName
+        }
+
 
         return worldName
     }
@@ -311,11 +329,11 @@ extension World {
 
         return false
     }
-    
+
     func applyOwnership(owner: Platform.UserID?, group: Platform.GroupID?, permissions: Platform.Mode?) throws {
         try applyOwnership(owner: owner, group: group, folderMode: permissions, fileMode: permissions)
     }
-    
+
     func applyOwnership(owner: Platform.UserID?, group: Platform.GroupID?, folderMode: Platform.Mode?, fileMode: Platform.Mode?) throws {
         let path = self.location.path
         do {
@@ -403,6 +421,7 @@ extension World {
         case invalidUrl(url: URL, innerError: Error)
         case invalidLevelArchive
         case missingLevelName
+        case invalidLevelName
         case invalidLevelNameFile
         case archiveCreationFailed
         case failedToApplyOwnership(url: URL, error: Error)
@@ -418,6 +437,7 @@ extension World.WorldError: LocalizedError {
         case .invalidUrl(let url, let innerError): return "Unable to access world path at '\(url.path)': \(innerError)"
         case .invalidLevelArchive: return "World archive is not a valid zip or mcworld file"
         case .missingLevelName: return "Unable to determine name of the world"
+        case .invalidLevelName: return "Level name contains prohibited strings"
         case .invalidLevelNameFile: return "Unable to read contents of levelname.txt"
         case .archiveCreationFailed: return "Failed to create file for archive"
         case .failedToApplyOwnership(let url, let innerError): return "Unable to apply ownership to file at '\(url.path)': \(innerError)"
