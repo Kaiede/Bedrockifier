@@ -66,15 +66,11 @@ public final class ConsoleKitLogger: LogHandler {
 
     public func log(event: LogEvent) {
         switch event.level {
-        case .trace: fallthrough
-        case .debug: fallthrough
-        case .info:
+        case .trace, .debug, .info:
             terminal.info(formatMessage(event.message, level: event.level, file: event.file, line: event.line))
-        case .notice: fallthrough
-        case .warning:
+        case .notice, .warning:
             terminal.warning(formatMessage(event.message, level: event.level, file: event.file, line: event.line))
-        case .error: fallthrough
-        case .critical:
+        case .error, .critical:
             terminal.error(formatMessage(event.message, level: event.level, file: event.file, line: event.line))
         }
     }
