@@ -1,6 +1,6 @@
 {
     "name": "Swift Dev Environment",
-    "image": "swift:6.3.2",
+    "image": "swift:6.3.3",
     "customizations": {
         "vscode": {
             "extensions": [
