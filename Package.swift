@@ -24,7 +24,7 @@ let package = Package(
         .package(url: "https://github.com/jpsim/Yams.git", from: "6.2.2"),
         .package(url: "https://github.com/Kaiede/PTYKit.git", branch: "master"),
         .package(url: "https://github.com/vapor/console-kit.git", from: "4.16.0"),
-        .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins.git", from: "0.63.3"),
+        .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins.git", from: "0.65.0"),
         .package(url: "https://github.com/weichsel/ZIPFoundation.git", from: "0.9.20")
     ],
     targets: [
