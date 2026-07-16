@@ -1,0 +1,26 @@
+containers:
+  bedrock:
+    # Backup the world "PublicSMP" on the "server" docker container
+    - name: minecraft-server
+      # Tells the backup service that this container is accessible
+      # using the mc-server-runner SSH functionality.
+      # passwordFile should point to the .remote-console.yaml file in the container
+      ssh: server:2222
+      passwordFile: /server/.remote-console.yaml
+      worlds:
+        - /server/worlds/PublicSMP
+schedule:
+  # This will perform a backup every 3 hours.
+  # At most this will generate 8 backups a day.
+  interval: 3h
+  # Pause at startup for 60s for the server to be fully available,
+  # and then kick off an initial backup.
+  startupDelay: 60s
+  runInitialBackup: true
+trim:
+  # Keep all backups for the last two days (today and yesterday)
+  # Keep at least one backup for the last 14 days
+  # Keep at least two backups per world
+  trimDays: 2
+  keepDays: 14
+  minKeep: 2

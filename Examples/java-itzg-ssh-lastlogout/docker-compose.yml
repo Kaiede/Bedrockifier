@@ -54,14 +54,14 @@ services:
 volumes:
   # Allows backup to store persistent configuration for itself
   minecraft-backup:
-  
+
   # Volume for backup data.
   minecraft-server-backups:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ${BEDROCKIFIER_BACKUPS_DIR:-/opt/minecraft/backups}
+      device: ${BEDROCKIFIER_BACKUPS_DIR:-${PWD}/data/backups}
 
   # Minecraft Server Data
   minecraft-server-data:
@@ -69,4 +69,4 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: ${MINECRAFT_SERVER_DATA_DIR:-/opt/minecraft/public}
+      device: ${MINECRAFT_SERVER_DATA_DIR:-${PWD}/data/public}

@@ -5,7 +5,9 @@ services:
     container_name: minecraft-backup
     # Make sure the minecraft image starts before the backup
     depends_on:
-      - "server"
+      server:
+        condition: service_healthy
+        restart: true
     environment:
       # Local timezone to reduce confusion
       TZ: ${TZ:-America/Los_Angeles}
@@ -52,14 +54,14 @@ services:
 volumes:
   # Allows backup to store persistent configuration for itself
   minecraft-backup:
-   
+
   # Volume for backup data.
   minecraft-server-backups:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ${BEDROCKIFIER_BACKUPS_DIR:-/opt/minecraft/backups}
+      device: ${BEDROCKIFIER_BACKUPS_DIR:-${PWD}/data/backups}
 
   # Minecraft Server Data
   bedrock-server-data:
@@ -67,4 +69,4 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: ${MINECRAFT_SERVER_DATA_DIR:-/opt/bedrock/public}
+      device: ${MINECRAFT_SERVER_DATA_DIR:-${PWD}/data/public}

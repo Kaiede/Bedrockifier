@@ -10,9 +10,16 @@ containers:
       worlds:
         - /server/worlds/PublicSMP
 schedule:
-  # This will perform a backup every 3 hours.
-  # At most this will generate 8 backups a day.
-  interval: 3h
+  # Trigger a backup on player login or logout, at most 3 hours apart.
+  # Also trigger a backup every day at 0100.
+  onPlayerLogin: true
+  onPlayerLogout: true
+  minInterval: 3h
+  daily: 01:00
+  # Pause at startup for 60s for the server to be fully available,
+  # and then kick off an initial backup.
+  startupDelay: 60s
+  runInitialBackup: true
 trim:
   # Keep all backups for the last two days (today and yesterday)
   # Keep at least one backup for the last 14 days

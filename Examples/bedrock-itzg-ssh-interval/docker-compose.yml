@@ -2,9 +2,12 @@ services:
   backup:
     image: kaiede/minecraft-bedrock-backup
     restart: always
+    container_name: minecraft-backup
     # Make sure the minecraft image starts before the backup
     depends_on:
-      - "server"
+      server:
+        condition: service_healthy
+        restart: true
     environment:
       # Local timezone to reduce confusion
       TZ: ${TZ:-America/Los_Angeles}
@@ -12,31 +15,28 @@ services:
       - minecraft-backup:/config
       - ./config.yml:/config/config.yml:ro
       - minecraft-server-backups:/data
-      - minecraft-server-data:/server:ro
+      - bedrock-server-data:/server:ro
 
   server:
-    image: itzg/minecraft-server
+    image: itzg/minecraft-bedrock-server
+    restart: always
     container_name: minecraft-server
     # Reminder that port 2222 is used inside this stack.
     expose:
-      - 25575
+      - 2222
     # Make the minecraft server port public
     ports:
-      - 25565:25565
+      - 19132:19132/udp
     environment:
-      # Enable RCON
-      ENABLE_RCON: "TRUE"
-      # Server Settings
-      TYPE: "FABRIC"
+      # Enable SSH
+      ENABLE_SSH: "TRUE"
+      # Server settings
       EULA: "TRUE"
-      MAX_PLAYERS: 6
-      VIEW_DISTANCE: 20
-      LEVEL: "PublicSMP"
-      MOTD: "Public SMP Server"
-      MEMORY: "2G"
+      LEVEL_NAME: ${LEVEL_NAME:-PublicSMP}
     volumes:
-      - minecraft-server-data:/data
-    restart: unless-stopped
+      - bedrock-server-data:/data
+    stdin_open: true
+    tty: true
 
   restore:
     image: kaiede/minecraft-bedrock-backup
@@ -47,26 +47,26 @@ services:
     volumes:
       - ./config.yml:/config/config.yml:ro
       - minecraft-server-backups:/data:ro
-      - minecraft-server-data:/server
+      - bedrock-server-data:/server
     stdin_open: true
     tty: true
 
 volumes:
   # Allows backup to store persistent configuration for itself
   minecraft-backup:
-  
+
   # Volume for backup data.
   minecraft-server-backups:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ${BEDROCKIFIER_BACKUPS_DIR:-/opt/minecraft/backups}
+      device: ${BEDROCKIFIER_BACKUPS_DIR:-${PWD}/data/backups}
 
   # Minecraft Server Data
-  minecraft-server-data:
+  bedrock-server-data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ${MINECRAFT_SERVER_DATA_DIR:-/opt/minecraft/public}
+      device: ${MINECRAFT_SERVER_DATA_DIR:-${PWD}/data/public}

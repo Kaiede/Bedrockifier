@@ -44,6 +44,7 @@ public final class BackupService {
 
     typealias ServiceContext = BasicRequestContext
 
+    private static let defaultSleepInterval = Duration.seconds(600)
     public static let logger = Logger(label: "bedrockifier.service")
     private static let backupPriority = TaskPriority.background
 
@@ -197,23 +198,7 @@ public final class BackupService {
             }
         }
 
-        let mainTask = Task(priority: BackupService.backupPriority) {
-            try await runIntervalBackups()
-        }
-
-        let interruptSource = DispatchSource.makeSignalSource(signal: SIGINT, queue: .global())
-        interruptSource.setEventHandler {
-            BackupService.logger.warning("Received SIGINT")
-            mainTask.cancel()
-        }
-
-        let termSource = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .global())
-        termSource.setEventHandler {
-            BackupService.logger.warning("Received SIGTERM")
-            mainTask.cancel()
-        }
-
-        try await mainTask.value
+        try await runIntervalBackupsOrSleep()
     }
 
     private func connectContainers() async throws {
@@ -245,16 +230,17 @@ public final class BackupService {
         }
     }
 
-    private func runIntervalBackups() async throws {
-        guard let interval = try getBackupInterval() else {
-            BackupService.logger.error("Unable to Parse Backup Interval")
-            throw ServiceError.noBackupInterval
-        }
-
-        BackupService.logger.info("Backup Interval: \(interval) seconds")
-        let timer = AsyncTimerSequence(interval: .seconds(interval), clock: .continuous)
-        for await _ in timer {
-            await self.backupActor.backupAllContainers(isDaily: false)
+    private func runIntervalBackupsOrSleep() async throws {
+        if let interval = try? getBackupInterval() {
+            BackupService.logger.info("Backup Interval: \(interval) seconds")
+            let timer = AsyncTimerSequence(interval: .seconds(interval), clock: .continuous)
+            for await _ in timer {
+                await self.backupActor.backupAllContainers(isDaily: false)
+            }
+        } else {
+            repeat {
+                try await Task.sleep(for: BackupService.defaultSleepInterval)
+            } while !Task.isCancelled
         }
     }
 

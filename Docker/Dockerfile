@@ -4,7 +4,13 @@ ARG swift_image=swift:6.3.3
 FROM $swift_image AS builder
 WORKDIR /project
 
-ADD . /project
+# Resolve Packages First
+COPY Package.swift ./
+RUN swift package resolve
+
+# Build
+COPY Sources/ ./Sources/
+COPY Tests/   ./Tests/
 RUN swift build -c release
 
 ###### DEPENDENCY FETCHER
