@@ -22,6 +22,10 @@ schedule:
   daily: 01:00
   onLastLogout: true
   minInterval: 4h
+  # Pause at startup for 60s for the server to be fully available,
+  # and then kick off an initial backup.
+  startupDelay: 60s
+  runInitialBackup: true
 trim:
   # Keep all backups for the last two days (today and yesterday)
   # Keep at least one backup for the last 14 days

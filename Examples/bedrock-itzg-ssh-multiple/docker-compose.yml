@@ -4,8 +4,12 @@ services:
     restart: always
     # Make sure the minecraft images start before the backup
     depends_on:
-      - "public"
-      - "private"
+      public:
+        condition: service_healthy
+        restart: true
+      private:
+        condition: service_healthy
+        restart: true
     environment:
       # Local timezone to reduce confusion
       TZ: ${TZ:-America/Los_Angeles}
@@ -88,14 +92,14 @@ services:
 volumes:
   # Allows backup to store persistent configuration for itself
   minecraft-backup:
-  
+
   # Volume for backup data.
   minecraft-server-backups:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ${BEDROCKIFIER_BACKUPS_DIR:-/opt/minecraft/backups}
+      device: ${BEDROCKIFIER_BACKUPS_DIR:-${PWD}/data/backups}
 
   # Private/Internal Server Data
   minecraft-private-data:
@@ -103,7 +107,7 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: ${PRIVATE_SERVER_DATA_DIR:-/opt/bedrock/private}
+      device: ${PRIVATE_SERVER_DATA_DIR:-${PWD}/data/private}
 
   # Public Server Data
   minecraft-public-data:
@@ -111,4 +115,4 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: ${PUBLIC_SERVER_DATA_DIR:-/opt/bedrock/public}
+      device: ${PUBLIC_SERVER_DATA_DIR:-${PWD}/data/public}
