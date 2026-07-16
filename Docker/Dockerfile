@@ -5,7 +5,7 @@ FROM $swift_image AS builder
 WORKDIR /project
 
 # Resolve Packages First
-COPY Package.swift Package.resolved ./
+COPY Package.swift ./
 RUN swift package resolve
 
 # Build
