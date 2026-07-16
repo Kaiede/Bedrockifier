@@ -11,8 +11,7 @@ containerPath=$(which container)
 if [[ "$podmanPath" != "" ]]; then
     echo "Using Podman."
     toolPath=$podmanPath
-fi
-if [[ "$containerPath" != "" ]]; then
+elif [[ "$containerPath" != "" ]]; then
     echo "Using Apple Containers."
     toolPath=$containerPath
 fi
