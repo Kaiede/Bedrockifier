@@ -20,7 +20,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-log.git", from: "1.14.0"),
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.101.2"),
         .package(url: "https://github.com/apple/swift-nio-ssh.git", from: "0.14.0"),
-        .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.25.0"),
+        .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.25.1"),
         .package(url: "https://github.com/jpsim/Yams.git", from: "6.2.2"),
         .package(url: "https://github.com/Kaiede/PTYKit.git", branch: "master"),
         .package(url: "https://github.com/vapor/console-kit.git", from: "4.16.0"),
