@@ -10,6 +10,10 @@ on:
     types:
       - published
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   docker_tag: ${{ github.event_name != 'release' && 'test' || 'latest' }}
 
