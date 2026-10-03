@@ -53,7 +53,7 @@ extension Bedrockifier {
         var host: String = "127.0.0.1"
 
         @Option(help: "Port to call (default = 8080)")
-        var port: Int = 8080
+        var port: Int = Int(ProcessInfo.processInfo.environment["HTTP_PORT"] ?? "8080") ?? 8080
 
         @Option(help: "Path to call (default = /start-backup)")
         var path: String = "/start-backup"

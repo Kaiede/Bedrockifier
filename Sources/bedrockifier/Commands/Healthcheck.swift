@@ -42,7 +42,7 @@ extension Bedrockifier {
         var host: String = "localhost"
 
         @Option(help: "Port to ping (default = 8080)")
-        var port: Int = 8080
+        var port: Int = Int(ProcessInfo.processInfo.environment["HTTP_PORT"] ?? "8080") ?? 8080
 
         @Option(help: "Path to ping (default = /health)")
         var path: String = "/health"
