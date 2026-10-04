@@ -84,7 +84,7 @@ public final class BackupService {
         let router = Router(context: BasicRequestContext.self)
         self.configureRouter(router)
 
-        let httpPort = Int(ProcessInfo.processInfo.environment["HTTP_PORT"] ?? "8080") ?? 8080
+        let httpPort = config.httpPort ?? environment.httpPort
         let application = Application(
             router: router,
             configuration: .init(
