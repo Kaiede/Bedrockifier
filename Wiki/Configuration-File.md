@@ -117,3 +117,8 @@ This functionality may break trimming of backups if it causes the service to no 
 * `chown`: This sets the owner and group on backed up mcworld files. It works much like the `chown` command's argument, but only accepts ids, not names. **Using this requires the service to run as root which is not recommended.**
 
 * `permissions`: Sets unix permissions for the backed up files. This is the standard POSIX bitmask in string form.
+
+### HTTP Port
+By default the service will run an http service for commands at port 8080. This port can be changed by setting the below.
+
+* `httpPort`: Can be set to desired value for http port.
