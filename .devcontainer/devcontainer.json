@@ -4,7 +4,7 @@
     "customizations": {
         "vscode": {
             "extensions": [
-                "sswg.swift-lang"
+                "swiftlang.swift-vscode"
             ],
             "settings": {
                 "lldb.library": "/usr/lib/liblldb.so"
