@@ -50,6 +50,9 @@ public struct EnvironmentConfig {
     public let restoreOwner: String?
     public let restoreMask: String?
 
+    // http settings
+    public let httpPort: Int
+
     // Deprecated Settings
     public let backupInterval: String?
     public let listenerReconnectInterval: String?
@@ -72,6 +75,9 @@ public struct EnvironmentConfig {
         // Restore Settings
         self.restoreOwner = ProcessInfo.processInfo.environment["RESTORE_OWNER"]
         self.restoreMask = ProcessInfo.processInfo.environment["RESTORE_MASK"]
+
+        // http Settings
+        self.httpPort = Int(ProcessInfo.processInfo.environment["HTTP_PORT"] ?? "8080") ?? 8080
 
         // Deprecated Settings
         self.backupInterval = ProcessInfo.processInfo.environment["BACKUP_INTERVAL"]

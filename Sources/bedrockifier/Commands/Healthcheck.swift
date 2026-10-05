@@ -31,6 +31,8 @@ import FoundationNetworking
 import ArgumentParser
 import ConsoleKitTerminal
 
+import BedrockifierLib
+
 extension Bedrockifier {
     struct Healthcheck: AsyncParsableCommand {
         static let configuration = CommandConfiguration(
@@ -38,11 +40,17 @@ extension Bedrockifier {
             abstract: "Pings the running service's health endpoint."
         )
 
+        @Option(help: "Path to the config file")
+        var configPath: String?
+
+        @Option(name: .shortAndLong, help: "Folder to read config from")
+        var configFolder: String?
+
         @Option(help: "Host to ping (default = localhost)")
         var host: String = "localhost"
 
-        @Option(help: "Port to ping (default = 8080)")
-        var port: Int = 8080
+        @Option(help: "Port to ping (defaults to user configured port or 8080)")
+        var port: Int?
 
         @Option(help: "Path to ping (default = /health)")
         var path: String = "/health"
@@ -52,11 +60,19 @@ extension Bedrockifier {
 
         func run() async throws {
             let terminal = initializeTerminal()
+            let environment = EnvironmentConfig()
+            let configUri = Bedrockifier.getConfigFileUrl(
+                environment: environment, 
+                configPath: configPath, 
+                configFolder: configFolder
+            )
+            let loadedConfig = try? BackupConfig.getYaml(from: configUri)
+            let httpPort = port ?? loadedConfig?.httpPort ?? environment.httpPort
 
             var components = URLComponents()
             components.scheme = "http"
             components.host = host
-            components.port = port
+            components.port = httpPort
             components.path = path.hasPrefix("/") ? path : "/\(path)"
 
             guard let url = components.url else {

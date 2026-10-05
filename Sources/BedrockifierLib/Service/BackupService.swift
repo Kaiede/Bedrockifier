@@ -84,10 +84,11 @@ public final class BackupService {
         let router = Router(context: BasicRequestContext.self)
         self.configureRouter(router)
 
+        let httpPort = config.httpPort ?? environment.httpPort
         let application = Application(
             router: router,
             configuration: .init(
-                address: .hostname("0.0.0.0", port: 8080),
+                address: .hostname("0.0.0.0", port: httpPort),
                 serverName: "Bedrockifier"
             ),
             logger: BackupService.logger

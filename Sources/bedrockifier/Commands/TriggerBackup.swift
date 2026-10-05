@@ -52,8 +52,8 @@ extension Bedrockifier {
         @Option(help: "Host to call (default = 127.0.0.1)")
         var host: String = "127.0.0.1"
 
-        @Option(help: "Port to call (default = 8080)")
-        var port: Int = 8080
+        @Option(help: "Port to call (defaults to user configured port or 8080)")
+        var port: Int?
 
         @Option(help: "Path to call (default = /start-backup)")
         var path: String = "/start-backup"
@@ -70,6 +70,10 @@ extension Bedrockifier {
                 configFolder: configFolder
             )
             let configDir = URL(fileURLWithPath: configFolder ?? environment.configDirectory)
+
+            let loadedConfig = try? BackupConfig.getYaml(from: configUri)
+
+            let httpPort = port ?? loadedConfig?.httpPort ?? environment.httpPort
 
             let tokenUrl: URL
             if let tokenPath {
@@ -92,7 +96,7 @@ extension Bedrockifier {
                 throw ExitCode.failure
             }
 
-            let (url, request) = try makeRequest(terminal: terminal, token: trimmedToken)
+            let (url, request) = try makeRequest(terminal: terminal, token: trimmedToken, targetingPort: httpPort)
             let response: URLResponse
             do {
                 (_, response) = try await URLSession.shared.data(for: request)
@@ -119,11 +123,11 @@ extension Bedrockifier {
             throw ExitCode.failure
         }
 
-        private func makeRequest(terminal: Terminal, token: String) throws -> (URL, URLRequest) {
+        private func makeRequest(terminal: Terminal, token: String, targetingPort: Int) throws -> (URL, URLRequest) {
             var components = URLComponents()
             components.scheme = "http"
             components.host = host
-            components.port = port
+            components.port = targetingPort
             components.path = path.hasPrefix("/") ? path : "/\(path)"
 
             guard let url = components.url else {
