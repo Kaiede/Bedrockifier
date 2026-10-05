@@ -49,7 +49,7 @@ extension Bedrockifier {
         @Option(help: "Host to ping (default = localhost)")
         var host: String = "localhost"
 
-        @Option(help: "Port to ping (default = 8080)")
+        @Option(help: "Port to ping (defaults to user configured port or 8080)")
         var port: Int?
 
         @Option(help: "Path to ping (default = /health)")
@@ -67,7 +67,7 @@ extension Bedrockifier {
                 configFolder: configFolder
             )
             let loadedConfig = try? BackupConfig.getYaml(from: configUri)
-            let httpPort = loadedConfig?.httpPort ?? environment.httpPort
+            let httpPort = port ?? loadedConfig?.httpPort ?? environment.httpPort
 
             var components = URLComponents()
             components.scheme = "http"

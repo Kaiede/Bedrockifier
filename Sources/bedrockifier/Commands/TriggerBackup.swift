@@ -52,7 +52,7 @@ extension Bedrockifier {
         @Option(help: "Host to call (default = 127.0.0.1)")
         var host: String = "127.0.0.1"
 
-        @Option(help: "Port to call (default = 8080)")
+        @Option(help: "Port to call (defaults to user configured port or 8080)")
         var port: Int?
 
         @Option(help: "Path to call (default = /start-backup)")
@@ -73,7 +73,7 @@ extension Bedrockifier {
 
             let loadedConfig = try? BackupConfig.getYaml(from: configUri)
 
-            let httpPort = loadedConfig?.httpPort ?? environment.httpPort
+            let httpPort = port ?? loadedConfig?.httpPort ?? environment.httpPort
 
             let tokenUrl: URL
             if let tokenPath {
