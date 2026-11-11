@@ -13,8 +13,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        swift-version: [6.3.3]
-        os: [ubuntu-latest]
+        swift-version: [6.4.2]
+        os: [ubuntu-24.04]
 
     steps:
     - name: Install Swift
