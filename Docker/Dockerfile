@@ -1,7 +1,8 @@
 ARG swift_image=swift:6.4.2
 
 ###### BUILDER
-FROM $swift_image AS builder
+# Noble is required to keep the linter plugin happy for now.
+FROM $swift_image-noble AS builder
 WORKDIR /project
 
 # Resolve Packages First
