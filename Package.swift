@@ -25,7 +25,7 @@ let package = Package(
         .package(url: "https://github.com/Kaiede/PTYKit.git", branch: "master"),
         .package(url: "https://github.com/vapor/console-kit.git", from: "4.16.2"),
         .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins.git", from: "0.65.1"),
-        .package(url: "https://github.com/weichsel/ZIPFoundation.git", from: "0.9.20")
+        .package(url: "https://github.com/weichsel/ZIPFoundation.git", from: "0.9.21")
     ],
     targets: [
         .executableTarget(
